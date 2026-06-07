@@ -7,12 +7,15 @@ import {
 } from '@/components/ui';
 import ContactForm from '@/components/ContactForm';
 import { company } from '@/lib/site';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata = {
-  title: 'Track Your Transfer | World Direct Link',
-  description:
-    'Check the status of a transfer using your transaction ID, or contact us toll-free for help.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('services/track');
+  return cmsMetadata(page, {
+    title: 'Track Your Transfer | World Direct Link',
+    description: 'Check the status of a transfer using your transaction ID, or contact us toll-free for help.',
+  });
+}
 
 export default function TrackPage() {
   return (

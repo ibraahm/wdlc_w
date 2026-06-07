@@ -1,4 +1,3 @@
-import type { Metadata } from 'next';
 import {
   Section,
   PageHero,
@@ -9,12 +8,15 @@ import {
   ButtonOnDark,
 } from '@/components/ui';
 import ContactForm from '@/components/ContactForm';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata: Metadata = {
-  title: 'Become a WDL Agent | Agents & Partners',
-  description:
-    'Partner with World Direct Link to offer money transfer services. Earn commissions, serve your community, and get full compliance support and training.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('agents/become-an-agent');
+  return cmsMetadata(page, {
+    title: 'Become a WDL Agent | World Direct Link',
+    description: 'Partner with World Direct Link to offer money transfer services. Earn commissions, serve your community, and get full compliance support and training.',
+  });
+}
 
 export default function BecomeAnAgentPage() {
   return (

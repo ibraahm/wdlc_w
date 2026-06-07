@@ -6,12 +6,15 @@ import {
   Callout,
   Card,
 } from '@/components/ui';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata = {
-  title: 'Company Overview | World Direct Link',
-  description:
-    'World Direct Link, Corp. is a privately held, FinCEN-registered money services business and licensed money transmitter founded in Georgia in 1999.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('about/company');
+  return cmsMetadata(page, {
+    title: 'Company Overview | World Direct Link',
+    description: 'World Direct Link, Corp. is a privately held, FinCEN-registered money services business and licensed money transmitter founded in Georgia in 1999.',
+  });
+}
 
 export default function CompanyOverviewPage() {
   return (

@@ -7,12 +7,15 @@ import {
   CtaBand,
   ButtonOnDark,
 } from '@/components/ui';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata = {
-  title: 'Our Services | World Direct Link',
-  description:
-    'World Direct Link makes it simple to support family abroad. Choose the payout method that works best for your recipient: cash pickup, bank deposit, or mobile wallet.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('services');
+  return cmsMetadata(page, {
+    title: 'Our Services | World Direct Link',
+    description: 'World Direct Link makes it simple to support family abroad. Choose the payout method that works best for your recipient: cash pickup, bank deposit, or mobile wallet.',
+  });
+}
 
 export default function ServicesPage() {
   return (

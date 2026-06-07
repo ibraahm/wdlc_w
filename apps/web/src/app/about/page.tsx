@@ -8,12 +8,15 @@ import {
   CtaBand,
   ButtonOnDark,
 } from '@/components/ui';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata = {
-  title: 'About Us | World Direct Link',
-  description:
-    'World Direct Link is a licensed money transmitter connecting immigrant, refugee, and diaspora communities with their families since 1999.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('about');
+  return cmsMetadata(page, {
+    title: 'About Us | World Direct Link',
+    description: 'World Direct Link is a licensed money transmitter connecting immigrant, refugee, and diaspora communities with their families since 1999.',
+  });
+}
 
 export default function AboutPage() {
   return (

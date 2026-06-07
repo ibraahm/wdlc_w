@@ -7,13 +7,16 @@ import {
   Callout,
   CtaBand,
   ButtonOnDark,
-} from '@/components/ui';
+} from ‘@/components/ui’;
+import { getCmsPage, cmsMetadata } from ‘@/lib/cms’;
 
-export const metadata = {
-  title: 'Send Money | World Direct Link',
-  description:
-    'Send money quickly and affordably at any authorized WDL agent. Bring a valid photo ID and your recipient’s details to complete the transfer in person.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage(‘services/send-money’);
+  return cmsMetadata(page, {
+    title: ‘Send Money | World Direct Link’,
+    description: ‘Send money quickly and affordably at any authorized WDL agent. Bring a valid photo ID and your recipient’s details to complete the transfer in person.’,
+  });
+}
 
 export default function SendMoneyPage() {
   return (

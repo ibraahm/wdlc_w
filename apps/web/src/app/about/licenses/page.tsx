@@ -1,11 +1,14 @@
 import { PageHero, Section, Callout, ButtonPrimary } from '@/components/ui';
 import { licenses } from '@/lib/site';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata = {
-  title: 'Licenses & Registrations | World Direct Link',
-  description:
-    'World Direct Link, Corp. is a FinCEN-registered Money Services Business and state-licensed money transmitter. NMLS ID 1119263.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('about/licenses');
+  return cmsMetadata(page, {
+    title: 'Licenses & Registrations | World Direct Link',
+    description: 'World Direct Link, Corp. is a FinCEN-registered Money Services Business and state-licensed money transmitter. NMLS ID 1119263.',
+  });
+}
 
 export default function LicensesPage() {
   return (

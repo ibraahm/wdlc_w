@@ -6,12 +6,15 @@ import {
   CtaBand,
   ButtonOnDark,
 } from '@/components/ui';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata = {
-  title: 'Mobile Wallet Payout | World Direct Link',
-  description:
-    'In selected destinations, recipients can receive funds to a supported mobile wallet through our correspondent network.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('services/mobile-wallet');
+  return cmsMetadata(page, {
+    title: 'Mobile Wallet Payout | World Direct Link',
+    description: 'In selected destinations, recipients can receive funds to a supported mobile wallet through our correspondent network.',
+  });
+}
 
 export default function MobileWalletPage() {
   return (

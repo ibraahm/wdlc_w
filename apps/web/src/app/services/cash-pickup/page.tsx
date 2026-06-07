@@ -6,12 +6,15 @@ import {
   CtaBand,
   ButtonOnDark,
 } from '@/components/ui';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata = {
-  title: 'Cash Pickup | World Direct Link',
-  description:
-    'Recipients can collect funds in U.S. dollars at a participating payout location in our correspondent network.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('services/cash-pickup');
+  return cmsMetadata(page, {
+    title: 'Cash Pickup | World Direct Link',
+    description: 'Recipients can collect funds in U.S. dollars at a participating payout location in our correspondent network.',
+  });
+}
 
 export default function CashPickupPage() {
   return (

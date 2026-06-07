@@ -1,12 +1,14 @@
-import type { Metadata } from 'next';
 import { Section, PageHero, SectionHeading, Card, Callout, ButtonPrimary } from '@/components/ui';
 import { company, PORTAL_URL } from '@/lib/site';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata: Metadata = {
-  title: 'Agent Resources | Agents & Partners',
-  description:
-    'Tools and documents authorized World Direct Link agents need to stay compliant and serve customers well.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('agents/resources');
+  return cmsMetadata(page, {
+    title: 'Agent Resources | World Direct Link',
+    description: 'Tools and documents authorized World Direct Link agents need to stay compliant and serve customers well.',
+  });
+}
 
 export default function AgentResourcesPage() {
   return (

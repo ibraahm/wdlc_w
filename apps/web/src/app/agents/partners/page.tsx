@@ -1,11 +1,13 @@
-import type { Metadata } from 'next';
 import { Section, PageHero, SectionHeading, Card, CtaBand, ButtonOnDark } from '@/components/ui';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata: Metadata = {
-  title: 'Our Partners | Agents & Partners',
-  description:
-    'World Direct Link works with established correspondent partners, led by Taaj Financial Services, to deliver funds reliably worldwide.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('agents/partners');
+  return cmsMetadata(page, {
+    title: 'Our Partners | World Direct Link',
+    description: 'World Direct Link works with established correspondent partners, led by Taaj Financial Services, to deliver funds reliably worldwide.',
+  });
+}
 
 export default function PartnersPage() {
   return (

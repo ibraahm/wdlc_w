@@ -2,12 +2,15 @@ import Link from 'next/link';
 import { PageHero, Section, SectionHeading } from '@/components/ui';
 import ContactForm, { type Field } from '@/components/ContactForm';
 import { company } from '@/lib/site';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata = {
-  title: 'Contact Us | World Direct Link',
-  description:
-    'Contact World Direct Link corporate headquarters in Stone Mountain, Georgia, or send us a message.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('about/contact');
+  return cmsMetadata(page, {
+    title: 'Contact Us | World Direct Link',
+    description: 'Contact World Direct Link corporate headquarters in Stone Mountain, Georgia, or send us a message.',
+  });
+}
 
 const fields: Field[] = [
   { name: 'name', label: 'Name', type: 'text', required: true },

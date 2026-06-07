@@ -7,12 +7,15 @@ import {
   CtaBand,
   ButtonOnDark,
 } from '@/components/ui';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata = {
-  title: 'Our Network | World Direct Link',
-  description:
-    'World Direct Link delivers funds through a vetted foreign correspondent network led by Taaj Financial Services, reaching families around the world.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('about/network');
+  return cmsMetadata(page, {
+    title: 'Our Network | World Direct Link',
+    description: 'World Direct Link delivers funds through a vetted foreign correspondent network led by Taaj Financial Services, reaching families around the world.',
+  });
+}
 
 export default function NetworkPage() {
   return (
