@@ -41,10 +41,12 @@ function normaliseType(type: string): string {
   return LEGACY_TYPE_MAP[key] ?? type;
 }
 
-function parsePuckData(raw: string | undefined): PuckData | null {
+function parsePuckData(raw: unknown): PuckData | null {
   if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw);
+    // The API may hand us blocks already deserialized (an array/object) or as a
+    // JSON string. Normalise to a value either way.
+    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
     // Puck format has a `content` array and `root` key
     if (parsed && typeof parsed === 'object' && Array.isArray(parsed.content)) return parsed as PuckData;
     // Legacy blocks array format: [{ type, data }] — convert to Puck content
