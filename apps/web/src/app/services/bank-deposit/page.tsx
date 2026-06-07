@@ -12,7 +12,7 @@ export async function generateMetadata() {
   const page = await getCmsPage('services/bank-deposit');
   return cmsMetadata(page, {
     title: 'Bank Deposit | World Direct Link',
-    description: 'Where available through our correspondent network, funds can be delivered directly to a recipient's bank account.',
+    description: 'Where available through our correspondent network, funds can be delivered directly to a recipient\'s bank account.',
   });
 }
 
