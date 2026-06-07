@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { apiListPages } from '@/lib/api';
 import StatusBadge from '@/components/StatusBadge';
+import DeletePageButton from '@/components/DeletePageButton';
 import { publishPageAction, unpublishPageAction, deletePageAction } from '@/lib/actions';
 
 export default async function PagesPage() {
@@ -134,24 +135,14 @@ export default async function PagesPage() {
                       )}
 
                       {canDelete && (
-                        <form
+                        <DeletePageButton
+                          slug={page.slug}
+                          title={page.title}
                           action={async () => {
                             'use server';
                             await deletePageAction(page.slug);
                           }}
-                        >
-                          <button
-                            type="submit"
-                            className="text-sm text-red-500 hover:text-red-700"
-                            onClick={(e) => {
-                              if (!confirm(`Delete "${page.title}"? This cannot be undone.`)) {
-                                e.preventDefault();
-                              }
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </form>
+                        />
                       )}
                     </div>
                   </td>
