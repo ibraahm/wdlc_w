@@ -5,14 +5,14 @@ import {
   Callout,
   CtaBand,
   ButtonOnDark,
-} from ‘@/components/ui’;
-import { getCmsPage, cmsMetadata } from ‘@/lib/cms’;
+} from '@/components/ui';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
 export async function generateMetadata() {
-  const page = await getCmsPage(‘services/bank-deposit’);
+  const page = await getCmsPage('services/bank-deposit');
   return cmsMetadata(page, {
-    title: ‘Bank Deposit | World Direct Link’,
-    description: ‘Where available through our correspondent network, funds can be delivered directly to a recipient’s bank account.’,
+    title: 'Bank Deposit | World Direct Link',
+    description: 'Where available through our correspondent network, funds can be delivered directly to a recipient's bank account.',
   });
 }
 

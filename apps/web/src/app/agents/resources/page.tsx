@@ -43,7 +43,7 @@ export default async function AgentResourcesPage() {
       </Section>
 
       <Section>
-        <SectionHeading title="What you’ll find" />
+        <SectionHeading title="What you'll find" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card title="BSA/AML Agent Compliance Program & acknowledgement forms" />
           <Card title="Training materials and annual refresher quiz" />

@@ -75,7 +75,7 @@ export default async function BecomeAnAgentPage() {
               title:
                 "Business license / occupancy permit, or property-use documentation (lease, ownership, or alternate proof such as a current utility bill or insurance in the agent's or business's name)",
             },
-            { title: 'Copy of a current driver’s license or valid government-issued photo ID' },
+            { title: 'Copy of a current driver's license or valid government-issued photo ID' },
           ]}
         />
       </Section>
