@@ -18,6 +18,10 @@ export default async function ProtectedLayout({ children }: { children: React.Re
           World Direct Link
           <span>Agent Training Portal</span>
         </div>
+        <nav className="portal-topbar-nav">
+          <a href="/dashboard">Dashboard</a>
+          <a href="/profile">My Listing</a>
+        </nav>
         <div className="portal-topbar-right">
           <span className="portal-topbar-user">{agent.firstName} {agent.lastName}</span>
           <form action={logoutAction}>

@@ -20,7 +20,7 @@ async function main() {
   const settings: Record<string, unknown> = {
     siteName: 'World Direct Link',
     legalName: 'World Direct Link, Corp.',
-    tagline: 'Your Direct Link Home.',
+    tagline: 'A Quarter Century of Financial',
     nmlsId: '1119263',
     description: 'Licensed money transmitter headquartered in Stone Mountain, Georgia, serving diaspora families with reliable in-person money transfer services.',
   };
@@ -51,9 +51,10 @@ async function main() {
 
   const agents = await prisma.navItem.create({ data: { label: 'Agents & Partners', href: '/agents/become-an-agent', location: 'HEADER', order: 3 } });
   await prisma.navItem.createMany({ data: [
-    { label: 'Become an Agent', href: '/agents/become-an-agent', parentId: agents.id, location: 'HEADER', order: 1 },
-    { label: 'Agent Resources', href: '/agents/resources', parentId: agents.id, location: 'HEADER', order: 2 },
-    { label: 'Partners', href: '/agents/partners', parentId: agents.id, location: 'HEADER', order: 3 },
+    { label: 'Find an Agent', href: '/find-an-agent', parentId: agents.id, location: 'HEADER', order: 1 },
+    { label: 'Become an Agent', href: '/agents/become-an-agent', parentId: agents.id, location: 'HEADER', order: 2 },
+    { label: 'Agent Resources', href: '/agents/resources', parentId: agents.id, location: 'HEADER', order: 3 },
+    { label: 'Partners', href: '/agents/partners', parentId: agents.id, location: 'HEADER', order: 4 },
   ]});
 
   const compliance = await prisma.navItem.create({ data: { label: 'Compliance', href: '/compliance', location: 'HEADER', order: 4 } });
@@ -117,6 +118,35 @@ async function main() {
     });
   }
   console.log(`Seeded ${pages.length} pages`);
+
+  // ── Demo agent locations for the public "Find an Agent" map ────────────────
+  const agentPassword = await bcrypt.hash('AgentPass123!', 12);
+  const demoAgents = [
+    { email: 'atlanta.agent@example.com', firstName: 'Amina', lastName: 'Hassan', businessName: 'Direct Link Money Center — Atlanta', addressLine: '5405 Memorial Dr, Suite A104', city: 'Stone Mountain', state: 'GA', zip: '30083', publicPhone: '404-909-8197', latitude: 33.8053, longitude: -84.1702 },
+    { email: 'columbus.agent@example.com', firstName: 'Ahmed', lastName: 'Yusuf', businessName: 'Horn Express Services', addressLine: '1234 Cleveland Ave', city: 'Columbus', state: 'OH', zip: '43211', publicPhone: '614-555-0142', latitude: 39.9612, longitude: -82.9988 },
+    { email: 'minneapolis.agent@example.com', firstName: 'Fatima', lastName: 'Omar', businessName: 'Cedar Riverside Remittance', addressLine: '500 Cedar Ave S', city: 'Minneapolis', state: 'MN', zip: '55454', publicPhone: '612-555-0188', latitude: 44.9685, longitude: -93.2473 },
+    { email: 'seattle.agent@example.com', firstName: 'Khalid', lastName: 'Ali', businessName: 'Rainier Money Transfer', addressLine: '7301 Martin Luther King Jr Way S', city: 'Seattle', state: 'WA', zip: '98118', publicPhone: '206-555-0173', latitude: 47.5392, longitude: -122.2876 },
+  ];
+
+  for (const a of demoAgents) {
+    await prisma.agentUser.upsert({
+      where: { email: a.email },
+      update: {
+        businessName: a.businessName, addressLine: a.addressLine, city: a.city,
+        state: a.state, zip: a.zip, publicPhone: a.publicPhone,
+        latitude: a.latitude, longitude: a.longitude, showOnMap: true, status: 'ACTIVE',
+        active: true, emailVerified: true,
+      },
+      create: {
+        email: a.email, passwordHash: agentPassword, firstName: a.firstName, lastName: a.lastName,
+        status: 'ACTIVE', active: true, emailVerified: true,
+        businessName: a.businessName, addressLine: a.addressLine, city: a.city, state: a.state,
+        zip: a.zip, country: 'USA', publicPhone: a.publicPhone,
+        latitude: a.latitude, longitude: a.longitude, showOnMap: true,
+      },
+    });
+  }
+  console.log(`Seeded ${demoAgents.length} demo agent locations`);
 }
 
 main()

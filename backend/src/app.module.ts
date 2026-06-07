@@ -9,6 +9,7 @@ import { AuditModule } from './audit/audit.module';
 import { AdminAuthModule } from './admin-auth/admin-auth.module';
 import { PortalAuthModule } from './portal-auth/portal-auth.module';
 import { CmsModule } from './cms/cms.module';
+import { AgentsModule } from './agents/agents.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { CmsModule } from './cms/cms.module';
     AdminAuthModule,
     PortalAuthModule,
     CmsModule,
+    AgentsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

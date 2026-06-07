@@ -184,6 +184,56 @@ export async function apiSetUserActive(
 }
 
 // ---------------------------------------------------------------------------
+// Agents
+// ---------------------------------------------------------------------------
+
+export type AdminAgent = {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  status: string;
+  active: boolean;
+  emailVerified: boolean;
+  businessName: string | null;
+  city: string | null;
+  state: string | null;
+  showOnMap: boolean;
+  latitude: number | null;
+  longitude: number | null;
+  createdAt: string;
+};
+
+export async function apiListAgents(accessToken: string): Promise<AdminAgent[]> {
+  const res = await authFetch('/admin/agents', accessToken);
+  return handleResponse<AdminAgent[]>(res);
+}
+
+export async function apiSetAgentStatus(
+  accessToken: string,
+  id: string,
+  status: string,
+): Promise<{ id: string; status: string; showOnMap: boolean }> {
+  const res = await authFetch(`/admin/agents/${id}/status`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+  return handleResponse(res);
+}
+
+export async function apiSetAgentVisibility(
+  accessToken: string,
+  id: string,
+  showOnMap: boolean,
+): Promise<{ id: string; status: string; showOnMap: boolean }> {
+  const res = await authFetch(`/admin/agents/${id}/visibility`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify({ showOnMap }),
+  });
+  return handleResponse(res);
+}
+
+// ---------------------------------------------------------------------------
 // Pages
 // ---------------------------------------------------------------------------
 

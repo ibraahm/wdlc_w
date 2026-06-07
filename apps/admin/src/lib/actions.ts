@@ -19,6 +19,8 @@ import {
   apiDeleteNavItem,
   apiCreateUser,
   apiSetUserActive,
+  apiSetAgentStatus,
+  apiSetAgentVisibility,
 } from './api';
 import { getSession, setSessionCookies, clearSessionCookies } from './auth';
 
@@ -303,6 +305,36 @@ export async function createUserAction(
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Create failed' };
+  }
+}
+
+export async function setAgentStatusAction(
+  id: string,
+  status: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiSetAgentStatus(session.accessToken, id, status);
+    revalidatePath('/agents');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
+  }
+}
+
+export async function setAgentVisibilityAction(
+  id: string,
+  showOnMap: boolean,
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiSetAgentVisibility(session.accessToken, id, showOnMap);
+    revalidatePath('/agents');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
   }
 }
 

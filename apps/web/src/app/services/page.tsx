@@ -72,7 +72,7 @@ export default async function ServicesPage() {
       </Section>
 
       <CtaBand heading="Find an agent to get started">
-        <ButtonOnDark href="/agents/become-an-agent">Find an Agent</ButtonOnDark>
+        <ButtonOnDark href="/find-an-agent">Find an Agent</ButtonOnDark>
       </CtaBand>
         </>
       )}

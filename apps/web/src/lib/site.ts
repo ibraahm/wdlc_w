@@ -4,7 +4,7 @@
 export const company = {
   legalName: 'World Direct Link, Corp.',
   shortName: 'World Direct Link',
-  tagline: 'Your Direct Link Home.',
+  tagline: 'A Quarter Century of Financial',
   nmls: '1119263',
   foundedDisplay: 'November 2, 1999',
   foundedState: 'Georgia',
@@ -60,6 +60,7 @@ export const headerNav: NavNode[] = [
     label: 'Agents & Partners',
     href: '/agents/become-an-agent',
     children: [
+      { label: 'Find an Agent', href: '/find-an-agent' },
       { label: 'Become an Agent', href: '/agents/become-an-agent' },
       { label: 'Agent Resources', href: '/agents/resources' },
       { label: 'Partners', href: '/agents/partners' },

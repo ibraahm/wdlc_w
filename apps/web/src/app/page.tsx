@@ -23,7 +23,7 @@ export default function HomePage() {
             Serving communities across 20 states.
           </p>
           <div className="hero-actions reveal">
-            <Link className="button button-gold" href="/agents/become-an-agent">Find an Agent</Link>
+            <Link className="button button-gold" href="/find-an-agent">Find an Agent</Link>
             <Link className="button button-ghost" href="/services/send-money">How It Works</Link>
           </div>
           <div className="metric-row reveal">
@@ -230,7 +230,7 @@ export default function HomePage() {
               Toll-free: <a href={`tel:${company.tollFree}`} style={{ color: 'var(--gold)' }}>{company.tollFree}</a>
             </p>
             <div style={{ marginTop: '32px', display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
-              <Link className="button button-gold" href="/agents/become-an-agent">Find an Agent</Link>
+              <Link className="button button-gold" href="/find-an-agent">Find an Agent</Link>
               <Link className="button button-ghost" href="/support/contact">Contact Support</Link>
             </div>
           </div>

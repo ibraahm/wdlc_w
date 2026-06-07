@@ -155,6 +155,9 @@ a { color: inherit; text-decoration: none; }
   color: var(--ivory);
 }
 .portal-topbar-brand span { color: var(--gold); margin-left: 6px; font-size: 0.52rem; letter-spacing: 0.24em; text-transform: uppercase; vertical-align: middle; }
+.portal-topbar-nav { display: flex; align-items: center; gap: 20px; margin-left: auto; margin-right: 24px; }
+.portal-topbar-nav a { color: rgba(250, 250, 247, 0.7); font-size: 0.85rem; text-decoration: none; transition: color 0.15s; }
+.portal-topbar-nav a:hover { color: var(--gold); }
 .portal-topbar-right { display: flex; align-items: center; gap: 16px; }
 .portal-topbar-user { color: rgba(250, 250, 247, 0.55); font-size: 0.82rem; }
 .portal-logout-btn {

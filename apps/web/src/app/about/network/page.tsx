@@ -81,7 +81,7 @@ export default async function NetworkPage() {
       </Section>
 
       <CtaBand heading="Find an Agent Near You">
-        <ButtonOnDark href="/agents/become-an-agent">Find an Agent</ButtonOnDark>
+        <ButtonOnDark href="/find-an-agent">Find an Agent</ButtonOnDark>
       </CtaBand>
         </>
       )}

@@ -31,7 +31,7 @@ export default async function AboutPage() {
             title="About World Direct Link"
             subtitle="Connecting communities with the people they love since 1999."
           >
-            <ButtonOnDark href="/agents/become-an-agent">Find an Agent</ButtonOnDark>
+            <ButtonOnDark href="/find-an-agent">Find an Agent</ButtonOnDark>
             <Link
               href="/services/send-money"
               className="inline-flex items-center justify-center px-6 py-3 rounded-md border border-white/40 text-white font-semibold hover:bg-white/10 transition-colors"
@@ -79,7 +79,7 @@ export default async function AboutPage() {
           </Section>
 
           <CtaBand heading="Ready to send money home?">
-            <ButtonOnDark href="/agents/become-an-agent">Find an Agent</ButtonOnDark>
+            <ButtonOnDark href="/find-an-agent">Find an Agent</ButtonOnDark>
             <Link
               href="/services/send-money"
               className="inline-flex items-center justify-center px-6 py-3 rounded-md border border-white/50 text-white font-semibold hover:bg-white/10 transition-colors"

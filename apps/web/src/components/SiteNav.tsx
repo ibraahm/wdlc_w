@@ -41,7 +41,7 @@ export default async function SiteNav() {
           )}
         </nav>
 
-        <Link className="nav-cta" href="/agents/become-an-agent">Find an Agent</Link>
+        <Link className="nav-cta" href="/find-an-agent">Find an Agent</Link>
 
         <button
           className="menu-button"

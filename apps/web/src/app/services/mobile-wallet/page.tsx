@@ -44,7 +44,7 @@ export default async function MobileWalletPage() {
       </Section>
 
       <CtaBand heading="Find an Agent">
-        <ButtonOnDark href="/agents/become-an-agent">Find an Agent</ButtonOnDark>
+        <ButtonOnDark href="/find-an-agent">Find an Agent</ButtonOnDark>
       </CtaBand>
         </>
       )}
