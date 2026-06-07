@@ -7,23 +7,29 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { addDays, addMinutes } from 'date-fns';
+import { addMinutes } from 'date-fns';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { MailService } from '../common/mail.service';
+import { RefreshTokenService } from '../common/refresh-token.service';
 import { generateToken, hashToken } from '../common/crypto.util';
+import { isLocked, nextFailedAttempt, CLEAR_LOCKOUT } from '../common/lockout.util';
 import {
   BCRYPT_ROUNDS,
-  MAX_FAILED_ATTEMPTS,
-  LOCKOUT_MINUTES,
   ADMIN_AT_EXPIRES,
   ADMIN_RT_DAYS,
   PASSWORD_RESET_MINUTES,
 } from '../common/security.constants';
-import {
-  AdminCreateUserDto,
-  AdminChangePasswordDto,
-} from './dto/admin-auth.dto';
+import { AdminCreateUserDto } from './dto/admin-auth.dto';
+
+const OWNER_KEY = 'adminId';
+const adminSecret = () => process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET;
+const publicUser = (u: { id: string; email: string; name: string; role: string }) => ({
+  id: u.id,
+  email: u.email,
+  name: u.name,
+  role: u.role,
+});
 
 @Injectable()
 export class AdminAuthService {
@@ -32,120 +38,76 @@ export class AdminAuthService {
     private jwt: JwtService,
     private audit: AuditService,
     private mail: MailService,
+    private tokens: RefreshTokenService,
   ) {}
 
-  // ── Login ────────────────────────────────────────────────────────────────
+  private get rtDelegate() {
+    return this.prisma.adminRefreshToken;
+  }
+
+  // ── Login ──────────────────────────────────────────────────────────────────
   async login(email: string, password: string, ip?: string, ua?: string) {
     const user = await this.prisma.adminUser.findUnique({ where: { email } });
 
-    // Locked?
-    if (user?.lockedUntil && user.lockedUntil > new Date()) {
-      await this.audit.log({ action: 'admin.login.locked', adminId: user.id, ip, userAgent: ua });
+    if (isLocked(user?.lockedUntil)) {
+      await this.audit.log({ action: 'admin.login.locked', adminId: user!.id, ip, userAgent: ua });
       throw new UnauthorizedException('Account temporarily locked — try again later');
     }
 
-    const valid = user && user.active && (await bcrypt.compare(password, user.passwordHash));
-
-    if (!valid) {
+    if (!user || !user.active || !(await bcrypt.compare(password, user.passwordHash))) {
       if (user) {
-        const attempts = user.failedAttempts + 1;
-        const lockUntil = attempts >= MAX_FAILED_ATTEMPTS ? addMinutes(new Date(), LOCKOUT_MINUTES) : null;
-        await this.prisma.adminUser.update({
-          where: { id: user.id },
-          data: { failedAttempts: attempts, lockedUntil: lockUntil },
-        });
+        await this.prisma.adminUser.update({ where: { id: user.id }, data: nextFailedAttempt(user.failedAttempts) });
         await this.audit.log({ action: 'admin.login.failed', adminId: user.id, ip, userAgent: ua });
       }
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Reset failed counter on success
-    await this.prisma.adminUser.update({
-      where: { id: user.id },
-      data: { failedAttempts: 0, lockedUntil: null, lastLoginAt: new Date() },
-    });
-
-    const tokens = await this.issueTokens(user.id, user.email, user.role, ip, ua);
+    await this.prisma.adminUser.update({ where: { id: user.id }, data: { ...CLEAR_LOCKOUT, lastLoginAt: new Date() } });
     await this.audit.log({ action: 'admin.login.success', adminId: user.id, ip, userAgent: ua });
-    return {
-      ...tokens,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role },
-    };
+    return { ...(await this.issueTokens(user, ip, ua)), user: publicUser(user) };
   }
 
-  // ── Token issuance ───────────────────────────────────────────────────────
-  private async issueTokens(userId: string, email: string, role: string, ip?: string, ua?: string) {
+  // ── Token issuance ──────────────────────────────────────────────────────────
+  private async issueTokens(user: { id: string; email: string; role: string }, ip?: string, ua?: string) {
     const accessToken = await this.jwt.signAsync(
-      { sub: userId, email, role, portal: 'admin' },
-      { expiresIn: ADMIN_AT_EXPIRES, secret: process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET },
+      { sub: user.id, email: user.email, role: user.role, portal: 'admin' },
+      { expiresIn: ADMIN_AT_EXPIRES, secret: adminSecret() },
     );
-
-    const rawRefresh = generateToken();
-    const tokenHash = hashToken(rawRefresh);
-    await this.prisma.adminRefreshToken.create({
-      data: {
-        tokenHash,
-        adminId: userId,
-        expiresAt: addDays(new Date(), ADMIN_RT_DAYS),
-        ip,
-        userAgent: ua,
-      },
-    });
-
-    return { accessToken, refreshToken: rawRefresh };
+    const refreshToken = await this.tokens.issue(this.rtDelegate, OWNER_KEY, user.id, ADMIN_RT_DAYS, ip, ua);
+    return { accessToken, refreshToken };
   }
 
-  // ── Refresh (rotate) ─────────────────────────────────────────────────────
+  // ── Refresh (rotate) ────────────────────────────────────────────────────────
   async refresh(rawToken: string, ip?: string, ua?: string) {
-    const tokenHash = hashToken(rawToken);
-    const stored = await this.prisma.adminRefreshToken.findUnique({ where: { tokenHash } });
-
-    if (!stored || stored.revokedAt || stored.expiresAt < new Date()) {
-      // Possible token reuse — revoke ALL tokens for this user (if we can find them)
-      if (stored) {
-        await this.prisma.adminRefreshToken.updateMany({
-          where: { adminId: stored.adminId, revokedAt: null },
-          data: { revokedAt: new Date() },
-        });
-        await this.audit.log({ action: 'admin.token.reuse_detected', adminId: stored.adminId, ip });
+    const outcome = await this.tokens.rotate(this.rtDelegate, OWNER_KEY, rawToken);
+    if (!outcome.valid) {
+      if (outcome.reuseDetected) {
+        await this.audit.log({ action: 'admin.token.reuse_detected', adminId: outcome.ownerId, ip });
       }
       throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    // Revoke the used token (rotation)
-    await this.prisma.adminRefreshToken.update({
-      where: { tokenHash },
-      data: { revokedAt: new Date() },
-    });
-
-    const user = await this.prisma.adminUser.findUnique({ where: { id: stored.adminId } });
+    const user = await this.prisma.adminUser.findUnique({ where: { id: outcome.ownerId! } });
     if (!user || !user.active) throw new UnauthorizedException('Account inactive');
-
-    const tokens = await this.issueTokens(user.id, user.email, user.role, ip, ua);
-    return { ...tokens, user: { id: user.id, email: user.email, name: user.name, role: user.role } };
+    return { ...(await this.issueTokens(user, ip, ua)), user: publicUser(user) };
   }
 
-  // ── Logout (revoke token) ────────────────────────────────────────────────
+  // ── Logout ──────────────────────────────────────────────────────────────────
   async logout(rawToken: string, adminId: string) {
-    const tokenHash = hashToken(rawToken);
-    await this.prisma.adminRefreshToken.updateMany({
-      where: { tokenHash, adminId },
-      data: { revokedAt: new Date() },
-    });
+    await this.tokens.revoke(this.rtDelegate, OWNER_KEY, rawToken, adminId);
     await this.audit.log({ action: 'admin.logout', adminId });
     return { ok: true };
   }
 
-  // ── Forgot / Reset password ──────────────────────────────────────────────
+  // ── Forgot / Reset password ──────────────────────────────────────────────────
   async forgotPassword(email: string) {
     const user = await this.prisma.adminUser.findUnique({ where: { email } });
-    // Always return success — don't reveal whether email exists
-    if (!user || !user.active) return { ok: true };
+    if (!user || !user.active) return { ok: true }; // don't reveal account existence
 
     const raw = generateToken(32);
     await this.prisma.adminUser.update({
       where: { id: user.id },
-      data: { resetToken: hashToken(raw), resetTokenExpiry: addMinutes(new Date(), PASSWORD_RESET_MINUTES) } as any,
+      data: { resetToken: hashToken(raw), resetTokenExpiry: addMinutes(new Date(), PASSWORD_RESET_MINUTES) },
     });
     this.mail.sendPasswordReset(email, raw, 'admin');
     await this.audit.log({ action: 'admin.password_reset.requested', adminId: user.id });
@@ -153,25 +115,17 @@ export class AdminAuthService {
   }
 
   async resetPassword(token: string, newPassword: string) {
-    const hashed = hashToken(token);
-    const user = await this.prisma.adminUser.findFirst({
-      where: { resetToken: hashed } as any,
-    });
-    if (!user) throw new BadRequestException('Invalid or expired reset token');
-
-    const expiry = (user as any).resetTokenExpiry as Date | null;
-    if (!expiry || expiry < new Date()) throw new BadRequestException('Reset token has expired');
+    const user = await this.prisma.adminUser.findUnique({ where: { resetToken: hashToken(token) } });
+    if (!user || !user.resetTokenExpiry || user.resetTokenExpiry < new Date()) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
 
     const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
     await this.prisma.adminUser.update({
       where: { id: user.id },
-      data: { passwordHash, resetToken: null, resetTokenExpiry: null, failedAttempts: 0, lockedUntil: null } as any,
+      data: { passwordHash, resetToken: null, resetTokenExpiry: null, ...CLEAR_LOCKOUT },
     });
-    // Revoke all existing refresh tokens after password reset
-    await this.prisma.adminRefreshToken.updateMany({
-      where: { adminId: user.id, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
+    await this.tokens.revokeAll(this.rtDelegate, OWNER_KEY, user.id);
     await this.audit.log({ action: 'admin.password_reset.completed', adminId: user.id });
     return { ok: true };
   }
@@ -183,15 +137,12 @@ export class AdminAuthService {
     }
     const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
     await this.prisma.adminUser.update({ where: { id: adminId }, data: { passwordHash } });
-    await this.prisma.adminRefreshToken.updateMany({
-      where: { adminId, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
+    await this.tokens.revokeAll(this.rtDelegate, OWNER_KEY, adminId);
     await this.audit.log({ action: 'admin.password_change', adminId });
     return { ok: true };
   }
 
-  // ── User management (SUPER_ADMIN only) ───────────────────────────────────
+  // ── User management (SUPER_ADMIN only) ────────────────────────────────────────
   async createUser(dto: AdminCreateUserDto, actorId: string) {
     const existing = await this.prisma.adminUser.findUnique({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Email already in use');
@@ -207,7 +158,7 @@ export class AdminAuthService {
       entityId: user.id,
       after: { email: user.email, role: user.role },
     });
-    return { id: user.id, email: user.email, name: user.name, role: user.role };
+    return publicUser(user);
   }
 
   async listUsers() {

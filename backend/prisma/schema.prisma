@@ -22,6 +22,8 @@ model AdminUser {
   active          Boolean   @default(true)
   mfaEnabled      Boolean   @default(false)
   mfaSecret       String?
+  resetToken        String?   @unique
+  resetTokenExpiry  DateTime?
   lastLoginAt     DateTime?
   failedAttempts  Int       @default(0)
   lockedUntil     DateTime?
@@ -62,9 +64,9 @@ model AgentUser {
   active              Boolean   @default(false)  // false until email verified
   status              String    @default("PENDING")
   emailVerified       Boolean   @default(false)
-  emailVerifyToken    String?
+  emailVerifyToken    String?   @unique
   emailVerifyExpiry   DateTime?
-  resetToken          String?
+  resetToken          String?   @unique
   resetTokenExpiry    DateTime?
   failedAttempts      Int       @default(0)
   lockedUntil         DateTime?
