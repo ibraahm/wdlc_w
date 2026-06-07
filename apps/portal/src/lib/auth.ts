@@ -49,8 +49,11 @@ export async function setSessionCookies(
 ): Promise<void> {
   const cookieStore = cookies();
 
+  const secure = process.env.NODE_ENV === 'production';
+
   cookieStore.set(PAT, accessToken, {
     httpOnly: true,
+    secure,
     sameSite: 'lax',
     path: '/',
     maxAge: ACCESS_MAX_AGE,
@@ -58,13 +61,15 @@ export async function setSessionCookies(
 
   cookieStore.set(PRT, refreshToken, {
     httpOnly: true,
+    secure,
     sameSite: 'lax',
     path: '/',
     maxAge: REFRESH_MAX_AGE,
   });
 
   cookieStore.set(PAGENT, JSON.stringify(agent), {
-    httpOnly: false,
+    httpOnly: true,
+    secure,
     sameSite: 'lax',
     path: '/',
     maxAge: ACCESS_MAX_AGE,

@@ -18,7 +18,7 @@ export class PageController {
   }
 
   @Public()
-  @Get('published/:slug')
+  @Get('published/:slug(*)')
   getPublished(@Param('slug') slug: string) {
     return this.pages.findBySlug(slug, true);
   }
@@ -28,34 +28,36 @@ export class PageController {
     return this.pages.findAll(status);
   }
 
-  @Get(':slug')
-  get(@Param('slug') slug: string) {
-    return this.pages.findBySlug(slug);
-  }
-
   @Post()
   create(@Body() dto: CreatePageDto, @CurrentUser() user: AuthUser) {
     return this.pages.create(dto, user.id);
   }
 
-  @Patch(':slug')
-  update(@Param('slug') slug: string, @Body() dto: UpdatePageDto, @CurrentUser() user: AuthUser) {
-    return this.pages.update(slug, dto, user.id);
-  }
-
-  @Patch(':slug/publish')
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')
+  @Patch(':slug(*)/publish')
   publish(@Param('slug') slug: string, @CurrentUser() user: AuthUser) {
     return this.pages.publish(slug, user.id, user.role!);
   }
 
-  @Patch(':slug/unpublish')
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')
+  @Patch(':slug(*)/unpublish')
   unpublish(@Param('slug') slug: string, @CurrentUser() user: AuthUser) {
     return this.pages.unpublish(slug, user.id);
   }
 
+  @Patch(':slug(*)')
+  update(@Param('slug') slug: string, @Body() dto: UpdatePageDto, @CurrentUser() user: AuthUser) {
+    return this.pages.update(slug, dto, user.id);
+  }
+
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER')
-  @Delete(':slug')
+  @Delete(':slug(*)')
   remove(@Param('slug') slug: string, @CurrentUser() user: AuthUser) {
     return this.pages.remove(slug, user.id, user.role!);
+  }
+
+  @Get(':slug(*)')
+  get(@Param('slug') slug: string) {
+    return this.pages.findBySlug(slug);
   }
 }

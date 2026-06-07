@@ -15,7 +15,11 @@ export class MailService {
 
   private async sendRaw(to: string, subject: string, html: string) {
     if (isDev()) {
-      this.logger.log(`[MAIL DEV] To: ${to} | Subject: ${subject}\n${html.replace(/<[^>]+>/g, '')}`);
+      const linkMatch = html.match(/href="(https?:\/\/[^"]+)"/);
+      const link = linkMatch ? linkMatch[1] : '(no link found)';
+      this.logger.log(
+        `\n${'─'.repeat(60)}\n📧  DEV MAIL\n    To:      ${to}\n    Subject: ${subject}\n    Link:    ${link}\n${'─'.repeat(60)}`,
+      );
       return;
     }
     await sgMail.send({

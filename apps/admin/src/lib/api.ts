@@ -306,3 +306,28 @@ export async function apiDeleteSetting(accessToken: string, key: string): Promis
   const res = await authFetch(`/cms/settings/${key}`, accessToken, { method: 'DELETE' });
   await handleResponse<void>(res);
 }
+
+// ---------------------------------------------------------------------------
+// Audit
+// ---------------------------------------------------------------------------
+
+export type AuditLogEntry = {
+  id: string;
+  action: string;
+  entity?: string;
+  entityId?: string;
+  createdAt: string;
+  admin?: { email: string; name: string } | null;
+  agent?: { email: string; firstName: string; lastName: string } | null;
+};
+
+export async function apiGetAuditLog(
+  accessToken: string,
+  params?: { entity?: string; take?: number },
+): Promise<{ items: AuditLogEntry[]; total: number }> {
+  const qs = new URLSearchParams();
+  if (params?.entity) qs.set('entity', params.entity);
+  if (params?.take) qs.set('take', String(params.take));
+  const res = await authFetch(`/admin/audit${qs.size ? '?' + qs : ''}`, accessToken);
+  return handleResponse<{ items: AuditLogEntry[]; total: number }>(res);
+}

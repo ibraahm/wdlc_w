@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, OnModuleInit } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -11,14 +11,18 @@ export interface AdminJwtPayload {
 }
 
 @Injectable()
-export class AdminJwtStrategy extends PassportStrategy(Strategy, 'admin-jwt') {
+export class AdminJwtStrategy extends PassportStrategy(Strategy, 'admin-jwt') implements OnModuleInit {
   constructor(private prisma: PrismaService) {
+    const secret = process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET;
+    if (!secret) throw new Error('ADMIN_JWT_SECRET (or JWT_SECRET) env var is required');
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET || 'insecure-admin-secret',
+      secretOrKey: secret,
     });
   }
+
+  onModuleInit() {}
 
   async validate(payload: AdminJwtPayload) {
     // Reject tokens that were not issued for the admin portal

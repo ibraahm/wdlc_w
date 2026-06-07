@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, OnModuleInit } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -10,14 +10,18 @@ export interface AgentJwtPayload {
 }
 
 @Injectable()
-export class PortalJwtStrategy extends PassportStrategy(Strategy, 'portal-jwt') {
+export class PortalJwtStrategy extends PassportStrategy(Strategy, 'portal-jwt') implements OnModuleInit {
   constructor(private prisma: PrismaService) {
+    const secret = process.env.AGENT_JWT_SECRET || process.env.JWT_SECRET;
+    if (!secret) throw new Error('AGENT_JWT_SECRET (or JWT_SECRET) env var is required');
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.AGENT_JWT_SECRET || process.env.JWT_SECRET || 'insecure-agent-secret',
+      secretOrKey: secret,
     });
   }
+
+  onModuleInit() {}
 
   async validate(payload: AgentJwtPayload) {
     if (payload.portal !== 'agent') {
