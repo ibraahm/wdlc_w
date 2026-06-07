@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import dynamic from 'next/dynamic';
 import SiteNav from '@/components/SiteNav';
 import Footer from '@/components/Footer';
 import RecaptchaProvider from '@/components/RecaptchaProvider';
-import DesignEffects from '@/components/DesignEffects';
 import { company } from '@/lib/site';
+
+const DesignEffects = dynamic(() => import('@/components/DesignEffects'), { ssr: false });
 
 export const metadata: Metadata = {
   title: {
