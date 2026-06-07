@@ -7,12 +7,8 @@ import { loginAction } from '@/lib/actions';
 function SubmitButton() {
   const { pending } = useFormStatus();
   return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-semibold text-white bg-primary hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-    >
-      {pending ? 'Signing in…' : 'Sign in'}
+    <button type="submit" disabled={pending} className="auth-submit">
+      {pending ? 'Signing in…' : 'Sign In'}
     </button>
   );
 }
@@ -22,61 +18,30 @@ export default function LoginPage() {
 
   return (
     <>
-      <h2 className="text-xl font-semibold text-gray-900 mb-6">Sign in to your account</h2>
+      <p className="auth-title">Sign in to your account</p>
 
-      {state?.error && (
-        <div className="mb-4 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
-          {state.error}
-        </div>
-      )}
+      {state?.error && <div className="auth-error" style={{ marginBottom: '20px' }}>{state.error}</div>}
 
-      <form action={action} className="space-y-5">
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-            Email address
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            autoComplete="email"
-            required
-            className="block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            placeholder="you@example.com"
-          />
+      <form action={action} className="auth-form">
+        <div className="auth-field">
+          <label htmlFor="email" className="auth-label">Email address</label>
+          <input id="email" name="email" type="email" autoComplete="email" required className="auth-input" placeholder="you@example.com" />
         </div>
 
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-              Password
-            </label>
-            <Link
-              href="/forgot-password"
-              className="text-xs text-primary hover:underline font-medium"
-            >
-              Forgot password?
-            </Link>
+        <div className="auth-field">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <label htmlFor="password" className="auth-label">Password</label>
+            <Link href="/forgot-password" className="auth-link" style={{ fontSize: '0.72rem' }}>Forgot password?</Link>
           </div>
-          <input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            className="block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            placeholder="••••••••••"
-          />
+          <input id="password" name="password" type="password" autoComplete="current-password" required className="auth-input" placeholder="••••••••••" />
         </div>
 
         <SubmitButton />
       </form>
 
-      <p className="mt-6 text-center text-sm text-gray-500">
+      <p className="auth-footer">
         Don&apos;t have an account?{' '}
-        <Link href="/signup" className="font-medium text-primary hover:underline">
-          Create account
-        </Link>
+        <Link href="/signup" className="auth-link">Create account</Link>
       </p>
     </>
   );

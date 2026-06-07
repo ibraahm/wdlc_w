@@ -1,48 +1,41 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-// ── Container ────────────────────────────────────────────────────────────────
+// ── Shell container ───────────────────────────────────────────────────────────
 export function Container({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${className}`}>{children}</div>;
+  return <div className={`shell ${className}`}>{children}</div>;
 }
 
-// ── Page hero ────────────────────────────────────────────────────────────────
+// ── Page hero (interior pages) ───────────────────────────────────────────────
 export function PageHero({
   eyebrow,
   title,
   subtitle,
-  tone = 'default',
   children,
 }: {
   eyebrow?: string;
   title: string;
   subtitle?: string;
-  tone?: 'default' | 'gold' | 'green' | 'red';
+  tone?: string; // kept for API compat, unused
   children?: ReactNode;
 }) {
-  const grad = {
-    default: 'from-primary to-primary-strong',
-    gold: 'from-[#8b681d] to-secondary',
-    green: 'from-[#16745f] to-primary',
-    red: 'from-[#a73535] to-primary',
-  }[tone];
-
   return (
-    <section className={`relative overflow-hidden bg-gradient-to-br ${grad} text-white`}>
-      <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        <div className="absolute -top-32 -right-32 w-96 h-96 bg-white opacity-5 rounded-full blur-3xl" />
-        <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-white opacity-5 rounded-full blur-3xl" />
-      </div>
-      <Container className="relative py-16 sm:py-20 lg:py-24">
+    <section className="page-hero">
+      <div className="shell">
         {eyebrow && (
-          <p className="text-white/70 font-bold uppercase tracking-widest text-xs mb-4">{eyebrow}</p>
+          <div className="eyebrow">
+            <span />
+            <p>{eyebrow}</p>
+          </div>
         )}
-        <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight max-w-3xl">
-          {title}
-        </h1>
-        {subtitle && <p className="mt-5 text-lg sm:text-xl text-white/80 max-w-2xl leading-relaxed">{subtitle}</p>}
-        {children && <div className="mt-8 flex flex-wrap gap-4">{children}</div>}
-      </Container>
+        <h1>{title}</h1>
+        {subtitle && <p>{subtitle}</p>}
+        {children && (
+          <div style={{ marginTop: '32px', display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+            {children}
+          </div>
+        )}
+      </div>
     </section>
   );
 }
@@ -52,14 +45,17 @@ export function Section({
   children,
   className = '',
   muted = false,
+  dark = false,
 }: {
   children: ReactNode;
   className?: string;
   muted?: boolean;
+  dark?: boolean;
 }) {
+  const base = dark ? 'dark-section' : muted ? 'page-section page-section-muted' : 'page-section';
   return (
-    <section className={`py-12 sm:py-16 ${muted ? 'bg-[#f5f7fa]' : 'bg-white'} ${className}`}>
-      <Container>{children}</Container>
+    <section className={`${base} ${className}`}>
+      <div className="shell">{children}</div>
     </section>
   );
 }
@@ -68,7 +64,7 @@ export function Section({
 type BtnProps = { href: string; children: ReactNode; external?: boolean; className?: string };
 
 export function ButtonPrimary({ href, children, external, className = '' }: BtnProps) {
-  const cls = `inline-flex items-center justify-center px-6 py-3 rounded-lg bg-primary text-white font-bold hover:bg-primary-strong transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${className}`;
+  const cls = `button button-gold ${className}`;
   return external ? (
     <a href={href} className={cls} target="_blank" rel="noopener noreferrer">{children}</a>
   ) : (
@@ -77,7 +73,7 @@ export function ButtonPrimary({ href, children, external, className = '' }: BtnP
 }
 
 export function ButtonSecondary({ href, children, external, className = '' }: BtnProps) {
-  const cls = `inline-flex items-center justify-center px-6 py-3 rounded-lg bg-white text-primary font-bold border-2 border-primary hover:bg-accent transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${className}`;
+  const cls = `button button-ghost ${className}`;
   return external ? (
     <a href={href} className={cls} target="_blank" rel="noopener noreferrer">{children}</a>
   ) : (
@@ -85,9 +81,8 @@ export function ButtonSecondary({ href, children, external, className = '' }: Bt
   );
 }
 
-// White button on dark hero
 export function ButtonOnDark({ href, children, external, className = '' }: BtnProps) {
-  const cls = `inline-flex items-center justify-center px-6 py-3 rounded-lg bg-white text-primary font-bold hover:bg-accent transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-primary ${className}`;
+  const cls = `button button-gold ${className}`;
   return external ? (
     <a href={href} className={cls} target="_blank" rel="noopener noreferrer">{children}</a>
   ) : (
@@ -95,17 +90,41 @@ export function ButtonOnDark({ href, children, external, className = '' }: BtnPr
   );
 }
 
-// ── Headings ─────────────────────────────────────────────────────────────────
-export function SectionHeading({ title, subtitle, center = false }: { title: string; subtitle?: string; center?: boolean }) {
+// ── Section heading ───────────────────────────────────────────────────────────
+export function SectionHeading({
+  title,
+  subtitle,
+  center = false,
+  eyebrow,
+  dark = false,
+}: {
+  title: string;
+  subtitle?: string;
+  center?: boolean;
+  eyebrow?: string;
+  dark?: boolean;
+}) {
   return (
-    <div className={`${center ? 'text-center mx-auto' : ''} max-w-3xl mb-8`}>
-      <h2 className="text-2xl sm:text-3xl font-bold text-primary-strong">{title}</h2>
-      {subtitle && <p className="mt-3 text-lg text-muted">{subtitle}</p>}
+    <div style={{ textAlign: center ? 'center' : 'left', marginBottom: '48px' }}>
+      {eyebrow && (
+        <div className="eyebrow" style={{ justifyContent: center ? 'center' : 'flex-start' }}>
+          <span />
+          <p>{eyebrow}</p>
+        </div>
+      )}
+      <h2 style={{ color: dark ? 'var(--ivory)' : 'var(--navy)', fontSize: 'clamp(1.8rem, 3.5vw, 3rem)', marginTop: eyebrow ? '16px' : 0 }}>
+        {title}
+      </h2>
+      {subtitle && (
+        <p style={{ color: dark ? 'var(--muted-dark)' : 'var(--muted)', maxWidth: '540px', margin: center ? '12px auto 0' : '12px 0 0', fontWeight: 300, lineHeight: 1.85 }}>
+          {subtitle}
+        </p>
+      )}
     </div>
   );
 }
 
-// ── Card ─────────────────────────────────────────────────────────────────────
+// ── Card (light) ──────────────────────────────────────────────────────────────
 export function Card({
   title,
   children,
@@ -118,141 +137,133 @@ export function Card({
   icon?: ReactNode;
 }) {
   const inner = (
-    <div className="h-full bg-white border border-[#d9e0e8] rounded-xl p-6 shadow-sm hover:shadow-md hover:border-secondary/60 transition-all">
-      {icon && <div className="w-12 h-12 rounded-lg bg-[#fff4cc] text-primary flex items-center justify-center mb-4 font-bold text-xl">{icon}</div>}
-      <h3 className="text-lg font-bold text-primary-strong">{title}</h3>
-      {children && <div className="mt-2 text-muted text-sm leading-relaxed">{children}</div>}
+    <div className="card-light" style={{ height: '100%' }}>
+      {icon && (
+        <div style={{ width: '44px', height: '44px', background: 'rgba(200,150,12,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '20px', color: 'var(--gold)', fontSize: '1.2rem' }}>
+          {icon}
+        </div>
+      )}
+      <h3 style={{ fontFamily: 'var(--display)', fontWeight: 400, fontSize: '1.4rem', color: 'var(--navy)', margin: '0 0 10px' }}>{title}</h3>
+      {children && <div style={{ color: 'var(--muted)', fontSize: '0.88rem', lineHeight: 1.85, fontWeight: 300 }}>{children}</div>}
       {href && (
-        <span className="mt-4 inline-flex items-center text-primary font-semibold text-sm">
-          Learn more
-          <svg className="ml-1 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </span>
+        <div style={{ marginTop: '20px', color: 'var(--gold)', fontSize: '0.58rem', letterSpacing: '0.22em', textTransform: 'uppercase' }}>
+          Learn more →
+        </div>
       )}
     </div>
   );
-  return href ? <Link href={href} className="block h-full">{inner}</Link> : inner;
+  return href ? <Link href={href} style={{ display: 'block', height: '100%' }}>{inner}</Link> : inner;
 }
 
-// ── Callout / note ───────────────────────────────────────────────────────────
+// ── Callout ───────────────────────────────────────────────────────────────────
 export function Callout({ children, variant = 'gold' }: { children: ReactNode; variant?: 'gold' | 'info' | 'warning' | 'success' }) {
-  const styles = {
-    gold: 'border-l-4 border-secondary bg-[#fff6d8] text-primary-strong font-bold rounded-lg',
-    info: 'border border-accent bg-accent/50 text-primary-strong rounded-lg',
-    warning: 'border-l-4 border-[#a73535] bg-red-50 text-[#a73535] font-semibold rounded-lg',
-    success: 'border border-[#16745f] bg-green-50 text-[#16745f] rounded-lg',
-  }[variant];
-  return <div className={`p-4 text-sm leading-relaxed ${styles}`}>{children}</div>;
+  const cls = variant === 'gold' ? 'callout-gold' : variant === 'warning' ? 'callout-warning' : 'callout-info';
+  return <div className={cls}>{children}</div>;
 }
 
 // ── Checklist ────────────────────────────────────────────────────────────────
 export function Checklist({ items }: { items: ReactNode[] }) {
   return (
-    <ul className="space-y-3">
+    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
       {items.map((item, i) => (
-        <li key={i} className="flex items-start gap-3 p-4 border border-[#d9e0e8] rounded-lg bg-[#fbfcfd]">
-          <span className="flex-shrink-0 w-7 h-7 rounded-full bg-secondary flex items-center justify-center text-primary-strong font-black text-[11px]">
-            ✓
-          </span>
-          <span className="text-muted">{item}</span>
+        <li key={i} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', paddingBottom: '12px', borderBottom: '1px solid var(--smoke)' }}>
+          <span style={{ flexShrink: 0, width: '20px', height: '20px', background: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '11px', fontWeight: 700 }}>✓</span>
+          <span style={{ color: 'var(--charcoal)', fontSize: '0.9rem', lineHeight: 1.7, fontWeight: 300 }}>{item}</span>
         </li>
       ))}
     </ul>
   );
 }
 
-// ── Numbered steps ───────────────────────────────────────────────────────────
+// ── Numbered steps ────────────────────────────────────────────────────────────
 export function Steps({ items }: { items: { title: string; body?: ReactNode }[] }) {
   return (
-    <ol className="space-y-4">
+    <div className="timeline" style={{ marginTop: '20px' }}>
       {items.map((item, i) => (
-        <li key={i} className="flex gap-4 p-4 border border-[#d9e0e8] rounded-lg bg-[#fbfcfd]">
-          <span className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-white font-bold flex items-center justify-center text-sm">
-            {i + 1}
-          </span>
-          <div>
-            <p className="font-bold text-primary-strong">{item.title}</p>
-            {item.body && <p className="mt-1 text-muted text-sm leading-relaxed">{item.body}</p>}
-          </div>
-        </li>
+        <article key={i}>
+          <span>0{i + 1}</span>
+          <p><strong style={{ color: 'var(--navy)', fontWeight: 600, fontSize: '0.95rem' }}>{item.title}</strong></p>
+          {item.body && <p style={{ marginTop: '4px', color: 'var(--muted)', fontSize: '0.88rem' }}>{item.body}</p>}
+        </article>
       ))}
-    </ol>
+    </div>
   );
 }
 
-// ── Stat strip ───────────────────────────────────────────────────────────────
+// ── Stat strip ────────────────────────────────────────────────────────────────
 export function StatStrip({ stats }: { stats: { value: string; label: string }[] }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${stats.length}, minmax(0,1fr))`, gap: '1px', background: 'var(--smoke)' }}>
       {stats.map((s, i) => (
-        <div key={i} className="text-center p-6 bg-white border border-[#d9e0e8] rounded-xl shadow-sm">
-          <div className="text-xl font-black text-primary">{s.value}</div>
-          <div className="mt-1 text-sm text-muted">{s.label}</div>
+        <div key={i} style={{ background: 'var(--ivory)', padding: 'clamp(24px,4vw,40px)', textAlign: 'center' }}>
+          <div style={{ fontFamily: 'var(--display)', fontSize: '2.4rem', fontWeight: 300, color: 'var(--navy)', lineHeight: 1 }}>{s.value}</div>
+          <div style={{ marginTop: '8px', color: 'var(--gold)', fontSize: '0.56rem', letterSpacing: '0.24em', textTransform: 'uppercase' }}>{s.label}</div>
         </div>
       ))}
     </div>
   );
 }
 
-// ── Accordion (FAQ) — pure CSS via <details> ─────────────────────────────────
+// ── Accordion ────────────────────────────────────────────────────────────────
 export function Accordion({ items }: { items: { q: string; a: ReactNode }[] }) {
   return (
-    <div className="divide-y divide-[#d9e0e8] border border-[#d9e0e8] rounded-xl overflow-hidden">
+    <div style={{ borderTop: '1px solid var(--smoke)' }}>
       {items.map((item, i) => (
-        <details key={i} className="group bg-white">
-          <summary className="flex items-center justify-between cursor-pointer list-none px-5 py-4 font-bold text-primary-strong hover:bg-[#f5f7fa]">
+        <details key={i} style={{ borderBottom: '1px solid var(--smoke)' }}>
+          <summary style={{ padding: '20px 0', fontWeight: 500, color: 'var(--navy)', cursor: 'pointer', listStyle: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.95rem' }}>
             {item.q}
-            <svg className="w-5 h-5 text-muted group-open:rotate-180 transition-transform flex-shrink-0 ml-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
+            <span style={{ color: 'var(--gold)', fontSize: '1.2rem', lineHeight: 1 }}>+</span>
           </summary>
-          <div className="px-5 pb-4 text-muted text-sm leading-relaxed">{item.a}</div>
+          <div style={{ paddingBottom: '20px', color: 'var(--muted)', fontSize: '0.88rem', lineHeight: 1.85, fontWeight: 300 }}>{item.a}</div>
         </details>
       ))}
     </div>
   );
 }
 
-// ── Definition table (key/value facts) ───────────────────────────────────────
+// ── Fact table ────────────────────────────────────────────────────────────────
 export function FactTable({ rows }: { rows: { label: string; value: ReactNode }[] }) {
   return (
-    <dl className="border border-[#d9e0e8] rounded-xl overflow-hidden divide-y divide-[#d9e0e8]">
+    <dl style={{ borderTop: '1px solid var(--smoke)' }}>
       {rows.map((row, i) => (
-        <div key={i} className={`grid grid-cols-1 sm:grid-cols-3 gap-1 px-5 py-3 ${i % 2 === 0 ? 'bg-[#f5f7fa]' : 'bg-white'}`}>
-          <dt className="font-bold text-primary-strong">{row.label}</dt>
-          <dd className="sm:col-span-2 text-muted">{row.value}</dd>
+        <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px', padding: '16px 0', borderBottom: '1px solid var(--smoke)', background: i % 2 === 0 ? 'transparent' : 'rgba(200,150,12,0.03)' }}>
+          <dt style={{ fontWeight: 600, color: 'var(--navy)', fontSize: '0.88rem' }}>{row.label}</dt>
+          <dd style={{ margin: 0, color: 'var(--muted)', fontSize: '0.88rem', lineHeight: 1.7, fontWeight: 300 }}>{row.value}</dd>
         </div>
       ))}
     </dl>
   );
 }
 
-// ── CTA band ─────────────────────────────────────────────────────────────────
+// ── CTA band ──────────────────────────────────────────────────────────────────
 export function CtaBand({ heading, children }: { heading: string; children?: ReactNode }) {
   return (
-    <section className="bg-primary">
-      <Container className="py-14 text-center">
-        <h2 className="text-2xl sm:text-3xl font-extrabold text-white">{heading}</h2>
-        {children && <div className="mt-6 flex flex-wrap justify-center gap-4">{children}</div>}
-      </Container>
+    <section className="dark-section" style={{ textAlign: 'center' }}>
+      <div className="shell">
+        <h2 style={{ color: 'var(--ivory)', fontSize: 'clamp(2rem, 4vw, 3.6rem)' }}>{heading}</h2>
+        {children && (
+          <div style={{ marginTop: '40px', display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'center' }}>
+            {children}
+          </div>
+        )}
+      </div>
     </section>
   );
 }
 
-// ── Breadcrumb ───────────────────────────────────────────────────────────────
+// ── Breadcrumb ────────────────────────────────────────────────────────────────
 export function Breadcrumb({ items }: { items: { label: string; href?: string }[] }) {
   return (
-    <nav className="text-sm text-muted" aria-label="Breadcrumb">
-      <ol className="flex flex-wrap items-center gap-2">
+    <nav aria-label="Breadcrumb" style={{ marginBottom: '32px' }}>
+      <ol style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', listStyle: 'none', padding: 0, margin: 0 }}>
         {items.map((item, i) => (
-          <li key={i} className="flex items-center gap-2">
+          <li key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             {item.href ? (
-              <Link href={item.href} className="hover:text-primary">{item.label}</Link>
+              <Link href={item.href} style={{ color: 'var(--gold)', fontSize: '0.78rem', letterSpacing: '0.14em' }}>{item.label}</Link>
             ) : (
-              <span className="text-primary-strong font-medium">{item.label}</span>
+              <span style={{ color: 'var(--muted)', fontSize: '0.78rem' }}>{item.label}</span>
             )}
-            {i < items.length - 1 && <span aria-hidden="true">/</span>}
+            {i < items.length - 1 && <span style={{ color: 'var(--smoke)', fontSize: '0.7rem' }}>/</span>}
           </li>
         ))}
       </ol>
@@ -260,7 +271,7 @@ export function Breadcrumb({ items }: { items: { label: string; href?: string }[
   );
 }
 
-// ── Prose wrapper ────────────────────────────────────────────────────────────
+// ── Prose ─────────────────────────────────────────────────────────────────────
 export function Prose({ children }: { children: ReactNode }) {
-  return <div className="prose">{children}</div>;
+  return <div className="prose-content">{children}</div>;
 }

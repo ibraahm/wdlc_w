@@ -1,130 +1,263 @@
-import {
-  Container,
-  Section,
-  SectionHeading,
-  Card,
-  ButtonOnDark,
-  ButtonSecondary,
-  StatStrip,
-  Steps,
-  CtaBand,
-} from '@/components/ui';
-import { company } from '@/lib/site';
 import Link from 'next/link';
+import { company } from '@/lib/site';
 
 export default function HomePage() {
   return (
     <main>
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary to-primary-strong text-white">
-        <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-          <div className="absolute -top-32 -right-32 w-96 h-96 bg-white opacity-5 rounded-full blur-3xl" />
-          <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-white opacity-5 rounded-full blur-3xl" />
-        </div>
-        <Container className="relative py-20 sm:py-28 lg:py-32">
-          <div className="max-w-3xl">
-            <p className="text-white/70 font-semibold uppercase tracking-wider text-sm mb-4">
-              Connecting communities since 1999
-            </p>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight">
-              Your Direct Link Home.
-            </h1>
-            <p className="mt-6 text-lg sm:text-xl text-white/80 leading-relaxed">
-              Fast, affordable, and reliable money transfers for immigrant, refugee, and diaspora
-              families. Sending more than money — sending home.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-4">
-              <ButtonOnDark href="/agents/become-an-agent">Find an Agent</ButtonOnDark>
-              <Link
-                href="/services/send-money"
-                className="inline-flex items-center justify-center px-6 py-3 rounded-md border border-white/40 text-white font-semibold hover:bg-white/10 transition-colors"
-              >
-                Send Money
-              </Link>
+      {/* ── Hero ──────────────────────────────────────────────────────── */}
+      <section className="hero">
+        <div className="hero-media" data-parallax />
+        <div className="hero-shade" />
+        <div className="hero-content shell">
+          <div className="eyebrow reveal">
+            <span />
+            <p>Licensed Money Transmitter Since 1999</p>
+          </div>
+          <h1 className="hero-title reveal">
+            <span>Your Direct</span>
+            <span>Link</span>
+            <em>Home.</em>
+          </h1>
+          <p className="hero-copy reveal">
+            Fast, affordable, and reliable money transfers for immigrant, refugee, and diaspora families.
+            Serving communities across 20 states.
+          </p>
+          <div className="hero-actions reveal">
+            <Link className="button button-gold" href="/agents/become-an-agent">Find an Agent</Link>
+            <Link className="button button-ghost" href="/services/send-money">How It Works</Link>
+          </div>
+          <div className="metric-row reveal">
+            <div>
+              <strong>20+</strong>
+              <span>States Licensed</span>
+            </div>
+            <div>
+              <strong>1999</strong>
+              <span>Founded</span>
+            </div>
+            <div>
+              <strong>USD</strong>
+              <span>All Transfers</span>
+            </div>
+            <div>
+              <strong>NMLS</strong>
+              <span>#{company.nmls}</span>
             </div>
           </div>
-        </Container>
+        </div>
+        <div className="scroll-marker">
+          <span>Scroll</span>
+          <i />
+        </div>
       </section>
 
-      {/* Trust strip */}
-      <Section muted>
-        <StatStrip
-          stats={[
-            { value: 'Licensed in 20 states', label: 'State money transmitter licenses' },
-            { value: 'Since 1999', label: 'Trusted by diaspora communities' },
-            { value: 'Trusted network', label: 'Reliable correspondent payouts' },
-          ]}
-        />
-      </Section>
-
-      {/* Services */}
-      <Section>
-        <SectionHeading
-          title="One link. Every way to deliver."
-          subtitle="Choose the payout method that works best for your recipient. All transfers are initiated in person at an authorized WDL agent and delivered in U.S. dollars."
-          center
-        />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-4">
-          <Card title="Send Money" href="/services/send-money">Start a transfer at any authorized WDL agent.</Card>
-          <Card title="Cash Pickup" href="/services/cash-pickup">Recipients collect funds in USD at a payout location.</Card>
-          <Card title="Bank Deposit" href="/services/bank-deposit">Send directly to a recipient&apos;s bank account.</Card>
-          <Card title="Mobile Wallet" href="/services/mobile-wallet">Payout to a supported mobile wallet where available.</Card>
-        </div>
-      </Section>
-
-      {/* How it works */}
-      <Section muted>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-          <div>
-            <SectionHeading title="How money moves" subtitle="Three simple steps from here to home." />
-            <Steps
-              items={[
-                { title: 'You send.', body: 'Visit an authorized WDL agent and place your transfer in person.' },
-                { title: 'We route.', body: 'Your transfer is screened, processed, and routed through our correspondent network.' },
-                { title: 'They receive.', body: 'Your recipient collects funds via the available payout method at the destination.' },
-              ]}
-            />
+      {/* ── Intro split ───────────────────────────────────────────────── */}
+      <section className="split-section shell" id="intro">
+        <div className="image-frame reveal">
+          <div className="image-placeholder" />
+          <div className="floating-stat">
+            <strong>25+</strong>
+            <span>Years Serving</span>
           </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-8">
-            <h3 className="text-xl font-semibold text-gray-900">Why families choose us</h3>
-            <ul className="mt-4 space-y-3 text-gray-700">
-              <li className="flex gap-3"><span className="text-primary font-bold">·</span> Affordable pricing with full fee disclosure before you pay</li>
-              <li className="flex gap-3"><span className="text-primary font-bold">·</span> Reach to regions where traditional banking is limited</li>
-              <li className="flex gap-3"><span className="text-primary font-bold">·</span> Every transaction screened for your protection</li>
-              <li className="flex gap-3"><span className="text-primary font-bold">·</span> A team that understands diaspora communities</li>
-            </ul>
-            <div className="mt-6">
-              <ButtonSecondary href="/about">About World Direct Link</ButtonSecondary>
+        </div>
+        <div className="copy-column reveal">
+          <div className="eyebrow">
+            <span />
+            <p>About World Direct Link</p>
+          </div>
+          <h2>A trusted<br /><em>community link</em></h2>
+          <p>
+            World Direct Link, Corp. is a FinCEN-registered Money Services Business and
+            state-licensed money transmitter dedicated to connecting diaspora families with
+            fast, secure, and affordable transfers.
+          </p>
+          <p>
+            Every transaction is screened against OFAC lists regardless of amount —
+            because trust and compliance are not optional.
+          </p>
+          <div className="timeline">
+            <article>
+              <span>01</span>
+              <p>Visit any authorized WDL agent to start your transfer.</p>
+            </article>
+            <article>
+              <span>02</span>
+              <p>Your funds are screened, processed, and routed through our correspondent network.</p>
+            </article>
+            <article>
+              <span>03</span>
+              <p>Recipient collects via cash pickup, bank deposit, or mobile wallet.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Services dark grid ────────────────────────────────────────── */}
+      <section className="dark-section" id="services">
+        <div className="shell">
+          <div className="section-head reveal">
+            <div>
+              <div className="eyebrow">
+                <span />
+                <p>Transfer Services</p>
+              </div>
+              <h2>One link.<br /><em>Every way to deliver.</em></h2>
+            </div>
+            <p>
+              Choose the payout method that works best for your recipient.
+              All transfers are initiated at an authorized WDL agent in U.S. dollars.
+            </p>
+          </div>
+          <div className="feature-grid reveal">
+            <article>
+              <span>01</span>
+              <h3>Send Money</h3>
+              <p>Start a transfer at any authorized WDL agent. Transparent fees before you pay.</p>
+              <i />
+            </article>
+            <article>
+              <span>02</span>
+              <h3>Cash Pickup</h3>
+              <p>Recipients collect funds in USD at a payout location near them.</p>
+              <i />
+            </article>
+            <article>
+              <span>03</span>
+              <h3>Bank Deposit</h3>
+              <p>Send directly to a recipient&apos;s bank account with full confirmation.</p>
+              <i />
+            </article>
+            <article>
+              <span>04</span>
+              <h3>Mobile Wallet</h3>
+              <p>Payout to a supported mobile wallet where available in destination countries.</p>
+              <i />
+            </article>
+            <article>
+              <span>05</span>
+              <h3>Track Transfer</h3>
+              <p>Real-time status lookup by transaction ID — no account required.</p>
+              <i />
+            </article>
+            <article>
+              <span>06</span>
+              <h3>Agent Network</h3>
+              <p>Reach regions where traditional banking is limited through our correspondent network.</p>
+              <i />
+            </article>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Sticky story ──────────────────────────────────────────────── */}
+      <section className="sticky-story" id="story" data-story>
+        <div className="story-stage">
+          <div className="story-media" />
+          <div className="story-overlay" />
+          <div className="story-dots" data-story-dots />
+          <div className="story-slides shell">
+            <article className="story-slide is-active">
+              <span>01 / 03</span>
+              <h2>Trusted</h2>
+              <p>Over two decades of trusted service to immigrant and diaspora communities across the United States.</p>
+            </article>
+            <article className="story-slide">
+              <span>02 / 03</span>
+              <h2>Compliant</h2>
+              <p>FinCEN-registered. OFAC-screened. Licensed in 20 states. Your money moves safely and legally.</p>
+            </article>
+            <article className="story-slide">
+              <span>03 / 03</span>
+              <h2>Connected</h2>
+              <p>A growing agent network delivering funds where families need them — even where banks cannot reach.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Detail reverse split ──────────────────────────────────────── */}
+      <section className="split-section shell reverse" id="compliance">
+        <div className="copy-column reveal">
+          <div className="eyebrow">
+            <span />
+            <p>Compliance Program</p>
+          </div>
+          <h2>Security you<br /><em>can count on</em></h2>
+          <p>
+            Our Bank Secrecy Act compliance program is built to protect senders, recipients,
+            and the financial system — not just to check a box.
+          </p>
+          <div className="detail-list">
+            <article>
+              <span>01</span>
+              <div>
+                <h3>OFAC Screening</h3>
+                <p>Every transaction screened against OFAC lists, regardless of amount.</p>
+              </div>
+            </article>
+            <article>
+              <span>02</span>
+              <div>
+                <h3>BSA / AML Program</h3>
+                <p>Full Bank Secrecy Act compliance with SAR and CTR filing obligations met.</p>
+              </div>
+            </article>
+            <article>
+              <span>03</span>
+              <div>
+                <h3>State Licensing</h3>
+                <p>Licensed money transmitter in 20+ states with NMLS registration #{company.nmls}.</p>
+              </div>
+            </article>
+          </div>
+        </div>
+        <div className="image-frame reveal">
+          <div className="image-placeholder alt" />
+        </div>
+      </section>
+
+      {/* ── Contact CTA band ──────────────────────────────────────────── */}
+      <section className="contact-band" id="contact">
+        <div className="shell contact-layout">
+          <div className="copy-column reveal">
+            <div className="eyebrow">
+              <span />
+              <p>Ready to Send?</p>
+            </div>
+            <h2>Start your<br /><em>transfer today</em></h2>
+            <p>
+              Find a licensed WDL agent near you or contact our support team.
+              Toll-free: <a href={`tel:${company.tollFree}`} style={{ color: 'var(--gold)' }}>{company.tollFree}</a>
+            </p>
+            <div style={{ marginTop: '32px', display: 'flex', flexWrap: 'wrap', gap: '16px' }}>
+              <Link className="button button-gold" href="/agents/become-an-agent">Find an Agent</Link>
+              <Link className="button button-ghost" href="/support/contact">Contact Support</Link>
+            </div>
+          </div>
+          <div className="reveal" style={{ display: 'flex', flexDirection: 'column', gap: '24px', paddingTop: '8px' }}>
+            <div className="callout-gold">
+              {company.legalName} is a licensed money transmitter.
+              NMLS ID #{company.nmls}. All transactions are screened for compliance.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {[
+                { label: 'Toll-Free', value: company.tollFree, href: `tel:${company.tollFree}` },
+                { label: 'Email', value: company.email, href: `mailto:${company.email}` },
+                { label: 'Address', value: `${company.address.line1}, ${company.address.city}, ${company.address.state} ${company.address.zip}`, href: null },
+              ].map(({ label, value, href }) => (
+                <div key={label} style={{ borderBottom: '1px solid rgba(250,250,247,0.1)', paddingBottom: '12px' }}>
+                  <div style={{ color: 'var(--gold)', fontSize: '0.58rem', letterSpacing: '0.28em', textTransform: 'uppercase', marginBottom: '4px' }}>{label}</div>
+                  {href ? (
+                    <a href={href} style={{ color: 'rgba(250,250,247,0.75)', fontSize: '0.9rem' }}>{value}</a>
+                  ) : (
+                    <span style={{ color: 'rgba(250,250,247,0.75)', fontSize: '0.9rem' }}>{value}</span>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         </div>
-      </Section>
-
-      <CtaBand heading="Ready to send money home?">
-        <ButtonOnDark href="/agents/become-an-agent">Find an Agent Near You</ButtonOnDark>
-        <Link
-          href="/support/contact"
-          className="inline-flex items-center justify-center px-6 py-3 rounded-md border border-white/50 text-white font-semibold hover:bg-white/10 transition-colors"
-        >
-          Contact Support
-        </Link>
-      </CtaBand>
-
-      {/* Compliance trust note */}
-      <Section>
-        <div className="text-center max-w-2xl mx-auto">
-          <p className="text-gray-600">
-            {company.legalName} is a FinCEN-registered Money Services Business and a state-licensed
-            money transmitter (NMLS ID #{company.nmls}). Every transaction is screened against OFAC
-            lists, regardless of amount.
-          </p>
-          <div className="mt-4">
-            <Link href="/compliance" className="text-primary font-medium hover:underline">
-              Learn about our compliance program →
-            </Link>
-          </div>
-        </div>
-      </Section>
+      </section>
     </main>
   );
 }

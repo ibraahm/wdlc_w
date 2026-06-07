@@ -6,11 +6,11 @@ import { logoutAction } from '@/lib/actions';
 import type { AdminUser } from '@/lib/api';
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: '⊞' },
-  { href: '/pages', label: 'Pages', icon: '⊡' },
+  { href: '/dashboard', label: 'Dashboard', icon: '◈' },
+  { href: '/pages', label: 'Pages', icon: '◻' },
   { href: '/nav', label: 'Navigation', icon: '≡' },
-  { href: '/settings', label: 'Settings', icon: '⚙' },
-  { href: '/users', label: 'Users', icon: '⊕' },
+  { href: '/settings', label: 'Settings', icon: '◎' },
+  { href: '/users', label: 'Users', icon: '◉' },
 ];
 
 interface AdminLayoutProps {
@@ -27,98 +27,59 @@ export default function AdminLayout({ children, user, title }: AdminLayoutProps)
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-100">
+    <div className="admin-layout">
       {/* Sidebar */}
-      <aside
-        className="hidden md:flex flex-col w-64 flex-shrink-0"
-        style={{ backgroundColor: '#1e3a5f' }}
-      >
-        {/* Logo */}
-        <div className="flex items-center h-16 px-6 border-b border-white/10">
-          <span className="text-white font-bold text-xl tracking-tight">WDLC Admin</span>
+      <aside className="admin-sidebar">
+        <div className="admin-sidebar-brand">
+          <div>
+            <span className="admin-sidebar-brand-name">World Direct Link</span>
+            <span className="admin-sidebar-brand-sub">Admin Console</span>
+          </div>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 py-6 space-y-1 px-3 overflow-y-auto">
-          {NAV_ITEMS.map((item) => {
-            const active = isActive(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
-                  active
-                    ? 'bg-primary text-white'
-                    : 'text-white/70 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                <span className="text-base">{item.icon}</span>
-                {item.label}
-              </Link>
-            );
-          })}
+        <nav className="admin-nav">
+          {NAV_ITEMS.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`admin-nav-link ${isActive(item.href) ? 'is-active' : ''}`}
+            >
+              <span className="admin-nav-icon">{item.icon}</span>
+              {item.label}
+            </Link>
+          ))}
         </nav>
 
-        {/* User info at bottom */}
-        <div className="px-4 py-4 border-t border-white/10">
-          <div className="text-white/50 text-xs mb-1">{user.role}</div>
-          <div className="text-white text-sm font-medium truncate">{user.name}</div>
-          <div className="text-white/50 text-xs truncate">{user.email}</div>
+        <div className="admin-sidebar-user">
+          <div className="admin-sidebar-user-role">{user.role}</div>
+          <div className="admin-sidebar-user-name">{user.name}</div>
+          <div className="admin-sidebar-user-email">{user.email}</div>
         </div>
       </aside>
 
       {/* Main area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="admin-main-area">
         {/* Topbar */}
-        <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-6 flex-shrink-0">
-          <div className="flex items-center gap-4">
-            {/* Mobile menu placeholder */}
-            <span className="md:hidden text-gray-500 text-sm font-medium">WDLC Admin</span>
-            {title && (
-              <h1 className="text-lg font-semibold text-gray-900 hidden md:block">{title}</h1>
-            )}
-          </div>
-
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-600 hidden sm:block">{user.name}</span>
+        <header className="admin-topbar">
+          <div className="admin-topbar-title">{title ?? 'Admin'}</div>
+          <div className="admin-topbar-right">
+            <span className="admin-topbar-user">{user.name}</span>
             <form action={logoutAction}>
-              <button
-                type="submit"
-                className="text-sm text-gray-500 hover:text-red-600 px-3 py-1.5 rounded border border-gray-200 hover:border-red-300 transition-colors"
-              >
-                Logout
-              </button>
+              <button type="submit" className="admin-logout-btn">Sign Out</button>
             </form>
           </div>
         </header>
 
-        {/* Mobile nav (simple top bar) */}
-        <nav className="md:hidden bg-white border-b border-gray-200 flex overflow-x-auto px-2 py-1 gap-1">
-          {NAV_ITEMS.map((item) => {
-            const active = isActive(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex-shrink-0 px-3 py-1.5 rounded text-xs font-medium transition-colors ${
-                  active ? 'bg-primary text-white' : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
+        {/* Mobile nav */}
+        <nav className="admin-mobile-nav" style={{ display: 'none' }} aria-label="Mobile navigation">
+          {NAV_ITEMS.map((item) => (
+            <Link key={item.href} href={item.href} className={isActive(item.href) ? 'is-active' : ''}>
+              {item.label}
+            </Link>
+          ))}
         </nav>
 
-        {/* Page title on mobile */}
-        {title && (
-          <div className="md:hidden px-4 py-3 bg-white border-b border-gray-100">
-            <h1 className="text-base font-semibold text-gray-900">{title}</h1>
-          </div>
-        )}
-
-        {/* Content */}
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="admin-content">{children}</main>
       </div>
     </div>
   );

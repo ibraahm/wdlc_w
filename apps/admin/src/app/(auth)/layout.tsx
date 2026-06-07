@@ -1,23 +1,15 @@
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div
-            className="inline-flex items-center justify-center w-12 h-12 rounded-xl mb-3"
-            style={{ backgroundColor: '#1e3a5f' }}
-          >
-            <span className="text-white font-bold text-lg">W</span>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">WDLC Admin</h1>
-          <p className="text-gray-500 text-sm mt-1">World Direct Link Corp</p>
+    <div className="auth-wrap">
+      <div className="auth-card">
+        <div className="auth-brand">
+          <span className="auth-brand-name">World Direct Link</span>
+          <span className="auth-brand-sub">Admin Console</span>
         </div>
-
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-          {children}
-        </div>
+        {children}
+        <p style={{ marginTop: '32px', textAlign: 'center', fontSize: '0.7rem', color: 'rgba(44,44,44,0.35)' }}>
+          &copy; {new Date().getFullYear()} World Direct Link, Corp. · Internal Use Only
+        </p>
       </div>
     </div>
   );

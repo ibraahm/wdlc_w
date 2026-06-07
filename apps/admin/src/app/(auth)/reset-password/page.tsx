@@ -10,7 +10,7 @@ function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token') ?? '';
   const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -30,79 +30,40 @@ function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <div className="text-center py-4">
-        <p className="text-sm text-gray-500 mb-4">Invalid or missing reset token.</p>
-        <Link href="/forgot-password" className="text-sm text-primary hover:underline">
-          Request a new link
-        </Link>
+      <div style={{ textAlign: 'center', padding: '16px 0' }}>
+        <div className="auth-error" style={{ marginBottom: '20px' }}>Invalid or missing reset token.</div>
+        <Link href="/forgot-password" className="auth-link" style={{ fontSize: '0.82rem' }}>Request a new link</Link>
       </div>
     );
   }
 
   if (success) {
     return (
-      <div className="text-center py-4">
-        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <span className="text-green-600 text-xl">✓</span>
-        </div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">Password updated</h2>
-        <p className="text-sm text-gray-500 mb-6">Your password has been reset successfully.</p>
-        <Link href="/login" className="text-sm text-primary hover:underline">
-          Sign in
-        </Link>
+      <div style={{ textAlign: 'center', padding: '16px 0' }}>
+        <div className="auth-success" style={{ marginBottom: '20px' }}>Password updated successfully.</div>
+        <Link href="/login" className="auth-link" style={{ fontSize: '0.82rem' }}>Sign in</Link>
       </div>
     );
   }
 
   return (
     <>
-      <h2 className="text-xl font-semibold text-gray-900 mb-6">Set new password</h2>
+      <p className="auth-title">Set new password</p>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      {error && <div className="auth-error" style={{ marginBottom: '20px' }}>{error}</div>}
+
+      <form onSubmit={handleSubmit} className="auth-form">
         <input type="hidden" name="token" value={token} />
-
-        <div>
-          <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
-            New password
-          </label>
-          <input
-            id="newPassword"
-            name="newPassword"
-            type="password"
-            required
-            minLength={8}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            placeholder="••••••••"
-          />
+        <div className="auth-field">
+          <label htmlFor="newPassword" className="auth-label">New password</label>
+          <input id="newPassword" name="newPassword" type="password" required minLength={8} className="auth-input" placeholder="••••••••" />
         </div>
-
-        <div>
-          <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-            Confirm new password
-          </label>
-          <input
-            id="confirmPassword"
-            name="confirmPassword"
-            type="password"
-            required
-            minLength={8}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            placeholder="••••••••"
-          />
+        <div className="auth-field">
+          <label htmlFor="confirmPassword" className="auth-label">Confirm new password</label>
+          <input id="confirmPassword" name="confirmPassword" type="password" required minLength={8} className="auth-input" placeholder="••••••••" />
         </div>
-
-        {error && (
-          <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={isPending}
-          className="w-full py-2.5 px-4 bg-primary text-white font-medium rounded-lg text-sm hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-        >
-          {isPending ? 'Updating...' : 'Update password'}
+        <button type="submit" disabled={isPending} className="auth-submit">
+          {isPending ? 'Updating…' : 'Update Password'}
         </button>
       </form>
     </>
@@ -111,7 +72,7 @@ function ResetPasswordForm() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div className="text-center text-sm text-gray-500">Loading...</div>}>
+    <Suspense fallback={<div style={{ textAlign: 'center', color: 'var(--muted)', fontSize: '0.88rem', padding: '24px 0' }}>Loading…</div>}>
       <ResetPasswordForm />
     </Suspense>
   );

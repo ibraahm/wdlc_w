@@ -6,7 +6,7 @@ import { forgotPasswordAction } from '@/lib/actions';
 
 export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState('');
   const [isPending, startTransition] = useTransition();
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -25,63 +25,32 @@ export default function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <div className="text-center py-4">
-        <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <span className="text-green-600 text-xl">✓</span>
-        </div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-2">Check your email</h2>
-        <p className="text-sm text-gray-500 mb-6">
-          If an account exists with that email, we&apos;ve sent password reset instructions.
-        </p>
-        <Link href="/login" className="text-sm text-primary hover:underline">
-          Back to sign in
-        </Link>
+      <div style={{ textAlign: 'center', padding: '16px 0' }}>
+        <div className="auth-success" style={{ marginBottom: '20px' }}>If an account exists, reset instructions have been sent.</div>
+        <Link href="/login" className="auth-link" style={{ fontSize: '0.82rem' }}>Back to sign in</Link>
       </div>
     );
   }
 
   return (
     <>
-      <h2 className="text-xl font-semibold text-gray-900 mb-2">Reset your password</h2>
-      <p className="text-sm text-gray-500 mb-6">
-        Enter your email and we&apos;ll send you a reset link.
-      </p>
+      <p className="auth-title">Reset your password</p>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-            Email address
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-            placeholder="admin@wdlc.com"
-          />
+      {error && <div className="auth-error" style={{ marginBottom: '20px' }}>{error}</div>}
+
+      <form onSubmit={handleSubmit} className="auth-form">
+        <div className="auth-field">
+          <label htmlFor="email" className="auth-label">Email address</label>
+          <input id="email" name="email" type="email" required autoComplete="email" className="auth-input" placeholder="admin@wdlc.com" />
         </div>
-
-        {error && (
-          <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={isPending}
-          className="w-full py-2.5 px-4 bg-primary text-white font-medium rounded-lg text-sm hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-        >
-          {isPending ? 'Sending...' : 'Send reset link'}
+        <button type="submit" disabled={isPending} className="auth-submit">
+          {isPending ? 'Sending…' : 'Send Reset Link'}
         </button>
       </form>
 
-      <div className="mt-6 text-center">
-        <Link href="/login" className="text-sm text-primary hover:underline">
-          Back to sign in
-        </Link>
-      </div>
+      <p className="auth-footer">
+        <Link href="/login" className="auth-link">Back to sign in</Link>
+      </p>
     </>
   );
 }
