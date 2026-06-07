@@ -7,6 +7,7 @@ import {
   ButtonOnDark,
 } from '@/components/ui';
 import { getCmsPage, cmsMetadata } from '@/lib/cms';
+import BlockRenderer from '@/components/BlockRenderer';
 
 export async function generateMetadata() {
   const page = await getCmsPage('services/bank-deposit');

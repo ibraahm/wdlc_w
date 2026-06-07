@@ -96,7 +96,14 @@ export default function PageForm({ page, mode }: PageFormProps) {
     e.preventDefault();
     setError('');
     const fd = new FormData(e.currentTarget);
-    fd.set('blocks', JSON.stringify(puckDataRef.current ?? { content: [], root: { props: {} } }));
+    // The backend stores blocks as a [{ type, data }] array. Convert the Puck
+    // editor's { content: [{ type, props }] } shape into that format on save.
+    const content = puckDataRef.current?.content ?? [];
+    const blocks = content.map((c) => {
+      const { id: _id, ...data } = (c.props ?? {}) as Record<string, unknown>;
+      return { type: c.type, data };
+    });
+    fd.set('blocks', JSON.stringify(blocks));
 
     startTransition(async () => {
       const result = mode === 'create' ? await createPageAction(fd) : await updatePageAction(fd);

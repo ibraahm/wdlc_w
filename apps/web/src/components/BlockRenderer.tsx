@@ -1,4 +1,4 @@
-import { PageHero, Section, Callout, CtaBand, ButtonOnDark } from '@/components/ui';
+import { PageHero, Section, Callout, CtaBand, ButtonOnDark, ButtonPrimary } from '@/components/ui';
 
 // Supports both Puck format ({ content: [...], root: {} }) and legacy format ([{ type, data }])
 type LegacyBlock = { type: string; data: Record<string, unknown> };
@@ -76,10 +76,10 @@ function FeatureGridBlock({ props }: { props: Record<string, unknown> }) {
   const cols = props.columns === '2' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3';
   return (
     <Section dark={isDark}>
-      {(props.eyebrow || props.heading) && (
+      {!!(props.eyebrow || props.heading) && (
         <div className="mb-10">
-          {props.eyebrow && <div className="eyebrow">{props.eyebrow as string}</div>}
-          {props.heading && <h2 className={`font-display font-light text-4xl ${isDark ? 'text-ivory' : 'text-navy'}`}>{props.heading as string}</h2>}
+          {!!props.eyebrow && <div className="eyebrow">{props.eyebrow as string}</div>}
+          {!!props.heading && <h2 className={`font-display font-light text-4xl ${isDark ? 'text-ivory' : 'text-navy'}`}>{props.heading as string}</h2>}
         </div>
       )}
       <div className={`grid ${cols} gap-6`}>
@@ -98,8 +98,8 @@ function FeatureGridBlock({ props }: { props: Record<string, unknown> }) {
 function CtaBandBlock({ props }: { props: Record<string, unknown> }) {
   return (
     <CtaBand heading={(props.heading as string) ?? ''}>
-      {props.buttonText && <ButtonOnDark href={props.buttonHref as string}>{props.buttonText as string}</ButtonOnDark>}
-      {props.secondaryText && <ButtonPrimary href={props.secondaryHref as string}>{props.secondaryText as string}</ButtonPrimary>}
+      {!!props.buttonText && <ButtonOnDark href={props.buttonHref as string}>{props.buttonText as string}</ButtonOnDark>}
+      {!!props.secondaryText && <ButtonPrimary href={props.secondaryHref as string}>{props.secondaryText as string}</ButtonPrimary>}
     </CtaBand>
   );
 }
