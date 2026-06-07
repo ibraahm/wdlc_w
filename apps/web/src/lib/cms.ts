@@ -1,3 +1,5 @@
+import { cache } from 'react';
+
 const API = process.env.API_URL || 'http://localhost:4000/api';
 
 export type CmsNavItem = {
@@ -10,24 +12,6 @@ export type CmsNavItem = {
   children?: CmsNavItem[];
 };
 
-// Fetch header nav from CMS. Returns null if backend is unavailable.
-export async function getCmsNav(): Promise<CmsNavItem[] | null> {
-  const url = `${API}/cms/nav`;
-  const start = Date.now();
-  try {
-    const res = await fetch(url, { next: { revalidate: 60 } });
-    console.log(`[CMS] GET ${url} → ${res.status} (${Date.now() - start}ms)`);
-    if (!res.ok) return null;
-    const items: CmsNavItem[] = await res.json();
-    const filtered = items.filter((i) => i.location === 'HEADER' && i.visible);
-    console.log(`[CMS] nav items returned: ${items.length} total, ${filtered.length} HEADER visible. Hrefs: ${filtered.map(i => i.href).join(', ')}`);
-    return filtered;
-  } catch (e) {
-    console.error(`[CMS] nav fetch failed:`, e);
-    return null;
-  }
-}
-
 export type CmsPage = {
   slug: string;
   title: string;
@@ -38,20 +22,33 @@ export type CmsPage = {
   status: string;
 };
 
-// Fetch a published page from the CMS. Returns null if not found or backend unavailable.
-export async function getCmsPage(slug: string): Promise<CmsPage | null> {
-  const url = `${API}/cms/pages/published/${slug}`;
-  const start = Date.now();
+// React cache() deduplicates calls with the same slug within a single request —
+// generateMetadata and the page component both call this but only one fetch fires.
+export const getCmsPage = cache(async (slug: string): Promise<CmsPage | null> => {
   try {
-    const res = await fetch(url, { next: { revalidate: 60 } });
-    console.log(`[CMS] GET ${url} → ${res.status} (${Date.now() - start}ms) caller=${new Error().stack?.split('\n')[2]?.trim()}`);
+    const res = await fetch(`${API}/cms/pages/published/${slug}`, {
+      next: { revalidate: 60 },
+    });
     if (!res.ok) return null;
     return res.json();
-  } catch (e) {
-    console.error(`[CMS] page fetch failed for "${slug}":`, e);
+  } catch {
     return null;
   }
-}
+});
+
+// Nav is fetched once per layout render and cached at the ISR level.
+export const getCmsNav = cache(async (): Promise<CmsNavItem[] | null> => {
+  try {
+    const res = await fetch(`${API}/cms/nav`, {
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) return null;
+    const items: CmsNavItem[] = await res.json();
+    return items.filter((i) => i.location === 'HEADER' && i.visible);
+  } catch {
+    return null;
+  }
+});
 
 // Build Next.js Metadata from a CMS page, with static fallbacks.
 export function cmsMetadata(

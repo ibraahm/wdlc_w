@@ -34,36 +34,38 @@ async function main() {
   console.log('Seeded site settings');
 
   // ── Header navigation ─────────────────────────────────────────────────────
-  const headerCount = await prisma.navItem.count({ where: { location: 'HEADER' } });
-  if (headerCount === 0) {
-    const about = await prisma.navItem.create({ data: { label: 'About Us', href: '/company-overview', location: 'HEADER', order: 1 } });
-    await prisma.navItem.createMany({ data: [
-      { label: 'Company Overview', href: '/company-overview', parentId: about.id, location: 'HEADER', order: 1 },
-      { label: 'Our Network', href: '/our-network', parentId: about.id, location: 'HEADER', order: 2 },
-      { label: 'Licenses & Registrations', href: '/licenses-registrations', parentId: about.id, location: 'HEADER', order: 3 },
-      { label: 'Contact Us', href: '/contact', parentId: about.id, location: 'HEADER', order: 4 },
-    ]});
+  // Always fix nav hrefs to match actual Next.js routes
+  await prisma.navItem.deleteMany({ where: { location: 'HEADER' } });
 
-    await prisma.navItem.create({ data: { label: 'Services', href: '/services', location: 'HEADER', order: 2 } });
+  const about = await prisma.navItem.create({ data: { label: 'About Us', href: '/about', location: 'HEADER', order: 1 } });
+  await prisma.navItem.createMany({ data: [
+    { label: 'About Us', href: '/about', parentId: about.id, location: 'HEADER', order: 1 },
+    { label: 'Company Overview', href: '/about/company', parentId: about.id, location: 'HEADER', order: 2 },
+    { label: 'Our Network', href: '/about/network', parentId: about.id, location: 'HEADER', order: 3 },
+    { label: 'Licenses & Registrations', href: '/about/licenses', parentId: about.id, location: 'HEADER', order: 4 },
+    { label: 'Contact Us', href: '/about/contact', parentId: about.id, location: 'HEADER', order: 5 },
+  ]});
 
-    const agents = await prisma.navItem.create({ data: { label: 'Agents & Partners', href: '/become-agent', location: 'HEADER', order: 3 } });
-    await prisma.navItem.createMany({ data: [
-      { label: 'Become an Agent', href: '/become-agent', parentId: agents.id, location: 'HEADER', order: 1 },
-      { label: 'Agent Resources', href: '/agent-resources', parentId: agents.id, location: 'HEADER', order: 2 },
-      { label: 'Partners', href: '/partners', parentId: agents.id, location: 'HEADER', order: 3 },
-    ]});
+  await prisma.navItem.create({ data: { label: 'Services', href: '/services', location: 'HEADER', order: 2 } });
+  // Services children omitted from header dropdown to keep it clean — accessible via /services page
 
-    const compliance = await prisma.navItem.create({ data: { label: 'Compliance', href: '/compliance-overview', location: 'HEADER', order: 4 } });
-    await prisma.navItem.createMany({ data: [
-      { label: 'Compliance Overview', href: '/compliance-overview', parentId: compliance.id, location: 'HEADER', order: 1 },
-      { label: 'Fraud & Consumer Scams', href: '/fraud-consumer-scams', parentId: compliance.id, location: 'HEADER', order: 2 },
-      { label: 'Report Suspicious Activity', href: '/report-suspicious-activity', parentId: compliance.id, location: 'HEADER', order: 3 },
-      { label: 'Agent Regulatory Notices', href: '/agent-regulatory-notices', parentId: compliance.id, location: 'HEADER', order: 4 },
-      { label: 'Law Enforcement Requests', href: '/law-enforcement-requests', parentId: compliance.id, location: 'HEADER', order: 5 },
-      { label: 'Compliance Resources', href: '/compliance-resources', parentId: compliance.id, location: 'HEADER', order: 6 },
-    ]});
-    console.log('Seeded header navigation');
-  }
+  const agents = await prisma.navItem.create({ data: { label: 'Agents & Partners', href: '/agents/become-an-agent', location: 'HEADER', order: 3 } });
+  await prisma.navItem.createMany({ data: [
+    { label: 'Become an Agent', href: '/agents/become-an-agent', parentId: agents.id, location: 'HEADER', order: 1 },
+    { label: 'Agent Resources', href: '/agents/resources', parentId: agents.id, location: 'HEADER', order: 2 },
+    { label: 'Partners', href: '/agents/partners', parentId: agents.id, location: 'HEADER', order: 3 },
+  ]});
+
+  const compliance = await prisma.navItem.create({ data: { label: 'Compliance', href: '/compliance', location: 'HEADER', order: 4 } });
+  await prisma.navItem.createMany({ data: [
+    { label: 'Compliance Overview', href: '/compliance', parentId: compliance.id, location: 'HEADER', order: 1 },
+    { label: 'Fraud & Consumer Scams', href: '/compliance/fraud', parentId: compliance.id, location: 'HEADER', order: 2 },
+    { label: 'Report Suspicious Activity', href: '/compliance/report', parentId: compliance.id, location: 'HEADER', order: 3 },
+    { label: 'Agent Regulatory Notices', href: '/compliance/notices', parentId: compliance.id, location: 'HEADER', order: 4 },
+    { label: 'Law Enforcement Requests', href: '/compliance/law-enforcement', parentId: compliance.id, location: 'HEADER', order: 5 },
+    { label: 'Compliance Resources', href: '/compliance/resources', parentId: compliance.id, location: 'HEADER', order: 6 },
+  ]});
+  console.log('Seeded header navigation');
 
   // ── All frontend pages ────────────────────────────────────────────────────
   const pages = [
