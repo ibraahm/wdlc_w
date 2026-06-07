@@ -1,6 +1,7 @@
 import { PageHero, Section, Prose } from '@/components/ui';
 import { company } from '@/lib/site';
 import { getCmsPage, cmsMetadata } from '@/lib/cms';
+import BlockRenderer from '@/components/BlockRenderer';
 
 export async function generateMetadata() {
   const page = await getCmsPage('privacy');
@@ -10,9 +11,13 @@ export async function generateMetadata() {
   });
 }
 
-export default function PrivacyPage() {
+export default async function PrivacyPage() {
+  const cmsPage = await getCmsPage('privacy');
+  const cmsBlocks = Array.isArray(cmsPage?.blocks) && cmsPage.blocks.length > 0 ? cmsPage.blocks as {type:string;data:Record<string,unknown>}[] : null;
   return (
     <>
+      {cmsBlocks ? <BlockRenderer blocks={cmsBlocks} /> : (
+        <>
       <PageHero title="Privacy Policy" />
 
       <Section>
@@ -43,6 +48,8 @@ export default function PrivacyPage() {
           </Prose>
         </div>
       </Section>
+        </>
+      )}
     </>
   );
 }

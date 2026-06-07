@@ -1,6 +1,7 @@
 import { PageHero, Section, SectionHeading, Checklist, CtaBand, ButtonOnDark } from '@/components/ui';
 import { PORTAL_URL } from '@/lib/site';
 import { getCmsPage, cmsMetadata } from '@/lib/cms';
+import BlockRenderer from '@/components/BlockRenderer';
 
 export async function generateMetadata() {
   const page = await getCmsPage('compliance/notices');
@@ -10,9 +11,13 @@ export async function generateMetadata() {
   });
 }
 
-export default function NoticesPage() {
+export default async function NoticesPage() {
+  const cmsPage = await getCmsPage('compliance/notices');
+  const cmsBlocks = Array.isArray(cmsPage?.blocks) && cmsPage.blocks.length > 0 ? cmsPage.blocks as {type:string;data:Record<string,unknown>}[] : null;
   return (
     <>
+      {cmsBlocks ? <BlockRenderer blocks={cmsBlocks} /> : (
+        <>
       <PageHero
         eyebrow="Compliance"
         title="Agent Regulatory Notices"
@@ -37,6 +42,8 @@ export default function NoticesPage() {
       <CtaBand heading="Agents: log in to the Agent Portal for full documents">
         <ButtonOnDark href={`${PORTAL_URL}/login`} external>Agent Portal</ButtonOnDark>
       </CtaBand>
+        </>
+      )}
     </>
   );
 }

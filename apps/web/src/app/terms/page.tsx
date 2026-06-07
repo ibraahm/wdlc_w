@@ -1,6 +1,7 @@
 import { PageHero, Section, Prose } from '@/components/ui';
 import { company } from '@/lib/site';
 import { getCmsPage, cmsMetadata } from '@/lib/cms';
+import BlockRenderer from '@/components/BlockRenderer';
 
 export async function generateMetadata() {
   const page = await getCmsPage('terms');
@@ -10,9 +11,13 @@ export async function generateMetadata() {
   });
 }
 
-export default function TermsPage() {
+export default async function TermsPage() {
+  const cmsPage = await getCmsPage('terms');
+  const cmsBlocks = Array.isArray(cmsPage?.blocks) && cmsPage.blocks.length > 0 ? cmsPage.blocks as {type:string;data:Record<string,unknown>}[] : null;
   return (
     <>
+      {cmsBlocks ? <BlockRenderer blocks={cmsBlocks} /> : (
+        <>
       <PageHero title="Terms of Use" />
 
       <Section>
@@ -38,6 +43,8 @@ export default function TermsPage() {
           </Prose>
         </div>
       </Section>
+        </>
+      )}
     </>
   );
 }

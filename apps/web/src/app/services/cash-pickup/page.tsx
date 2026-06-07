@@ -7,6 +7,7 @@ import {
   ButtonOnDark,
 } from '@/components/ui';
 import { getCmsPage, cmsMetadata } from '@/lib/cms';
+import BlockRenderer from '@/components/BlockRenderer';
 
 export async function generateMetadata() {
   const page = await getCmsPage('services/cash-pickup');
@@ -16,9 +17,13 @@ export async function generateMetadata() {
   });
 }
 
-export default function CashPickupPage() {
+export default async function CashPickupPage() {
+  const cmsPage = await getCmsPage('services/cash-pickup');
+  const cmsBlocks = Array.isArray(cmsPage?.blocks) && cmsPage.blocks.length > 0 ? cmsPage.blocks as {type:string;data:Record<string,unknown>}[] : null;
   return (
     <>
+      {cmsBlocks ? <BlockRenderer blocks={cmsBlocks} /> : (
+        <>
       <PageHero eyebrow="Services" title="Cash Pickup" />
 
       <Section>
@@ -41,6 +46,8 @@ export default function CashPickupPage() {
       <CtaBand heading="Find an Agent">
         <ButtonOnDark href="/agents/become-an-agent">Find an Agent</ButtonOnDark>
       </CtaBand>
+        </>
+      )}
     </>
   );
 }

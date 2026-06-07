@@ -16,9 +16,13 @@ export async function generateMetadata() {
   });
 }
 
-export default function BankDepositPage() {
+export default async function BankDepositPage() {
+  const cmsPage = await getCmsPage('services/bank-deposit');
+  const cmsBlocks = Array.isArray(cmsPage?.blocks) && cmsPage.blocks.length > 0 ? cmsPage.blocks as {type:string;data:Record<string,unknown>}[] : null;
   return (
     <>
+      {cmsBlocks ? <BlockRenderer blocks={cmsBlocks} /> : (
+        <>
       <PageHero eyebrow="Services" title="Bank Deposit" />
 
       <Section>
@@ -41,6 +45,8 @@ export default function BankDepositPage() {
       <CtaBand heading="Find an Agent">
         <ButtonOnDark href="/agents/become-an-agent">Find an Agent</ButtonOnDark>
       </CtaBand>
+        </>
+      )}
     </>
   );
 }

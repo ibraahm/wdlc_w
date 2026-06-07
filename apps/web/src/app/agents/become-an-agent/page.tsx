@@ -9,6 +9,7 @@ import {
 } from '@/components/ui';
 import ContactForm from '@/components/ContactForm';
 import { getCmsPage, cmsMetadata } from '@/lib/cms';
+import BlockRenderer from '@/components/BlockRenderer';
 
 export async function generateMetadata() {
   const page = await getCmsPage('agents/become-an-agent');
@@ -18,9 +19,13 @@ export async function generateMetadata() {
   });
 }
 
-export default function BecomeAnAgentPage() {
+export default async function BecomeAnAgentPage() {
+  const cmsPage = await getCmsPage('agents/become-an-agent');
+  const cmsBlocks = Array.isArray(cmsPage?.blocks) && cmsPage.blocks.length > 0 ? cmsPage.blocks as {type:string;data:Record<string,unknown>}[] : null;
   return (
     <>
+      {cmsBlocks ? <BlockRenderer blocks={cmsBlocks} /> : (
+        <>
       <PageHero
         eyebrow="Agents & Partners"
         title="Become a WDL Agent"
@@ -123,6 +128,8 @@ export default function BecomeAnAgentPage() {
           </div>
         </div>
       </Section>
+        </>
+      )}
     </>
   );
 }

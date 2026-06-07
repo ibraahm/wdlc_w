@@ -1,5 +1,6 @@
 import { PageHero, Section, SectionHeading, Checklist, Callout, Card } from '@/components/ui';
 import { getCmsPage, cmsMetadata } from '@/lib/cms';
+import BlockRenderer from '@/components/BlockRenderer';
 
 export async function generateMetadata() {
   const page = await getCmsPage('compliance');
@@ -9,9 +10,13 @@ export async function generateMetadata() {
   });
 }
 
-export default function CompliancePage() {
+export default async function CompliancePage() {
+  const cmsPage = await getCmsPage('compliance');
+  const cmsBlocks = Array.isArray(cmsPage?.blocks) && cmsPage.blocks.length > 0 ? cmsPage.blocks as {type:string;data:Record<string,unknown>}[] : null;
   return (
     <>
+      {cmsBlocks ? <BlockRenderer blocks={cmsBlocks} /> : (
+        <>
       <PageHero
         eyebrow="Compliance"
         title="Compliance & Anti-Money Laundering"
@@ -68,6 +73,8 @@ export default function CompliancePage() {
           </Card>
         </div>
       </Section>
+        </>
+      )}
     </>
   );
 }

@@ -2,6 +2,7 @@ import { PageHero, Section, SectionHeading, Callout } from '@/components/ui';
 import ContactForm from '@/components/ContactForm';
 import { company } from '@/lib/site';
 import { getCmsPage, cmsMetadata } from '@/lib/cms';
+import BlockRenderer from '@/components/BlockRenderer';
 
 export async function generateMetadata() {
   const page = await getCmsPage('support/contact');
@@ -11,9 +12,13 @@ export async function generateMetadata() {
   });
 }
 
-export default function ContactSupportPage() {
+export default async function ContactSupportPage() {
+  const cmsPage = await getCmsPage('support/contact');
+  const cmsBlocks = Array.isArray(cmsPage?.blocks) && cmsPage.blocks.length > 0 ? cmsPage.blocks as {type:string;data:Record<string,unknown>}[] : null;
   return (
     <>
+      {cmsBlocks ? <BlockRenderer blocks={cmsBlocks} /> : (
+        <>
       <PageHero
         eyebrow="News & Support"
         title="Contact Support"
@@ -69,6 +74,8 @@ export default function ContactSupportPage() {
           </div>
         </div>
       </Section>
+        </>
+      )}
     </>
   );
 }

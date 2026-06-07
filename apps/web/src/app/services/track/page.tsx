@@ -8,6 +8,7 @@ import {
 import ContactForm from '@/components/ContactForm';
 import { company } from '@/lib/site';
 import { getCmsPage, cmsMetadata } from '@/lib/cms';
+import BlockRenderer from '@/components/BlockRenderer';
 
 export async function generateMetadata() {
   const page = await getCmsPage('services/track');
@@ -17,9 +18,13 @@ export async function generateMetadata() {
   });
 }
 
-export default function TrackPage() {
+export default async function TrackPage() {
+  const cmsPage = await getCmsPage('services/track');
+  const cmsBlocks = Array.isArray(cmsPage?.blocks) && cmsPage.blocks.length > 0 ? cmsPage.blocks as {type:string;data:Record<string,unknown>}[] : null;
   return (
     <>
+      {cmsBlocks ? <BlockRenderer blocks={cmsBlocks} /> : (
+        <>
       <PageHero eyebrow="Services" title="Track Your Transfer" />
 
       <Section>
@@ -58,6 +63,8 @@ export default function TrackPage() {
       <CtaBand heading="Need help?">
         <ButtonOnDark href="/support/contact">Contact Support</ButtonOnDark>
       </CtaBand>
+        </>
+      )}
     </>
   );
 }

@@ -7,6 +7,7 @@ import {
   Card,
 } from '@/components/ui';
 import { getCmsPage, cmsMetadata } from '@/lib/cms';
+import BlockRenderer from '@/components/BlockRenderer';
 
 export async function generateMetadata() {
   const page = await getCmsPage('about/company');
@@ -16,9 +17,13 @@ export async function generateMetadata() {
   });
 }
 
-export default function CompanyOverviewPage() {
+export default async function CompanyOverviewPage() {
+  const cmsPage = await getCmsPage('about/company');
+  const cmsBlocks = Array.isArray(cmsPage?.blocks) && cmsPage.blocks.length > 0 ? cmsPage.blocks as {type:string;data:Record<string,unknown>}[] : null;
   return (
     <>
+      {cmsBlocks ? <BlockRenderer blocks={cmsBlocks} /> : (
+        <>
       <PageHero
         eyebrow="About Us"
         title="Company Overview"
@@ -86,6 +91,8 @@ export default function CompanyOverviewPage() {
           </Card>
         </div>
       </Section>
+        </>
+      )}
     </>
   );
 }

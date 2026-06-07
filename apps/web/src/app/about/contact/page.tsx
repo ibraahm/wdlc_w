@@ -3,6 +3,7 @@ import { PageHero, Section, SectionHeading } from '@/components/ui';
 import ContactForm, { type Field } from '@/components/ContactForm';
 import { company } from '@/lib/site';
 import { getCmsPage, cmsMetadata } from '@/lib/cms';
+import BlockRenderer from '@/components/BlockRenderer';
 
 export async function generateMetadata() {
   const page = await getCmsPage('about/contact');
@@ -26,9 +27,13 @@ const fields: Field[] = [
   { name: 'message', label: 'Message', type: 'textarea', required: true },
 ];
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const cmsPage = await getCmsPage('about/contact');
+  const cmsBlocks = Array.isArray(cmsPage?.blocks) && cmsPage.blocks.length > 0 ? cmsPage.blocks as {type:string;data:Record<string,unknown>}[] : null;
   return (
     <>
+      {cmsBlocks ? <BlockRenderer blocks={cmsBlocks} /> : (
+        <>
       <PageHero
         eyebrow="About Us"
         title="Contact Us"
@@ -92,6 +97,8 @@ export default function ContactPage() {
           </div>
         </div>
       </Section>
+        </>
+      )}
     </>
   );
 }

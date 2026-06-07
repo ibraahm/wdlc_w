@@ -1,5 +1,6 @@
 import { PageHero, Section, SectionHeading } from '@/components/ui';
 import { getCmsPage, cmsMetadata } from '@/lib/cms';
+import BlockRenderer from '@/components/BlockRenderer';
 
 export async function generateMetadata() {
   const page = await getCmsPage('compliance/resources');
@@ -17,9 +18,13 @@ const resources = [
   { title: 'WDL Help Center', body: 'Consumer disclosures and refund / error-resolution policy', href: '/support/help' },
 ];
 
-export default function ResourcesPage() {
+export default async function ResourcesPage() {
+  const cmsPage = await getCmsPage('compliance/resources');
+  const cmsBlocks = Array.isArray(cmsPage?.blocks) && cmsPage.blocks.length > 0 ? cmsPage.blocks as {type:string;data:Record<string,unknown>}[] : null;
   return (
     <>
+      {cmsBlocks ? <BlockRenderer blocks={cmsBlocks} /> : (
+        <>
       <PageHero
         eyebrow="Compliance"
         title="Compliance Resources"
@@ -49,6 +54,8 @@ export default function ResourcesPage() {
           })}
         </div>
       </Section>
+        </>
+      )}
     </>
   );
 }

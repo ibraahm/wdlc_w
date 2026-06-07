@@ -8,6 +8,7 @@ import {
   ButtonOnDark,
 } from '@/components/ui';
 import { getCmsPage, cmsMetadata } from '@/lib/cms';
+import BlockRenderer from '@/components/BlockRenderer';
 
 export async function generateMetadata() {
   const page = await getCmsPage('about/network');
@@ -17,9 +18,13 @@ export async function generateMetadata() {
   });
 }
 
-export default function NetworkPage() {
+export default async function NetworkPage() {
+  const cmsPage = await getCmsPage('about/network');
+  const cmsBlocks = Array.isArray(cmsPage?.blocks) && cmsPage.blocks.length > 0 ? cmsPage.blocks as {type:string;data:Record<string,unknown>}[] : null;
   return (
     <>
+      {cmsBlocks ? <BlockRenderer blocks={cmsBlocks} /> : (
+        <>
       <PageHero
         eyebrow="About Us"
         title="Our Network"
@@ -78,6 +83,8 @@ export default function NetworkPage() {
       <CtaBand heading="Find an Agent Near You">
         <ButtonOnDark href="/agents/become-an-agent">Find an Agent</ButtonOnDark>
       </CtaBand>
+        </>
+      )}
     </>
   );
 }

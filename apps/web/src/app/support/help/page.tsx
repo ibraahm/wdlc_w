@@ -1,6 +1,7 @@
 import { PageHero, Section, SectionHeading, Accordion, CtaBand, ButtonOnDark } from '@/components/ui';
 import Link from 'next/link';
 import { getCmsPage, cmsMetadata } from '@/lib/cms';
+import BlockRenderer from '@/components/BlockRenderer';
 
 export async function generateMetadata() {
   const page = await getCmsPage('support/help');
@@ -52,9 +53,13 @@ const faqs = [
   },
 ];
 
-export default function HelpPage() {
+export default async function HelpPage() {
+  const cmsPage = await getCmsPage('support/help');
+  const cmsBlocks = Array.isArray(cmsPage?.blocks) && cmsPage.blocks.length > 0 ? cmsPage.blocks as {type:string;data:Record<string,unknown>}[] : null;
   return (
     <>
+      {cmsBlocks ? <BlockRenderer blocks={cmsBlocks} /> : (
+        <>
       <PageHero
         eyebrow="News & Support"
         title="Help Center"
@@ -108,6 +113,8 @@ export default function HelpPage() {
           File a Complaint
         </Link>
       </CtaBand>
+        </>
+      )}
     </>
   );
 }

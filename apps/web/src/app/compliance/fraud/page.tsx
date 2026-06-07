@@ -1,5 +1,6 @@
 import { PageHero, Section, SectionHeading, Callout, Accordion, Checklist, CtaBand, ButtonOnDark } from '@/components/ui';
 import { getCmsPage, cmsMetadata } from '@/lib/cms';
+import BlockRenderer from '@/components/BlockRenderer';
 
 export async function generateMetadata() {
   const page = await getCmsPage('compliance/fraud');
@@ -9,9 +10,13 @@ export async function generateMetadata() {
   });
 }
 
-export default function FraudPage() {
+export default async function FraudPage() {
+  const cmsPage = await getCmsPage('compliance/fraud');
+  const cmsBlocks = Array.isArray(cmsPage?.blocks) && cmsPage.blocks.length > 0 ? cmsPage.blocks as {type:string;data:Record<string,unknown>}[] : null;
   return (
     <>
+      {cmsBlocks ? <BlockRenderer blocks={cmsBlocks} /> : (
+        <>
       <PageHero
         eyebrow="Compliance"
         title="Protect Yourself from Fraud"
@@ -78,6 +83,8 @@ export default function FraudPage() {
           Contact Support
         </a>
       </CtaBand>
+        </>
+      )}
     </>
   );
 }

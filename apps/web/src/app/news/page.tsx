@@ -1,5 +1,6 @@
 import { PageHero, Section } from '@/components/ui';
 import { getCmsPage, cmsMetadata } from '@/lib/cms';
+import BlockRenderer from '@/components/BlockRenderer';
 
 export async function generateMetadata() {
   const page = await getCmsPage('news');
@@ -9,9 +10,13 @@ export async function generateMetadata() {
   });
 }
 
-export default function NewsroomPage() {
+export default async function NewsroomPage() {
+  const cmsPage = await getCmsPage('news');
+  const cmsBlocks = Array.isArray(cmsPage?.blocks) && cmsPage.blocks.length > 0 ? cmsPage.blocks as {type:string;data:Record<string,unknown>}[] : null;
   return (
     <>
+      {cmsBlocks ? <BlockRenderer blocks={cmsBlocks} /> : (
+        <>
       <PageHero
         eyebrow="News & Support"
         title="Newsroom"
@@ -29,6 +34,8 @@ export default function NewsroomPage() {
           </p>
         </div>
       </Section>
+        </>
+      )}
     </>
   );
 }
