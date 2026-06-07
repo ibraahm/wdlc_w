@@ -1,4 +1,4 @@
-const API = process.env.API_URL || 'http://localhost:4000';
+const API = process.env.API_URL || 'http://localhost:4000/api';
 
 export type Agent = {
   id: string;
@@ -37,7 +37,7 @@ export async function apiSignup(data: {
   lastName: string;
   phone?: string;
 }): Promise<{ ok: boolean; message: string; agent: Agent }> {
-  const res = await fetch(`${API}/portal-auth/signup`, {
+  const res = await fetch(`${API}/portal/auth/signup`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
@@ -46,7 +46,7 @@ export async function apiSignup(data: {
 }
 
 export async function apiVerifyEmail(token: string): Promise<{ ok: boolean; message: string }> {
-  const res = await fetch(`${API}/portal-auth/verify-email`, {
+  const res = await fetch(`${API}/portal/auth/verify-email`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token }),
@@ -55,7 +55,7 @@ export async function apiVerifyEmail(token: string): Promise<{ ok: boolean; mess
 }
 
 export async function apiResendVerification(email: string): Promise<{ ok: boolean }> {
-  const res = await fetch(`${API}/portal-auth/resend-verification`, {
+  const res = await fetch(`${API}/portal/auth/resend-verification`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
@@ -64,7 +64,7 @@ export async function apiResendVerification(email: string): Promise<{ ok: boolea
 }
 
 export async function apiLogin(email: string, password: string): Promise<AuthResult> {
-  const res = await fetch(`${API}/portal-auth/login`, {
+  const res = await fetch(`${API}/portal/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -73,7 +73,7 @@ export async function apiLogin(email: string, password: string): Promise<AuthRes
 }
 
 export async function apiRefresh(refreshToken: string): Promise<AuthResult> {
-  const res = await fetch(`${API}/portal-auth/refresh`, {
+  const res = await fetch(`${API}/portal/auth/refresh`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken }),
@@ -82,7 +82,7 @@ export async function apiRefresh(refreshToken: string): Promise<AuthResult> {
 }
 
 export async function apiLogout(accessToken: string, refreshToken: string): Promise<void> {
-  await fetch(`${API}/portal-auth/logout`, {
+  await fetch(`${API}/portal/auth/logout`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -93,7 +93,7 @@ export async function apiLogout(accessToken: string, refreshToken: string): Prom
 }
 
 export async function apiForgotPassword(email: string): Promise<{ ok: boolean }> {
-  const res = await fetch(`${API}/portal-auth/forgot-password`, {
+  const res = await fetch(`${API}/portal/auth/forgot-password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
@@ -105,7 +105,7 @@ export async function apiResetPassword(
   token: string,
   newPassword: string,
 ): Promise<{ ok: boolean }> {
-  const res = await fetch(`${API}/portal-auth/reset-password`, {
+  const res = await fetch(`${API}/portal/auth/reset-password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token, newPassword }),
@@ -118,7 +118,7 @@ export async function apiChangePassword(
   currentPassword: string,
   newPassword: string,
 ): Promise<{ ok: boolean }> {
-  const res = await fetch(`${API}/portal-auth/change-password`, {
+  const res = await fetch(`${API}/portal/auth/change-password`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

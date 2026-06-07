@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API = process.env.API_URL || 'http://localhost:4000';
+const API = process.env.API_URL || 'http://localhost:4000/api';
 
 const PROTECTED_PREFIXES = ['/dashboard', '/pages', '/nav', '/settings', '/users'];
 const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password'];
@@ -51,7 +51,7 @@ export async function middleware(req: NextRequest) {
 
     if (art) {
       try {
-        const refreshRes = await fetch(`${API}/admin-auth/refresh`, {
+        const refreshRes = await fetch(`${API}/admin/auth/refresh`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refreshToken: art }),

@@ -1,4 +1,4 @@
-const API = process.env.API_URL || 'http://localhost:4000';
+const API = process.env.API_URL || 'http://localhost:4000/api';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -93,7 +93,7 @@ async function authFetch(
 // ---------------------------------------------------------------------------
 
 export async function apiLogin(email: string, password: string): Promise<AuthResult> {
-  const res = await fetch(`${API}/admin-auth/login`, {
+  const res = await fetch(`${API}/admin/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
@@ -102,7 +102,7 @@ export async function apiLogin(email: string, password: string): Promise<AuthRes
 }
 
 export async function apiRefresh(refreshToken: string): Promise<AuthResult> {
-  const res = await fetch(`${API}/admin-auth/refresh`, {
+  const res = await fetch(`${API}/admin/auth/refresh`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken }),
@@ -111,7 +111,7 @@ export async function apiRefresh(refreshToken: string): Promise<AuthResult> {
 }
 
 export async function apiLogout(accessToken: string, refreshToken: string): Promise<void> {
-  const res = await authFetch('/admin-auth/logout', accessToken, {
+  const res = await authFetch('/admin/auth/logout', accessToken, {
     method: 'POST',
     body: JSON.stringify({ refreshToken }),
   });
@@ -119,7 +119,7 @@ export async function apiLogout(accessToken: string, refreshToken: string): Prom
 }
 
 export async function apiForgotPassword(email: string): Promise<{ ok: boolean }> {
-  const res = await fetch(`${API}/admin-auth/forgot-password`, {
+  const res = await fetch(`${API}/admin/auth/forgot-password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
@@ -131,7 +131,7 @@ export async function apiResetPassword(
   token: string,
   newPassword: string,
 ): Promise<{ ok: boolean }> {
-  const res = await fetch(`${API}/admin-auth/reset-password`, {
+  const res = await fetch(`${API}/admin/auth/reset-password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token, newPassword }),
@@ -144,7 +144,7 @@ export async function apiChangePassword(
   currentPassword: string,
   newPassword: string,
 ): Promise<{ ok: boolean }> {
-  const res = await authFetch('/admin-auth/change-password', accessToken, {
+  const res = await authFetch('/admin/auth/change-password', accessToken, {
     method: 'POST',
     body: JSON.stringify({ currentPassword, newPassword }),
   });
@@ -156,7 +156,7 @@ export async function apiChangePassword(
 // ---------------------------------------------------------------------------
 
 export async function apiListUsers(accessToken: string): Promise<AdminUser[]> {
-  const res = await authFetch('/admin-auth/users', accessToken);
+  const res = await authFetch('/admin/auth/users', accessToken);
   return handleResponse<AdminUser[]>(res);
 }
 
@@ -164,7 +164,7 @@ export async function apiCreateUser(
   accessToken: string,
   data: { email: string; name: string; password: string; role?: string },
 ): Promise<AdminUser> {
-  const res = await authFetch('/admin-auth/users', accessToken, {
+  const res = await authFetch('/admin/auth/users', accessToken, {
     method: 'POST',
     body: JSON.stringify(data),
   });
@@ -176,7 +176,7 @@ export async function apiSetUserActive(
   id: string,
   active: boolean,
 ): Promise<{ id: string; active: boolean }> {
-  const res = await authFetch(`/admin-auth/users/${id}/active`, accessToken, {
+  const res = await authFetch(`/admin/auth/users/${id}/active`, accessToken, {
     method: 'PATCH',
     body: JSON.stringify({ active }),
   });

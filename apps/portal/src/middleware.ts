@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const API = process.env.API_URL || 'http://localhost:4000';
+const API = process.env.API_URL || 'http://localhost:4000/api';
 
 const PROTECTED_PATHS = ['/dashboard'];
 const AUTH_PATHS = ['/login', '/signup'];
@@ -42,7 +42,7 @@ export async function middleware(req: NextRequest) {
 
     if (prt) {
       try {
-        const refreshRes = await fetch(`${API}/portal-auth/refresh`, {
+        const refreshRes = await fetch(`${API}/portal/auth/refresh`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ refreshToken: prt }),
