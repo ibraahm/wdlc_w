@@ -1,0 +1,11 @@
+{
+  "name": "wdlc",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev:backend": "npm --workspace=backend run start:dev",
+    "dev:web": "npm --workspace=apps/web run dev",
+    "dev:portal": "npm --workspace=apps/portal run dev",
+    "dev:admin": "npm --workspace=apps/admin run dev"
+  }
+}
