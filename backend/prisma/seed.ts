@@ -65,27 +65,56 @@ async function main() {
     console.log('Seeded header navigation');
   }
 
-  // ── Sample page ───────────────────────────────────────────────────────────
-  await prisma.page.upsert({
-    where: { slug: 'about' },
-    update: {},
-    create: {
-      slug: 'about',
-      title: 'About World Direct Link',
-      description: 'Company overview, network, licenses, and contact details.',
-      status: 'PUBLISHED',
-      publishedAt: new Date(),
-      authorId: admin.id,
-      seoTitle: 'About World Direct Link, Corp.',
-      seoDescription: 'Company overview, network, licenses, and contact details for World Direct Link.',
-      blocks: JSON.stringify([
-        { type: 'hero', data: { eyebrow: 'About Us', heading: 'About World Direct Link', sub: 'Connecting communities since 1999.' } },
-        { type: 'richText', data: { html: '<p>World Direct Link, Corp. is a licensed money transmitter headquartered in Stone Mountain, Georgia.</p>' } },
-        { type: 'table', data: { columns: ['Field', 'Detail'], rows: [['Founded', 'November 2, 1999'], ['Headquarters', 'Stone Mountain, Georgia, USA'], ['Registration', 'FinCEN-registered MSB / NMLS ID 1119263']] } },
-      ]),
-    },
-  });
-  console.log('Seeded sample page: /about');
+  // ── All frontend pages ────────────────────────────────────────────────────
+  const pages = [
+    { slug: 'home',                      title: 'Home',                                  description: 'Fast, affordable, and reliable money transfers for immigrant, refugee, and diaspora families.' },
+    { slug: 'about',                     title: 'About World Direct Link',               description: 'Connecting communities with the people they love since 1999.' },
+    { slug: 'about/company',             title: 'Company Overview',                      description: 'A trusted money transmitter built for the communities we serve.' },
+    { slug: 'about/network',             title: 'Our Network',                           description: 'Reliable delivery through a vetted correspondent network.' },
+    { slug: 'about/licenses',            title: 'Licenses & Registrations',              description: 'Licensed, registered, and verifiable.' },
+    { slug: 'about/contact',             title: 'Contact Us',                            description: "We're here to help — reach our headquarters or send us a message." },
+    { slug: 'services',                  title: 'Our Services',                          description: 'One link. Every way to deliver.' },
+    { slug: 'services/send-money',       title: 'Send Money',                            description: 'Send money quickly and affordably at any authorized WDL agent.' },
+    { slug: 'services/cash-pickup',      title: 'Cash Pickup',                           description: 'Recipients can collect funds in U.S. dollars at a participating payout location.' },
+    { slug: 'services/bank-deposit',     title: 'Bank Deposit',                          description: "Deliver funds directly to a recipient's bank account where available." },
+    { slug: 'services/mobile-wallet',    title: 'Mobile Wallet Payout',                  description: 'Recipients can receive funds to a supported mobile wallet where available.' },
+    { slug: 'services/track',            title: 'Track Your Transfer',                   description: 'Check the status of a transfer using your transaction ID.' },
+    { slug: 'agents/become-an-agent',    title: 'Become a WDL Agent',                   description: 'Grow with a trusted principal.' },
+    { slug: 'agents/resources',          title: 'Agent Resources',                       description: 'Tools and documents authorized World Direct Link agents need to stay compliant.' },
+    { slug: 'agents/partners',           title: 'Our Partners',                          description: 'World Direct Link works with established correspondent partners to deliver funds reliably worldwide.' },
+    { slug: 'compliance',                title: 'Compliance & Anti-Money Laundering',    description: 'Compliance you can count on.' },
+    { slug: 'compliance/fraud',          title: 'Protect Yourself from Fraud',           description: 'Stay alert, stay safe.' },
+    { slug: 'compliance/report',         title: 'Report Suspicious Activity',            description: 'Customers, agents, and the public can report directly to our compliance team.' },
+    { slug: 'compliance/notices',        title: 'Agent Regulatory Notices',              description: 'Posting requirements and updates for authorized WDL agents.' },
+    { slug: 'compliance/law-enforcement',title: 'Law Enforcement Requests',              description: 'World Direct Link cooperates fully with lawful requests from law enforcement.' },
+    { slug: 'compliance/resources',      title: 'Compliance Resources',                  description: 'Helpful references for customers, agents, and partners.' },
+    { slug: 'news',                      title: 'Newsroom',                              description: 'Stay up to date on World Direct Link news, community initiatives, and service updates.' },
+    { slug: 'news/press',                title: 'Press Releases',                        description: 'Official announcements from World Direct Link, Corp.' },
+    { slug: 'support/help',              title: 'Help Center',                           description: 'Find answers about sending, receiving, fees, refunds, and your consumer rights.' },
+    { slug: 'support/complaint',         title: 'File a Complaint',                      description: 'We take every concern seriously. Submit a complaint or contact your state regulatory agency.' },
+    { slug: 'support/contact',           title: 'Contact Support',                       description: "We're here to help with transfers, tracking, refunds, and general questions." },
+    { slug: 'privacy',                   title: 'Privacy Policy',                        description: 'Privacy policy for World Direct Link, Corp.' },
+    { slug: 'terms',                     title: 'Terms of Use',                          description: 'Terms of use for the World Direct Link, Corp. website.' },
+  ];
+
+  for (const p of pages) {
+    await prisma.page.upsert({
+      where: { slug: p.slug },
+      update: { title: p.title, description: p.description },
+      create: {
+        slug: p.slug,
+        title: p.title,
+        description: p.description,
+        status: 'PUBLISHED',
+        publishedAt: new Date(),
+        authorId: admin.id,
+        seoTitle: p.title + ' | World Direct Link',
+        seoDescription: p.description,
+        blocks: JSON.stringify([]),
+      },
+    });
+  }
+  console.log(`Seeded ${pages.length} pages`);
 }
 
 main()
