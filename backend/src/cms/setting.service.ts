@@ -6,9 +6,9 @@ import { AuditService } from '../audit/audit.service';
 export class SettingService {
   constructor(private prisma: PrismaService, private audit: AuditService) {}
 
-  async getAll(): Promise<Record<string, unknown>> {
-    const rows = await this.prisma.siteSetting.findMany();
-    return Object.fromEntries(rows.map((r) => [r.key, JSON.parse(r.value)]));
+  async getAll(): Promise<{ key: string; value: string }[]> {
+    const rows = await this.prisma.siteSetting.findMany({ orderBy: { key: 'asc' } });
+    return rows.map((r) => ({ key: r.key, value: r.value }));
   }
 
   async get(key: string): Promise<unknown> {
