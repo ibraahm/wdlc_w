@@ -85,7 +85,7 @@ export default function ContactPage() {
 
           <div>
             <SectionHeading title="Send us a message" />
-            <ContactForm fields={fields} submitLabel="Send Message" />
+            <ContactForm fields={fields} submitLabel="Send Message" action="contact_us" />
           </div>
         </div>
       </Section>

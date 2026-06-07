@@ -30,7 +30,7 @@ export default function ComplaintPage() {
               { name: 'description', label: 'Description', type: 'textarea', required: true },
               { name: 'file', label: 'Supporting file (optional)', type: 'file', optional: true },
             ]}
-            submitLabel="Submit Complaint"
+            submitLabel="Submit Complaint" action="complaint_form"
             successMessage="We've received your complaint and will respond within 5 business days."
           />
         </div>

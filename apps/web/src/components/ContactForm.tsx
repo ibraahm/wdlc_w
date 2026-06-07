@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 
 export type Field =
   | { name: string; label: string; type: 'text' | 'email' | 'tel'; required?: boolean; optional?: boolean }
@@ -12,19 +13,40 @@ export default function ContactForm({
   fields,
   submitLabel = 'Submit',
   successMessage = "Thanks — we've received your message and will respond shortly.",
+  action = 'contact_form',
 }: {
   fields: Field[];
   submitLabel?: string;
   successMessage?: string;
+  /** reCAPTCHA v3 action name — use a descriptive slug per form (e.g. "complaint_form") */
+  action?: string;
 }) {
+  const { executeRecaptcha } = useGoogleReCaptcha();
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
+  const [pending, setPending] = useState(false);
 
-  // This is a public marketing site with no public form-intake endpoint yet.
-  // Submissions are captured client-side and acknowledged; wire to a backend
-  // endpoint when the intake API is available.
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setError('');
+    setPending(true);
+
+    // If reCAPTCHA is configured, get a token before submitting.
+    // The token should be verified server-side when a form-intake endpoint exists.
+    if (executeRecaptcha) {
+      try {
+        await executeRecaptcha(action);
+        // Token obtained — pass to your backend as a hidden field or
+        // request header when you wire up the intake endpoint.
+      } catch {
+        setError('Security check failed. Please try again.');
+        setPending(false);
+        return;
+      }
+    }
+
     setSubmitted(true);
+    setPending(false);
   }
 
   if (submitted) {
@@ -44,9 +66,9 @@ export default function ContactForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       {fields.map((field) => (
         <div key={field.name}>
-          <label htmlFor={field.name} className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor={field.name} className="block text-sm font-bold text-primary-strong mb-1">
             {field.label}
-            {field.optional && <span className="text-gray-400 font-normal"> (optional)</span>}
+            {field.optional && <span className="text-muted font-normal"> (optional)</span>}
           </label>
 
           {field.type === 'textarea' ? (
@@ -55,7 +77,7 @@ export default function ContactForm({
               name={field.name}
               required={field.required}
               rows={5}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+              className="w-full rounded-lg border border-[#d9e0e8] px-3 py-2 text-ink focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
             />
           ) : field.type === 'select' ? (
             <select
@@ -63,7 +85,7 @@ export default function ContactForm({
               name={field.name}
               required={field.required}
               defaultValue=""
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+              className="w-full rounded-lg border border-[#d9e0e8] px-3 py-2 text-ink focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
             >
               <option value="" disabled>Select…</option>
               {field.options.map((opt) => (
@@ -76,7 +98,7 @@ export default function ContactForm({
               name={field.name}
               type="file"
               required={field.required}
-              className="w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-primary file:font-medium hover:file:bg-blue-100"
+              className="w-full text-sm text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-[#fff4cc] file:px-4 file:py-2 file:text-primary file:font-bold hover:file:bg-secondary/20"
             />
           ) : (
             <input
@@ -84,18 +106,40 @@ export default function ContactForm({
               name={field.name}
               type={field.type}
               required={field.required}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
+              className="w-full rounded-lg border border-[#d9e0e8] px-3 py-2 text-ink focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none"
             />
           )}
         </div>
       ))}
 
-      <button
-        type="submit"
-        className="inline-flex items-center justify-center px-6 py-3 rounded-md bg-primary text-white font-medium hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
-      >
-        {submitLabel}
-      </button>
+      {error && (
+        <p className="text-sm text-[#a73535] font-medium">{error}</p>
+      )}
+
+      <div className="flex items-start gap-4">
+        <button
+          type="submit"
+          disabled={pending}
+          className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-primary text-white font-bold hover:bg-primary-strong transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          {pending ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+              </svg>
+              Sending…
+            </>
+          ) : submitLabel}
+        </button>
+        <p className="text-xs text-muted mt-3 leading-relaxed">
+          Protected by reCAPTCHA.{' '}
+          <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">Privacy</a>
+          {' & '}
+          <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">Terms</a>
+          {' apply.'}
+        </p>
+      </div>
     </form>
   );
 }

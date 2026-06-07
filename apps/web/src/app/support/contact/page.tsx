@@ -61,7 +61,7 @@ export default function ContactSupportPage() {
                 { name: 'topic', label: 'Topic', type: 'select', required: true, options: ['General', 'Tracking', 'Refund', 'Claims', 'Other'] },
                 { name: 'message', label: 'Message', type: 'textarea', required: true },
               ]}
-              submitLabel="Send Message"
+              submitLabel="Send Message" action="support_contact"
             />
           </div>
         </div>

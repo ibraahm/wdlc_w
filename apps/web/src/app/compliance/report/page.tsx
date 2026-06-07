@@ -41,7 +41,7 @@ export default function ReportPage() {
               { name: 'transactionIds', label: 'Transaction ID(s) if known', type: 'text', optional: true },
               { name: 'description', label: 'Description of activity', type: 'textarea', required: true },
             ]}
-            submitLabel="Submit Report"
+            submitLabel="Submit Report" action="report_suspicious"
             successMessage="Thank you. Your report has been received and will be reviewed confidentially by our BSA/AML Compliance Officer."
           />
           <Callout variant="gold">

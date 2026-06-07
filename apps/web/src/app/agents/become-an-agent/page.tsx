@@ -115,7 +115,7 @@ export default function BecomeAnAgentPage() {
                 { name: 'email', label: 'Email', type: 'email', required: true },
                 { name: 'message', label: 'Message', type: 'textarea', optional: true },
               ]}
-              submitLabel="Submit Application"
+              submitLabel="Submit Application" action="agent_inquiry"
               successMessage="Thank you — our agent onboarding team will be in touch shortly."
             />
           </div>
