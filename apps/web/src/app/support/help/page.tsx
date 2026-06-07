@@ -1,11 +1,14 @@
-import type { Metadata } from 'next';
 import { PageHero, Section, SectionHeading, Accordion, CtaBand, ButtonOnDark } from '@/components/ui';
 import Link from 'next/link';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata: Metadata = {
-  title: 'Help Center',
-  description: 'Find answers about sending money, fees, refunds, and your consumer rights with World Direct Link.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('support/help');
+  return cmsMetadata(page, {
+    title: 'Help Center | World Direct Link',
+    description: 'Find answers about sending money, fees, refunds, and your consumer rights with World Direct Link.',
+  });
+}
 
 const rights = [
   {

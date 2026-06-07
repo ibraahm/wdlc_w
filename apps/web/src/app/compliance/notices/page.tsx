@@ -1,11 +1,14 @@
-import type { Metadata } from 'next';
 import { PageHero, Section, SectionHeading, Checklist, CtaBand, ButtonOnDark } from '@/components/ui';
 import { PORTAL_URL } from '@/lib/site';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata: Metadata = {
-  title: 'Agent Regulatory Notices',
-  description: 'Regulatory notices, posting requirements, and compliance updates for authorized WDL agents.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('compliance/notices');
+  return cmsMetadata(page, {
+    title: 'Agent Regulatory Notices | World Direct Link',
+    description: 'Regulatory notices, posting requirements, and compliance updates for authorized WDL agents.',
+  });
+}
 
 export default function NoticesPage() {
   return (

@@ -1,11 +1,14 @@
-import type { Metadata } from 'next';
 import { PageHero, Section, Prose } from '@/components/ui';
 import { company } from '@/lib/site';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata: Metadata = {
-  title: 'Terms of Use',
-  description: 'Terms of use for the World Direct Link, Corp. website.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('terms');
+  return cmsMetadata(page, {
+    title: 'Terms of Use | World Direct Link',
+    description: 'Terms of use for the World Direct Link, Corp. website.',
+  });
+}
 
 export default function TermsPage() {
   return (

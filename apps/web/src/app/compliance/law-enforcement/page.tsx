@@ -1,11 +1,14 @@
-import type { Metadata } from 'next';
 import { PageHero, Section, SectionHeading, Steps, Callout } from '@/components/ui';
 import { company } from '@/lib/site';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata: Metadata = {
-  title: 'Law Enforcement Requests',
-  description: 'How law enforcement agencies can submit lawful records requests to World Direct Link, Corp.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('compliance/law-enforcement');
+  return cmsMetadata(page, {
+    title: 'Law Enforcement Requests | World Direct Link',
+    description: 'How law enforcement agencies can submit lawful records requests to World Direct Link, Corp.',
+  });
+}
 
 export default function LawEnforcementPage() {
   return (

@@ -1,10 +1,13 @@
-import type { Metadata } from 'next';
 import { PageHero, Section, SectionHeading } from '@/components/ui';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata: Metadata = {
-  title: 'Compliance Resources',
-  description: 'Helpful compliance references for customers, agents, and partners of World Direct Link, Corp.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('compliance/resources');
+  return cmsMetadata(page, {
+    title: 'Compliance Resources | World Direct Link',
+    description: 'Helpful compliance references for customers, agents, and partners of World Direct Link, Corp.',
+  });
+}
 
 const resources = [
   { title: 'FinCEN', body: 'Financial Crimes Enforcement Network', href: 'https://www.fincen.gov' },

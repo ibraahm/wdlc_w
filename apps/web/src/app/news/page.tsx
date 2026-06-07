@@ -1,10 +1,13 @@
-import type { Metadata } from 'next';
 import { PageHero, Section } from '@/components/ui';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata: Metadata = {
-  title: 'Newsroom',
-  description: 'Stay up to date on World Direct Link news, community initiatives, and service updates.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('news');
+  return cmsMetadata(page, {
+    title: 'Newsroom | World Direct Link',
+    description: 'Stay up to date on World Direct Link news, community initiatives, and service updates.',
+  });
+}
 
 export default function NewsroomPage() {
   return (

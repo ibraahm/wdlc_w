@@ -1,11 +1,14 @@
-import type { Metadata } from 'next';
 import { PageHero, Section, Callout } from '@/components/ui';
 import { company } from '@/lib/site';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata: Metadata = {
-  title: 'Press Releases',
-  description: 'Official announcements from World Direct Link, Corp.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('news/press');
+  return cmsMetadata(page, {
+    title: 'Press Releases | World Direct Link',
+    description: 'Official announcements from World Direct Link, Corp.',
+  });
+}
 
 export default function PressPage() {
   return (

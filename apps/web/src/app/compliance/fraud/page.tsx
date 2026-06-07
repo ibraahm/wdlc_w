@@ -1,11 +1,13 @@
-import type { Metadata } from 'next';
 import { PageHero, Section, SectionHeading, Callout, Accordion, Checklist, CtaBand, ButtonOnDark } from '@/components/ui';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata: Metadata = {
-  title: 'Protect Yourself from Fraud',
-  description:
-    'Stay alert to common money-transfer scams and learn how to protect yourself when sending money with World Direct Link.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('compliance/fraud');
+  return cmsMetadata(page, {
+    title: 'Protect Yourself from Fraud | World Direct Link',
+    description: 'Stay alert to common money-transfer scams and learn how to protect yourself when sending money with World Direct Link.',
+  });
+}
 
 export default function FraudPage() {
   return (

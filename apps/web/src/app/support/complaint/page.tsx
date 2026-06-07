@@ -1,12 +1,15 @@
-import type { Metadata } from 'next';
 import { PageHero, Section, SectionHeading, Callout } from '@/components/ui';
 import ContactForm from '@/components/ContactForm';
 import { regulators } from '@/lib/site';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata: Metadata = {
-  title: 'File a Complaint',
-  description: 'Submit a complaint to World Direct Link, Corp. or contact your state regulatory agency.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('support/complaint');
+  return cmsMetadata(page, {
+    title: 'File a Complaint | World Direct Link',
+    description: 'Submit a complaint to World Direct Link, Corp. or contact your state regulatory agency.',
+  });
+}
 
 export default function ComplaintPage() {
   return (

@@ -1,12 +1,15 @@
-import type { Metadata } from 'next';
 import { PageHero, Section, SectionHeading, Callout } from '@/components/ui';
 import ContactForm from '@/components/ContactForm';
 import { company } from '@/lib/site';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata: Metadata = {
-  title: 'Contact Support',
-  description: 'Contact World Direct Link customer support for help with transfers, tracking, refunds, and general questions.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('support/contact');
+  return cmsMetadata(page, {
+    title: 'Contact Support | World Direct Link',
+    description: 'Contact World Direct Link customer support for help with transfers, tracking, refunds, and general questions.',
+  });
+}
 
 export default function ContactSupportPage() {
   return (

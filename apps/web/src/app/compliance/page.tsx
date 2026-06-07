@@ -1,11 +1,13 @@
-import type { Metadata } from 'next';
 import { PageHero, Section, SectionHeading, Checklist, Callout, Card } from '@/components/ui';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata: Metadata = {
-  title: 'Compliance & Anti-Money Laundering',
-  description:
-    'World Direct Link maintains a comprehensive, risk-based BSA/AML compliance program with OFAC screening on every transaction.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('compliance');
+  return cmsMetadata(page, {
+    title: 'Compliance & Anti-Money Laundering | World Direct Link',
+    description: 'World Direct Link maintains a comprehensive, risk-based BSA/AML compliance program.',
+  });
+}
 
 export default function CompliancePage() {
   return (

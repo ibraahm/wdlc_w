@@ -1,12 +1,15 @@
-import type { Metadata } from 'next';
 import { PageHero, Section, SectionHeading, Callout, FactTable } from '@/components/ui';
 import ContactForm from '@/components/ContactForm';
 import { company } from '@/lib/site';
+import { getCmsPage, cmsMetadata } from '@/lib/cms';
 
-export const metadata: Metadata = {
-  title: 'Report Suspicious Activity',
-  description: 'Report suspected fraud or suspicious activity involving a World Direct Link transaction, agent, or customer.',
-};
+export async function generateMetadata() {
+  const page = await getCmsPage('compliance/report');
+  return cmsMetadata(page, {
+    title: 'Report Suspicious Activity | World Direct Link',
+    description: 'Report suspected fraud or suspicious activity involving a World Direct Link transaction, agent, or customer.',
+  });
+}
 
 export default function ReportPage() {
   return (
