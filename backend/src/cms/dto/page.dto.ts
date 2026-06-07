@@ -20,8 +20,8 @@ export class BlockDto {
 }
 
 export class CreatePageDto {
-  @Matches(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, {
-    message: 'slug must be lowercase kebab-case',
+  @Matches(/^[a-z0-9]+(?:[-/][a-z0-9]+)*$/, {
+    message: 'slug must be lowercase kebab-case (slashes allowed for nested pages)',
   })
   @MaxLength(120)
   slug: string;

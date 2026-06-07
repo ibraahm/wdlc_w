@@ -114,7 +114,7 @@ export async function createPageAction(
       slug: formData.get('slug') as string,
       title: formData.get('title') as string,
       description: (formData.get('description') as string) || undefined,
-      blocks: blocksRaw || '[]',
+      blocks: JSON.parse(blocksRaw || '[]'),
       seoTitle: (formData.get('seoTitle') as string) || undefined,
       seoDescription: (formData.get('seoDescription') as string) || undefined,
     });
@@ -138,7 +138,7 @@ export async function updatePageAction(
     const page = await apiUpdatePage(session.accessToken, slug, {
       title: formData.get('title') as string,
       description: (formData.get('description') as string) || undefined,
-      blocks: blocksRaw || '[]',
+      blocks: JSON.parse(blocksRaw || '[]'),
       seoTitle: (formData.get('seoTitle') as string) || undefined,
       seoDescription: (formData.get('seoDescription') as string) || undefined,
     });
