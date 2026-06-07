@@ -1,10 +1,12 @@
-import { Body, Controller, Delete, Get, Param, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Put, UseGuards } from '@nestjs/common';
+import { AdminJwtAuthGuard } from '../admin-auth/admin-jwt-auth.guard';
 import { SettingService } from './setting.service';
 import { UpsertSettingDto } from './dto/setting.dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser, AuthUser } from '../auth/decorators/current-user.decorator';
 
+@UseGuards(AdminJwtAuthGuard)
 @Controller('cms/settings')
 export class SettingController {
   constructor(private settings: SettingService) {}

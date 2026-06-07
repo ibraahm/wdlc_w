@@ -3,7 +3,9 @@ import { PrismaService } from '../prisma/prisma.service';
 
 export interface AuditEntry {
   action: string;
-  actorId?: string;
+  adminId?: string;
+  agentId?: string;
+  actorType?: 'admin' | 'agent';
   entity?: string;
   entityId?: string;
   before?: unknown;
@@ -20,10 +22,13 @@ export class AuditService {
 
   async log(entry: AuditEntry): Promise<void> {
     try {
+      const actorType = entry.actorType ?? (entry.adminId ? 'admin' : entry.agentId ? 'agent' : undefined);
       await this.prisma.auditLog.create({
         data: {
           action: entry.action,
-          actorId: entry.actorId,
+          adminId: entry.adminId,
+          agentId: entry.agentId,
+          actorType,
           entity: entry.entity,
           entityId: entry.entityId,
           before: toJson(entry.before),
@@ -37,11 +42,12 @@ export class AuditService {
     }
   }
 
-  async list(params: { entity?: string; actorId?: string; take?: number; skip?: number }) {
-    const { entity, actorId, take = 100, skip = 0 } = params;
+  async list(params: { entity?: string; adminId?: string; agentId?: string; take?: number; skip?: number }) {
+    const { entity, adminId, agentId, take = 100, skip = 0 } = params;
     const where = {
       ...(entity ? { entity } : {}),
-      ...(actorId ? { actorId } : {}),
+      ...(adminId ? { adminId } : {}),
+      ...(agentId ? { agentId } : {}),
     };
     const [raw, total] = await Promise.all([
       this.prisma.auditLog.findMany({
@@ -49,11 +55,13 @@ export class AuditService {
         orderBy: { createdAt: 'desc' },
         take: Math.min(take, 500),
         skip,
-        include: { actor: { select: { email: true, name: true } } },
+        include: {
+          admin: { select: { email: true, name: true } },
+          agent: { select: { email: true, firstName: true, lastName: true } },
+        },
       }),
       this.prisma.auditLog.count({ where }),
     ]);
-    // Deserialize JSON strings back to objects for the API response
     const items = raw.map((r) => ({
       ...r,
       before: r.before ? JSON.parse(r.before) : null,

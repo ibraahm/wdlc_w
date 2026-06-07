@@ -1,6 +1,7 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { IsArray, IsInt, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import { AdminJwtAuthGuard } from '../admin-auth/admin-jwt-auth.guard';
 import { NavService } from './nav.service';
 import { CreateNavItemDto, UpdateNavItemDto } from './dto/nav.dto';
 import { Public } from '../auth/decorators/public.decorator';
@@ -12,12 +13,11 @@ class ReorderItemDto {
   @IsInt() order: number;
 }
 class ReorderDto {
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => ReorderItemDto)
+  @IsArray() @ValidateNested({ each: true }) @Type(() => ReorderItemDto)
   items: ReorderItemDto[];
 }
 
+@UseGuards(AdminJwtAuthGuard)
 @Controller('cms/nav')
 export class NavController {
   constructor(private nav: NavService) {}

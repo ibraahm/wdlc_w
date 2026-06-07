@@ -4,32 +4,33 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 
 import { PrismaModule } from './prisma/prisma.module';
-import { AuthModule } from './auth/auth.module';
-import { CmsModule } from './cms/cms.module';
+import { CommonModule } from './common/common.module';
 import { AuditModule } from './audit/audit.module';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
-import { RolesGuard } from './auth/guards/roles.guard';
+import { AdminAuthModule } from './admin-auth/admin-auth.module';
+import { PortalAuthModule } from './portal-auth/portal-auth.module';
+import { CmsModule } from './cms/cms.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
 
-    // Global rate limiting: 100 requests / 60s per IP by default.
-    // Tighter limits are applied per-route (e.g. login) via @Throttle().
+    // Global rate limiting: 100 req / 60s per IP.
+    // Tighter per-route limits applied with @Throttle() on sensitive endpoints.
     ThrottlerModule.forRoot([
       { name: 'default', ttl: 60_000, limit: 100 },
     ]),
 
     PrismaModule,
-    AuthModule,
+    CommonModule,
     AuditModule,
+    AdminAuthModule,
+    PortalAuthModule,
     CmsModule,
   ],
   providers: [
-    // Order matters: rate limit -> authenticate -> authorize
     { provide: APP_GUARD, useClass: ThrottlerGuard },
-    { provide: APP_GUARD, useClass: JwtAuthGuard },
-    { provide: APP_GUARD, useClass: RolesGuard },
+    // Note: JWT guards are applied per-controller, not globally,
+    // so each portal uses its own strategy with portal-scoped tokens.
   ],
 })
 export class AppModule {}

@@ -1,6 +1,5 @@
 // SQLite for zero-infra dev.
-// To switch to PostgreSQL: change provider to "postgresql", update DATABASE_URL,
-// and restore the Json column types — everything else stays the same.
+// Switch to PostgreSQL: change provider + DATABASE_URL only.
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,54 +9,132 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// SQLite has no native enum type — stored as String, validated in application.
+// ─────────────────────────────────────────────
+// ADMIN / CMS USERS  (back-office & compliance)
 // Roles: SUPER_ADMIN | COMPLIANCE_OFFICER | MANAGER | EDITOR
-// PageStatus: DRAFT | PUBLISHED | ARCHIVED
-// NavLocation: HEADER | FOOTER
+// ─────────────────────────────────────────────
+model AdminUser {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String
+  name            String
+  role            String    @default("EDITOR")
+  active          Boolean   @default(true)
+  mfaEnabled      Boolean   @default(false)
+  mfaSecret       String?
+  lastLoginAt     DateTime?
+  failedAttempts  Int       @default(0)
+  lockedUntil     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  passwordHash String
-  name         String
-  role         String    @default("EDITOR")
-  active       Boolean   @default(true)
-  lastLoginAt  DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  pages     Page[]
-  auditLogs AuditLog[]
+  refreshTokens   AdminRefreshToken[]
+  pages           Page[]
+  auditLogs       AuditLog[]
 }
 
-// Blocks stored as a JSON string — deserialized in the service layer.
+// Refresh token per admin session — hashed, rotated on each use
+model AdminRefreshToken {
+  id          String    @id @default(cuid())
+  tokenHash   String    @unique
+  adminId     String
+  admin       AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+
+  @@index([adminId])
+}
+
+// ─────────────────────────────────────────────
+// AGENT / PORTAL USERS  (external agent portal)
+// Status: PENDING | ACTIVE | SUSPENDED | REJECTED
+// ─────────────────────────────────────────────
+model AgentUser {
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  passwordHash        String
+  firstName           String
+  lastName            String
+  phone               String?
+  active              Boolean   @default(false)  // false until email verified
+  status              String    @default("PENDING")
+  emailVerified       Boolean   @default(false)
+  emailVerifyToken    String?
+  emailVerifyExpiry   DateTime?
+  resetToken          String?
+  resetTokenExpiry    DateTime?
+  failedAttempts      Int       @default(0)
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  refreshTokens       AgentRefreshToken[]
+  loginHistory        AgentLoginHistory[]
+  auditLogs           AuditLog[]
+}
+
+model AgentRefreshToken {
+  id          String    @id @default(cuid())
+  tokenHash   String    @unique
+  agentId     String
+  agent       AgentUser @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+
+  @@index([agentId])
+}
+
+// Per-session login history for agents (compliance requirement)
+model AgentLoginHistory {
+  id          String    @id @default(cuid())
+  agentId     String
+  agent       AgentUser @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  ip          String?
+  userAgent   String?
+  success     Boolean
+  failReason  String?
+  createdAt   DateTime  @default(now())
+
+  @@index([agentId, createdAt])
+}
+
+// ─────────────────────────────────────────────
+// CMS
+// ─────────────────────────────────────────────
 model Page {
-  id             String   @id @default(cuid())
-  slug           String   @unique
+  id             String    @id @default(cuid())
+  slug           String    @unique
   title          String
   description    String?
-  status         String   @default("DRAFT")
-  blocks         String   @default("[]")
+  status         String    @default("DRAFT")
+  blocks         String    @default("[]")
   seoTitle       String?
   seoDescription String?
   publishedAt    DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
-  author   User?   @relation(fields: [authorId], references: [id])
-  authorId String?
+  author         AdminUser? @relation(fields: [authorId], references: [id])
+  authorId       String?
 
   @@index([status])
 }
 
 model NavItem {
-  id       String  @id @default(cuid())
+  id       String   @id @default(cuid())
   label    String
   href     String
-  location String  @default("HEADER")
+  location String   @default("HEADER")
   column   String?
-  order    Int     @default(0)
-  visible  Boolean @default(true)
+  order    Int      @default(0)
+  visible  Boolean  @default(true)
 
   parent   NavItem?  @relation("NavTree", fields: [parentId], references: [id], onDelete: Cascade)
   parentId String?
@@ -66,27 +143,33 @@ model NavItem {
   @@index([location, order])
 }
 
-// Settings stored as JSON string, deserialized on read.
 model SiteSetting {
   key       String   @id
   value     String
   updatedAt DateTime @updatedAt
 }
 
-// Append-only audit trail. before/after stored as JSON strings.
+// ─────────────────────────────────────────────
+// SHARED AUDIT LOG  (append-only, never deleted)
+// actorType: "admin" | "agent"
+// ─────────────────────────────────────────────
 model AuditLog {
-  id        String   @id @default(cuid())
-  action    String
-  entity    String?
-  entityId  String?
-  before    String?
-  after     String?
-  ip        String?
-  userAgent String?
-  createdAt DateTime @default(now())
+  id          String    @id @default(cuid())
+  action      String
+  actorType   String?
+  entity      String?
+  entityId    String?
+  before      String?
+  after       String?
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
 
-  actor   User?   @relation(fields: [actorId], references: [id])
-  actorId String?
+  admin       AdminUser? @relation(fields: [adminId], references: [id])
+  adminId     String?
+
+  agent       AgentUser? @relation(fields: [agentId], references: [id])
+  agentId     String?
 
   @@index([entity, entityId])
   @@index([createdAt])

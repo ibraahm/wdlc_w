@@ -1,10 +1,12 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { AdminJwtAuthGuard } from '../admin-auth/admin-jwt-auth.guard';
 import { PageService } from './page.service';
 import { CreatePageDto, UpdatePageDto } from './dto/page.dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser, AuthUser } from '../auth/decorators/current-user.decorator';
 
+@UseGuards(AdminJwtAuthGuard)
 @Controller('cms/pages')
 export class PageController {
   constructor(private pages: PageService) {}
@@ -43,7 +45,7 @@ export class PageController {
 
   @Patch(':slug/publish')
   publish(@Param('slug') slug: string, @CurrentUser() user: AuthUser) {
-    return this.pages.publish(slug, user.id, user.role);
+    return this.pages.publish(slug, user.id, user.role!);
   }
 
   @Patch(':slug/unpublish')
@@ -54,6 +56,6 @@ export class PageController {
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER')
   @Delete(':slug')
   remove(@Param('slug') slug: string, @CurrentUser() user: AuthUser) {
-    return this.pages.remove(slug, user.id, user.role);
+    return this.pages.remove(slug, user.id, user.role!);
   }
 }
