@@ -1,7 +1,21 @@
 import Link from 'next/link';
-import { headerNav, company, type NavNode } from '@/lib/site';
+import { headerNav, company } from '@/lib/site';
+import { getCmsNav, type CmsNavItem } from '@/lib/cms';
 
-export default function SiteNav() {
+type NavNode = { label: string; href: string; children?: { label: string; href: string }[] };
+
+function toNavNodes(items: CmsNavItem[]): NavNode[] {
+  return items.map((item) => ({
+    label: item.label,
+    href: item.href,
+    children: item.children?.filter((c) => c.visible).map((c) => ({ label: c.label, href: c.href })),
+  }));
+}
+
+export default async function SiteNav() {
+  const cmsItems = await getCmsNav();
+  const nav: NavNode[] = cmsItems && cmsItems.length > 0 ? toNavNodes(cmsItems) : headerNav;
+
   return (
     <>
       <header className="site-header" data-header>
@@ -11,7 +25,7 @@ export default function SiteNav() {
         </Link>
 
         <nav className="nav-links" aria-label="Primary navigation">
-          {headerNav.map((item) =>
+          {nav.map((item) =>
             item.children && item.children.length > 0 ? (
               <div className="nav-item" key={item.href}>
                 <Link href={item.href}>{item.label}</Link>
@@ -43,12 +57,12 @@ export default function SiteNav() {
       </header>
 
       <div className="mobile-panel" data-mobile-panel>
-        {headerNav.map((item) => (
+        {nav.map((item) => (
           <div key={item.href}>
             <Link href={item.href}>{item.label}</Link>
             {item.children && item.children.length > 0 && (
               <div className="mobile-sub" style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px', paddingLeft: '16px' }}>
-                {item.children.map((child: NavNode) => (
+                {item.children.map((child) => (
                   <Link key={child.href} href={child.href}>{child.label}</Link>
                 ))}
               </div>

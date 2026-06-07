@@ -1,5 +1,29 @@
 const API = process.env.API_URL || 'http://localhost:4000/api';
 
+export type CmsNavItem = {
+  id: string;
+  label: string;
+  href: string;
+  location: string;
+  order: number;
+  visible: boolean;
+  children?: CmsNavItem[];
+};
+
+// Fetch header nav from CMS. Returns null if backend is unavailable.
+export async function getCmsNav(): Promise<CmsNavItem[] | null> {
+  try {
+    const res = await fetch(`${API}/cms/nav`, {
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) return null;
+    const items: CmsNavItem[] = await res.json();
+    return items.filter((i) => i.location === 'HEADER' && i.visible);
+  } catch {
+    return null;
+  }
+}
+
 export type CmsPage = {
   slug: string;
   title: string;
