@@ -1,6 +1,6 @@
 'use client';
 
-import { Puck } from '@measured/puck';
+import { Puck, type Data } from '@measured/puck';
 import '@measured/puck/puck.css';
 import { puckConfig, type PuckData } from './puck/config';
 
@@ -20,7 +20,7 @@ export default function PuckEditor({ initialData, onChange }: PuckEditorProps) {
     <div style={{ height: '80vh', border: '1px solid #e8e4dc', borderRadius: '12px', overflow: 'hidden' }}>
       <Puck
         config={puckConfig}
-        data={initialData ?? EMPTY_DATA}
+        data={(initialData ?? EMPTY_DATA) as unknown as Data}
         onPublish={(data) => onChange(data as PuckData)}
         onChange={(data) => onChange(data as PuckData)}
       />

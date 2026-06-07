@@ -21,13 +21,46 @@ function slugify(str: string): string {
   return str.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
 }
 
+// Map legacy block type aliases to Puck component names
+const LEGACY_TYPE_MAP: Record<string, string> = {
+  hero: 'Hero',
+  richtext: 'RichText',
+  text: 'RichText',
+  callout: 'Callout',
+  facttable: 'FactTable',
+  table: 'FactTable',
+  featuregrid: 'FeatureGrid',
+  features: 'FeatureGrid',
+  ctaband: 'CtaBand',
+  cta: 'CtaBand',
+  spacer: 'Spacer',
+};
+
+function normaliseType(type: string): string {
+  const key = type.replace(/[\s_-]/g, '').toLowerCase();
+  return LEGACY_TYPE_MAP[key] ?? type;
+}
+
 function parsePuckData(raw: string | undefined): PuckData | null {
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw);
     // Puck format has a `content` array and `root` key
     if (parsed && typeof parsed === 'object' && Array.isArray(parsed.content)) return parsed as PuckData;
-    // Old blocks array format — wrap in empty Puck shell (editor will start fresh)
+    // Legacy blocks array format: [{ type, data }] — convert to Puck content
+    if (Array.isArray(parsed)) {
+      if (parsed.length === 0) return null;
+      return {
+        content: parsed.map((b: { type: string; data?: Record<string, unknown>; props?: Record<string, unknown> }, i: number) => {
+          const type = normaliseType(b.type);
+          const props = { ...(b.data ?? b.props ?? {}) };
+          if (!props.id) props.id = `${type}-${i}`;
+          return { type, props };
+        }),
+        root: { props: {} },
+        zones: {},
+      } as PuckData;
+    }
     return null;
   } catch {
     return null;
