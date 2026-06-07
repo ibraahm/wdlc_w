@@ -5,6 +5,7 @@ import Link from 'next/link';
 import PageForm from '@/components/PageForm';
 import StatusBadge from '@/components/StatusBadge';
 import { publishPageAction, unpublishPageAction, deletePageAction } from '@/lib/actions';
+import DeletePageButton from '@/components/DeletePageButton';
 
 interface Props {
   params: { slug: string };
@@ -76,24 +77,15 @@ export default async function EditPagePage({ params }: Props) {
           )}
 
           {canDelete && (
-            <form
+            <DeletePageButton
+              slug={page.slug}
+              title={page.title}
+              className="px-4 py-2 border border-red-300 text-red-600 text-sm font-medium rounded-lg hover:bg-red-50 transition-colors"
               action={async () => {
                 'use server';
                 await deletePageAction(page.slug);
               }}
-            >
-              <button
-                type="submit"
-                className="px-4 py-2 border border-red-300 text-red-600 text-sm font-medium rounded-lg hover:bg-red-50 transition-colors"
-                onClick={(e) => {
-                  if (!confirm(`Delete "${page.title}"? This cannot be undone.`)) {
-                    e.preventDefault();
-                  }
-                }}
-              >
-                Delete
-              </button>
-            </form>
+            />
           )}
         </div>
       </div>
