@@ -50,11 +50,6 @@ export default function CompanyOverviewPage() {
             { label: 'Headquarters', value: 'Stone Mountain, Georgia, USA' },
             { label: 'Structure', value: 'Privately held corporation' },
             {
-              label: 'Ownership',
-              value:
-                'Adam Warsama (President, 50%) · Ahmed Ali (VP/CEO & Corporate Secretary, 50%)',
-            },
-            {
               label: 'Registration',
               value: 'FinCEN-registered MSB · NMLS ID 1119263',
             },
