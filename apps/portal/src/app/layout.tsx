@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'WDLC Agent Portal',
+  title: 'WDLC Agent Training Portal',
   description: 'Secure compliance portal for World Direct Link agents',
 };
 

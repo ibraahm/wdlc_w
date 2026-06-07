@@ -16,7 +16,7 @@ export default async function ProtectedLayout({ children }: { children: React.Re
       <header className="portal-topbar">
         <div className="portal-topbar-brand">
           World Direct Link
-          <span>Agent Portal</span>
+          <span>Agent Training Portal</span>
         </div>
         <div className="portal-topbar-right">
           <span className="portal-topbar-user">{agent.firstName} {agent.lastName}</span>

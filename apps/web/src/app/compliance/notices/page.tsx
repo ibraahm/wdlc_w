@@ -25,7 +25,7 @@ export default async function NoticesPage() {
       />
 
       <Section>
-        <SectionHeading title="Notice examples" subtitle="Full documents are available in the Agent Portal." />
+        <SectionHeading title="Notice examples" subtitle="Full documents are available in the Agent Training Portal." />
         <div className="max-w-2xl">
           <Checklist
             items={[
@@ -39,8 +39,8 @@ export default async function NoticesPage() {
         </div>
       </Section>
 
-      <CtaBand heading="Agents: log in to the Agent Portal for full documents">
-        <ButtonOnDark href={`${PORTAL_URL}/login`} external>Agent Portal</ButtonOnDark>
+      <CtaBand heading="Agents: log in to the Agent Training Portal for full documents">
+        <ButtonOnDark href={`${PORTAL_URL}/login`} external>Agent Training Portal</ButtonOnDark>
       </CtaBand>
         </>
       )}

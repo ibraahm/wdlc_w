@@ -32,11 +32,11 @@ export default async function AgentResourcesPage() {
           <h2 className="text-xl font-semibold text-gray-900">Authenticated resources</h2>
           <p className="mt-2 text-gray-600 leading-relaxed">
             Compliance documents, training materials, and operational forms require an active agent
-            account. Sign in to the Agent Portal to access your authenticated resources.
+            account. Sign in to the Agent Training Portal to access your authenticated resources.
           </p>
           <div className="mt-6">
             <ButtonPrimary href={`${PORTAL_URL}/login`} external>
-              Agent Portal
+              Agent Training Portal
             </ButtonPrimary>
           </div>
         </div>
