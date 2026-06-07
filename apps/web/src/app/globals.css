@@ -8,25 +8,37 @@
   }
 
   body {
-    @apply text-gray-900 bg-white;
+    @apply text-ink bg-[#f5f7fa];
+  }
+
+  a {
+    @apply text-inherit no-underline;
   }
 }
 
 @layer components {
+  /* Callout variants using brand colors */
+  .callout-gold {
+    border-left: 5px solid #d7a72f;
+    background: #fff6d8;
+    color: #102542;
+    font-weight: 700;
+  }
+
   .prose {
-    @apply max-w-none text-gray-700 leading-relaxed;
+    @apply max-w-none text-muted leading-relaxed;
   }
 
   .prose h1 {
-    @apply text-3xl font-bold text-gray-900 mb-4 mt-6;
+    @apply text-3xl font-bold text-primary-strong mb-4 mt-6;
   }
 
   .prose h2 {
-    @apply text-2xl font-semibold text-gray-900 mb-3 mt-5;
+    @apply text-2xl font-semibold text-primary-strong mb-3 mt-5;
   }
 
   .prose h3 {
-    @apply text-xl font-semibold text-gray-900 mb-2 mt-4;
+    @apply text-xl font-semibold text-primary-strong mb-2 mt-4;
   }
 
   .prose p {
@@ -42,14 +54,14 @@
   }
 
   .prose a {
-    @apply text-primary underline hover:text-blue-800;
+    @apply text-primary underline hover:text-primary-strong;
   }
 
   .prose strong {
-    @apply font-semibold text-gray-900;
+    @apply font-semibold text-primary-strong;
   }
 
   .prose blockquote {
-    @apply border-l-4 border-primary pl-4 italic text-gray-600 my-4;
+    @apply border-l-4 border-secondary pl-4 italic text-muted my-4;
   }
 }

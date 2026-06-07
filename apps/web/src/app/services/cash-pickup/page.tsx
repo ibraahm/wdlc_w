@@ -1,0 +1,43 @@
+import {
+  PageHero,
+  Section,
+  Container,
+  Callout,
+  CtaBand,
+  ButtonOnDark,
+} from '@/components/ui';
+
+export const metadata = {
+  title: 'Cash Pickup | World Direct Link',
+  description:
+    'Recipients can collect funds in U.S. dollars at a participating payout location in our correspondent network.',
+};
+
+export default function CashPickupPage() {
+  return (
+    <>
+      <PageHero eyebrow="Services" title="Cash Pickup" />
+
+      <Section>
+        <Container>
+          <p className="max-w-3xl text-lg text-gray-700">
+            Your recipient can collect funds in U.S. dollars at a participating payout location
+            in our correspondent network. They&apos;ll need a valid ID and the transaction
+            reference details you provide at the time of sending.
+          </p>
+
+          <div className="mt-8 max-w-3xl">
+            <Callout variant="info">
+              Recipients may receive less due to fees charged by the recipient&apos;s bank and
+              foreign taxes, as disclosed on your receipt.
+            </Callout>
+          </div>
+        </Container>
+      </Section>
+
+      <CtaBand heading="Find an Agent">
+        <ButtonOnDark href="/agents/become-an-agent">Find an Agent</ButtonOnDark>
+      </CtaBand>
+    </>
+  );
+}
