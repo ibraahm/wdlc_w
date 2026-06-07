@@ -12,14 +12,18 @@ export type CmsNavItem = {
 
 // Fetch header nav from CMS. Returns null if backend is unavailable.
 export async function getCmsNav(): Promise<CmsNavItem[] | null> {
+  const url = `${API}/cms/nav`;
+  const start = Date.now();
   try {
-    const res = await fetch(`${API}/cms/nav`, {
-      next: { revalidate: 60 },
-    });
+    const res = await fetch(url, { next: { revalidate: 60 } });
+    console.log(`[CMS] GET ${url} → ${res.status} (${Date.now() - start}ms)`);
     if (!res.ok) return null;
     const items: CmsNavItem[] = await res.json();
-    return items.filter((i) => i.location === 'HEADER' && i.visible);
-  } catch {
+    const filtered = items.filter((i) => i.location === 'HEADER' && i.visible);
+    console.log(`[CMS] nav items returned: ${items.length} total, ${filtered.length} HEADER visible. Hrefs: ${filtered.map(i => i.href).join(', ')}`);
+    return filtered;
+  } catch (e) {
+    console.error(`[CMS] nav fetch failed:`, e);
     return null;
   }
 }
@@ -36,13 +40,15 @@ export type CmsPage = {
 
 // Fetch a published page from the CMS. Returns null if not found or backend unavailable.
 export async function getCmsPage(slug: string): Promise<CmsPage | null> {
+  const url = `${API}/cms/pages/published/${slug}`;
+  const start = Date.now();
   try {
-    const res = await fetch(`${API}/cms/pages/published/${slug}`, {
-      next: { revalidate: 60 }, // ISR: revalidate every 60 seconds
-    });
+    const res = await fetch(url, { next: { revalidate: 60 } });
+    console.log(`[CMS] GET ${url} → ${res.status} (${Date.now() - start}ms) caller=${new Error().stack?.split('\n')[2]?.trim()}`);
     if (!res.ok) return null;
     return res.json();
-  } catch {
+  } catch (e) {
+    console.error(`[CMS] page fetch failed for "${slug}":`, e);
     return null;
   }
 }
