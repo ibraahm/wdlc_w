@@ -1,18 +1,37 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import BlockEditor from './BlockEditor';
-import type { Page, Block } from '@/lib/api';
+import dynamic from 'next/dynamic';
+import type { Page } from '@/lib/api';
+import type { PuckData } from './puck/config';
 import { createPageAction, updatePageAction } from '@/lib/actions';
 
+// Load Puck editor only client-side (it uses browser APIs)
+const PuckEditor = dynamic(() => import('./PuckEditor'), {
+  ssr: false,
+  loading: () => (
+    <div style={{ height: '80vh', border: '1px solid #e8e4dc', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', fontSize: '0.9rem' }}>
+      Loading editor…
+    </div>
+  ),
+});
+
 function slugify(str: string): string {
-  return str
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-');
+  return str.toLowerCase().trim().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
+}
+
+function parsePuckData(raw: string | undefined): PuckData | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    // Puck format has a `content` array and `root` key
+    if (parsed && typeof parsed === 'object' && Array.isArray(parsed.content)) return parsed as PuckData;
+    // Old blocks array format — wrap in empty Puck shell (editor will start fresh)
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 interface PageFormProps {
@@ -23,41 +42,28 @@ interface PageFormProps {
 export default function PageForm({ page, mode }: PageFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState('');
   const [title, setTitle] = useState(page?.title ?? '');
   const [slug, setSlug] = useState(page?.slug ?? '');
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(!!page?.slug);
-
-  // Parse initial blocks
-  let initialBlocks: Block[] = [];
-  if (page?.blocks) {
-    try {
-      initialBlocks = JSON.parse(page.blocks);
-    } catch {
-      // ignore
-    }
-  }
-
-  const [blocks, setBlocks] = useState<Block[]>(initialBlocks);
+  const [puckData, setPuckData] = useState<PuckData | null>(() => parsePuckData(page?.blocks));
+  const puckDataRef = useRef<PuckData | null>(puckData);
 
   function handleTitleChange(value: string) {
     setTitle(value);
-    if (!slugManuallyEdited) {
-      setSlug(slugify(value));
-    }
+    if (!slugManuallyEdited) setSlug(slugify(value));
   }
 
-  function handleSlugChange(value: string) {
-    setSlugManuallyEdited(true);
-    setSlug(value);
+  function handlePuckChange(data: PuckData) {
+    setPuckData(data);
+    puckDataRef.current = data;
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError('');
     const fd = new FormData(e.currentTarget);
-    // Override blocks from state (since hidden input might not have latest)
-    fd.set('blocks', JSON.stringify(blocks));
+    fd.set('blocks', JSON.stringify(puckDataRef.current ?? { content: [], root: { props: {} } }));
 
     startTransition(async () => {
       const result = mode === 'create' ? await createPageAction(fd) : await updatePageAction(fd);
@@ -71,19 +77,15 @@ export default function PageForm({ page, mode }: PageFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Hidden slug for edit mode */}
       {mode === 'edit' && <input type="hidden" name="slug" value={page?.slug} />}
 
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          {error}
-        </div>
+        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
       )}
 
       {/* Core fields */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
         <h2 className="font-semibold text-gray-900 text-sm">Page details</h2>
-
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
           <input
@@ -91,7 +93,7 @@ export default function PageForm({ page, mode }: PageFormProps) {
             required
             value={title}
             onChange={(e) => handleTitleChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             placeholder="Page title"
           />
         </div>
@@ -105,10 +107,10 @@ export default function PageForm({ page, mode }: PageFormProps) {
                 name="slug"
                 required
                 value={slug}
-                onChange={(e) => handleSlugChange(e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary font-mono"
+                onChange={(e) => { setSlugManuallyEdited(true); setSlug(e.target.value); }}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-navy font-mono"
                 placeholder="page-slug"
-                pattern="[a-z0-9-]+"
+                pattern="[a-z0-9/\-]+"
               />
             </div>
             <p className="text-xs text-gray-400 mt-1">Auto-generated from title. Lowercase, hyphens only.</p>
@@ -121,60 +123,51 @@ export default function PageForm({ page, mode }: PageFormProps) {
             name="description"
             rows={2}
             defaultValue={page?.description ?? ''}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             placeholder="Short description (optional)"
           />
         </div>
       </div>
 
-      {/* Blocks */}
-      <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
-        <h2 className="font-semibold text-gray-900 text-sm">Page blocks</h2>
-        <BlockEditor
-          initialBlocks={initialBlocks}
-          onChange={setBlocks}
-          name="blocks"
-        />
+      {/* Puck visual editor */}
+      <div className="space-y-2">
+        <h2 className="font-semibold text-gray-900 text-sm">Page content</h2>
+        <p className="text-xs text-gray-400">Drag blocks from the left panel onto the canvas. Click any block to edit its fields in the right panel.</p>
+        <PuckEditor initialData={puckData} onChange={handlePuckChange} />
       </div>
 
       {/* SEO */}
       <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-4">
         <h2 className="font-semibold text-gray-900 text-sm">SEO</h2>
-
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">SEO Title</label>
           <input
             name="seoTitle"
             defaultValue={page?.seoTitle ?? ''}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             placeholder="Override meta title (optional)"
           />
         </div>
-
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">SEO Description</label>
           <textarea
             name="seoDescription"
             rows={2}
             defaultValue={page?.seoDescription ?? ''}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-navy"
             placeholder="Override meta description (optional)"
           />
         </div>
       </div>
 
       {/* Submit */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 pb-8">
         <button
           type="submit"
           disabled={isPending}
-          className="px-6 py-2.5 bg-primary text-white font-medium rounded-lg text-sm hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
+          className="px-6 py-2.5 bg-navy text-white font-medium rounded-lg text-sm hover:bg-navy-mid disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
         >
-          {isPending
-            ? 'Saving...'
-            : mode === 'create'
-              ? 'Save as draft'
-              : 'Save changes'}
+          {isPending ? 'Saving…' : mode === 'create' ? 'Save as draft' : 'Save changes'}
         </button>
         <button
           type="button"
