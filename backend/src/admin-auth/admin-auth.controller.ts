@@ -14,10 +14,12 @@ import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser, AuthUser } from '../auth/decorators/current-user.decorator';
 import { AdminJwtAuthGuard } from './admin-jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import { RecaptchaService } from '../common/recaptcha.service';
 
-// All routes in this controller use the admin JWT guard
-@UseGuards(AdminJwtAuthGuard)
+// All routes use the admin JWT guard; RolesGuard enforces the @Roles() on
+// user-management endpoints (without it those decorators are inert).
+@UseGuards(AdminJwtAuthGuard, RolesGuard)
 @Controller('admin/auth')
 export class AdminAuthController {
   constructor(

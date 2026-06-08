@@ -20,6 +20,15 @@ async function bootstrap() {
   assertSecrets();
   const app = await NestFactory.create(AppModule);
 
+  // Behind a load balancer / reverse proxy in production: trust X-Forwarded-*
+  // so req.ip is the real client (correct rate limiting, lockout, audit IPs).
+  if (process.env.NODE_ENV === 'production') {
+    app.getHttpAdapter().getInstance().set('trust proxy', 1);
+  }
+
+  // Drain in-flight work and run onModuleDestroy (Prisma $disconnect) on SIGTERM/SIGINT.
+  app.enableShutdownHooks();
+
   // Security headers
   app.use(helmet());
 

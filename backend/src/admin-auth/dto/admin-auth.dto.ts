@@ -1,4 +1,6 @@
-import { IsEmail, IsString, MinLength, IsOptional } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsOptional, IsIn } from 'class-validator';
+
+export const ADMIN_ROLES = ['SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR'] as const;
 
 export class AdminLoginDto {
   @IsEmail()
@@ -26,8 +28,8 @@ export class AdminCreateUserDto {
   password: string;
 
   @IsOptional()
-  @IsString()
-  role?: string; // SUPER_ADMIN | COMPLIANCE_OFFICER | MANAGER | EDITOR
+  @IsIn(ADMIN_ROLES, { message: `role must be one of: ${ADMIN_ROLES.join(', ')}` })
+  role?: string;
 }
 
 export class AdminRefreshDto {
