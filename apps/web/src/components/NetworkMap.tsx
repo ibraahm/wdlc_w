@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 export type NetworkCountryData = {
   name: string;
@@ -10,9 +10,10 @@ export type NetworkCountryData = {
 
 declare global {
   interface Window {
-    L: unknown;
-    d3: unknown;
-    WDLNetworkMapReady?: boolean;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    L?: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    d3?: any;
   }
 }
 
@@ -61,19 +62,22 @@ function loadLink(href: string): void {
 
 export default function NetworkMap({ countries }: { countries: NetworkCountryData[] }) {
   const mapRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const mapInstance = useRef<unknown>(null);
   const geoLayer = useRef<unknown>(null);
   const currentLayer = useRef<unknown>(null);
   const [panel, setPanel] = useState<{ name: string; payoutTypes: string[]; flagUrl?: string } | null>(null);
   const [ready, setReady] = useState(false);
-  const countriesRef = useRef(countries);
-  countriesRef.current = countries;
 
-  const countryMap = useCallback(() => {
+  // Build the lookup once per data change and read it via ref inside Leaflet
+  // callbacks (which capture values at init time, not on re-render).
+  const countryMap = useMemo(() => {
     const m = new Map<string, NetworkCountryData>();
-    for (const c of countriesRef.current) m.set(c.name, c);
+    for (const c of countries) m.set(c.name, c);
     return m;
-  }, []);
+  }, [countries]);
+  const countryMapRef = useRef(countryMap);
+  countryMapRef.current = countryMap;
 
   useEffect(() => {
     let cancelled = false;
@@ -85,23 +89,22 @@ export default function NetworkMap({ countries }: { countries: NetworkCountryDat
       ]);
       if (cancelled || !mapRef.current || mapInstance.current) return;
 
-      const L = window.L as typeof import('leaflet');
-      const d3 = window.d3 as typeof import('d3');
+      const L = window.L;
+      const d3 = window.d3;
 
-      const map = (L as unknown as { map: Function }).map(mapRef.current, {
+      const map = L.map(mapRef.current, {
         center: [20, 0], zoom: 2, minZoom: 2, maxZoom: 8,
         zoomControl: true, zoomAnimation: true, fadeAnimation: true, worldCopyJump: true,
       });
       mapInstance.current = map;
 
-      (L as unknown as { tileLayer: Function }).tileLayer(
+      L.tileLayer(
         'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
         { attribution: '&copy;OpenStreetMap, &copy;CartoDB', subdomains: 'abcd', maxZoom: 19, opacity: 0.8 },
       ).addTo(map);
 
-      const svgEl = document.getElementById('wdl-connections-svg');
-
       function drawConnections() {
+        const svgEl = svgRef.current;
         if (!svgEl) return;
         const svg = d3.select(svgEl);
         svg.selectAll('*').remove();
@@ -110,16 +113,16 @@ export default function NetworkMap({ countries }: { countries: NetworkCountryDat
         grad.append('stop').attr('offset', '0%').attr('style', 'stop-color:#0B1F3A;stop-opacity:0.6');
         grad.append('stop').attr('offset', '100%').attr('style', 'stop-color:#C9A84C;stop-opacity:0.6');
 
-        const usaCenter = (map as unknown as { latLngToContainerPoint: Function }).latLngToContainerPoint([38.88, -97.02]);
+        const usaCenter = map.latLngToContainerPoint([38.88, -97.02]);
         if (!geoLayer.current) return;
         let idx = 0;
         (geoLayer.current as { eachLayer: Function }).eachLayer((layer: unknown) => {
           const feat = (layer as { feature: { properties: { name: string } } }).feature;
           const db = normalizeName(feat.properties.name);
-          if (!countryMap().has(db) || db === 'United States of America') return;
+          if (!countryMapRef.current.has(db) || db === 'United States of America') return;
           const bounds = (layer as { getBounds: Function }).getBounds();
           const center = [(bounds.getNorth() + bounds.getSouth()) / 2, (bounds.getEast() + bounds.getWest()) / 2];
-          const end = (map as unknown as { latLngToContainerPoint: Function }).latLngToContainerPoint(center);
+          const end = map.latLngToContainerPoint(center);
           const dx = end.x - usaCenter.x;
           const mid = [usaCenter.x + dx * 0.5, usaCenter.y + (end.y - usaCenter.y) * 0.5 - Math.abs(dx) * 0.15];
           const lineGen = d3.line().curve(d3.curveBasis).x((d: unknown[]) => d[0] as number).y((d: unknown[]) => d[1] as number);
@@ -133,14 +136,14 @@ export default function NetworkMap({ countries }: { countries: NetworkCountryDat
 
       map.on('moveend zoomend', drawConnections);
 
-      const geojson = await fetch('https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json').then((r) => r.json());
+      const geojson = await fetch('/countries.geo.json').then((r) => r.json());
       if (cancelled) return;
 
-      geoLayer.current = (L as unknown as { geoJSON: Function }).geoJSON(geojson, {
+      geoLayer.current = L.geoJSON(geojson, {
         style(feature: unknown) {
           const name = normalizeName((feature as { properties: { name: string } }).properties.name);
           const isUSA = name === 'United States of America';
-          const active = countryMap().has(name);
+          const active = countryMapRef.current.has(name);
           return {
             fillColor: isUSA ? '#0B1F3A' : active ? '#C9A84C' : '#e8e8e8',
             color: '#fff', weight: active ? 1 : 0.5, fillOpacity: isUSA ? 0.85 : active ? 0.7 : 0.25,
@@ -149,7 +152,7 @@ export default function NetworkMap({ countries }: { countries: NetworkCountryDat
         onEachFeature(feature: unknown, layer: unknown) {
           const name = normalizeName((feature as { properties: { name: string } }).properties.name);
           const isUSA = name === 'United States of America';
-          const data = countryMap().get(name);
+          const data = countryMapRef.current.get(name);
           if (!data && !isUSA) return;
 
           (layer as { on: Function }).on({
@@ -170,7 +173,7 @@ export default function NetworkMap({ countries }: { countries: NetworkCountryDat
               }
               (layer as { setStyle: Function }).setStyle({ fillOpacity: 0.9, weight: 2.5 });
               currentLayer.current = layer;
-              (map as unknown as { fitBounds: Function }).fitBounds((layer as { getBounds: Function }).getBounds(), { padding: [50, 50], maxZoom: 6 });
+              map.fitBounds((layer as { getBounds: Function }).getBounds(), { padding: [50, 50], maxZoom: 6 });
               setPanel(data ? { ...data } : { name: 'United States', payoutTypes: ['Origin country'], flagUrl: undefined });
             },
           });
@@ -182,7 +185,15 @@ export default function NetworkMap({ countries }: { countries: NetworkCountryDat
     }
 
     init().catch(console.error);
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      if (mapInstance.current) {
+        (mapInstance.current as { remove: () => void }).remove();
+        mapInstance.current = null;
+        geoLayer.current = null;
+        currentLayer.current = null;
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -204,7 +215,7 @@ export default function NetworkMap({ countries }: { countries: NetworkCountryDat
         <div ref={mapRef} className="absolute inset-0" />
 
         {/* Connection lines SVG overlay */}
-        <svg id="wdl-connections-svg" className="absolute inset-0 pointer-events-none" style={{ width: '100%', height: '100%', zIndex: 999 }} />
+        <svg ref={svgRef} className="absolute inset-0 pointer-events-none" style={{ width: '100%', height: '100%', zIndex: 999 }} />
 
         {/* Header card */}
         <div className="absolute top-4 left-4 z-[1000] bg-white rounded-xl shadow-md border-l-4 border-[#C9A84C] p-5 max-w-xs">
