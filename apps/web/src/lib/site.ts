@@ -146,29 +146,56 @@ export const footerNav: { title: string; links: { label: string; href: string }[
   },
 ];
 
-// State money transmitter licenses
-export const licenses: { state: string; number: string }[] = [
-  { state: 'Alaska', number: 'AKMT-10045' },
-  { state: 'Arizona', number: 'MT-0907819' },
-  { state: 'Colorado', number: '500171' },
-  { state: 'District of Columbia', number: 'MTR1119263' },
-  { state: 'Georgia', number: '19028' },
-  { state: 'Illinois', number: 'MT.0000238' },
-  { state: 'Kansas', number: 'MT.0000296' },
-  { state: 'Maine', number: '(state-assigned)' },
-  { state: 'Maryland', number: '1119263' },
-  { state: 'Michigan', number: 'MT0026529' },
-  { state: 'Minnesota', number: 'MN-MT-51987' },
-  { state: 'Missouri', number: 'MO-26-4255' },
-  { state: 'North Dakota', number: 'MT104978' },
-  { state: 'Ohio', number: 'OHMT056' },
-  { state: 'South Dakota', number: '1119263.MT' },
-  { state: 'Tennessee', number: '1119263' },
-  { state: 'Texas', number: '3097' },
-  { state: 'Utah', number: '76' },
-  { state: 'Washington', number: '550-MT-25829' },
-  { state: 'Wisconsin', number: '114MT' },
+// State money transmitter licenses.
+// `since` = date first licensed (per NMLS records); leave undefined if not on hand.
+// `status` defaults to Active.
+export type StateLicense = {
+  state: string;
+  number: string;
+  status?: 'Active' | 'Pending' | 'Surrendered';
+  since?: string;
+  licenseType?: string;
+};
+
+export const licenses: StateLicense[] = [
+  { state: 'Alaska', number: 'AKMT-10045', status: 'Active' },
+  { state: 'Arizona', number: 'MT-0907819', status: 'Active' },
+  { state: 'Colorado', number: '500171', status: 'Active' },
+  { state: 'District of Columbia', number: 'MTR1119263', status: 'Active' },
+  { state: 'Georgia', number: '19028', status: 'Active', since: 'Nov 2, 1999', licenseType: 'Seller of Payment Instruments / Money Transmitter (home state)' },
+  { state: 'Illinois', number: 'MT.0000238', status: 'Active' },
+  { state: 'Kansas', number: 'MT.0000296', status: 'Active' },
+  { state: 'Maine', number: '(state-assigned)', status: 'Active' },
+  { state: 'Maryland', number: '1119263', status: 'Active' },
+  { state: 'Michigan', number: 'MT0026529', status: 'Active' },
+  { state: 'Minnesota', number: 'MN-MT-51987', status: 'Active' },
+  { state: 'Missouri', number: 'MO-26-4255', status: 'Active' },
+  { state: 'North Dakota', number: 'MT104978', status: 'Active' },
+  { state: 'Ohio', number: 'OHMT056', status: 'Active' },
+  { state: 'South Dakota', number: '1119263.MT', status: 'Active' },
+  { state: 'Tennessee', number: '1119263', status: 'Active' },
+  { state: 'Texas', number: '3097', status: 'Active' },
+  { state: 'Utah', number: '76', status: 'Active' },
+  { state: 'Washington', number: '550-MT-25829', status: 'Active' },
+  { state: 'Wisconsin', number: '114MT', status: 'Active' },
 ];
+
+// State-specific consumer complaint disclosures. Several states require a money
+// transmitter to publish a specific notice telling consumers how to escalate a
+// complaint to the state regulator. `general` applies in every state; keyed
+// entries add or replace the wording where a state mandates exact language.
+export const licenseDisclosureGeneral =
+  'World Direct Link, Corp. is licensed as a money transmitter and is a FinCEN-registered Money Services Business (NMLS ID 1119263). Money transmission is offered only in the states listed above where the company holds an active license. License status and details can be verified on the NMLS Consumer Access website at nmlsconsumeraccess.org. If you have a complaint, first contact World Direct Link consumer assistance at 800-939-7185. If your complaint is not resolved, you may contact your state regulator using the information shown for each state.';
+
+export const stateDisclosures: Record<string, string> = {
+  Texas:
+    'If you have a complaint, first contact the consumer assistance division of World Direct Link, Corp. at 800-939-7185. If you still have an unresolved complaint regarding the company’s money transmission or currency exchange activity, please direct your complaint to: Texas Department of Banking, 2601 North Lamar Boulevard, Austin, Texas 78705, 1-877-276-5554 (toll free), www.dob.texas.gov.',
+  Washington:
+    'Washington residents: if your complaint is not resolved by World Direct Link, you may file a complaint with the Washington State Department of Financial Institutions, Division of Consumer Services, at 1-877-746-4334 or dfi.wa.gov.',
+  California:
+    'California residents: if you have complaints about this money transmitter, please contact the California Department of Financial Protection and Innovation (DFPI) toll-free at 1-866-275-2677 or dfpi.ca.gov.',
+};
+
 
 // State regulator contacts (for complaint page)
 export const regulators: { state: string; contact: string }[] = [
