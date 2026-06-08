@@ -25,13 +25,22 @@ const PUBLIC_SETTING_KEYS = new Set([
 export class SettingController {
   constructor(private settings: SettingService) {}
 
-  @Public()
+  // Admin-only: full settings list (used by the admin settings page)
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR')
   @Get()
-  async getAll() {
+  getAll() {
+    return this.settings.getAll();
+  }
+
+  // Public: anonymous list of only the allowlisted keys (for the public site)
+  @Public()
+  @Get('public')
+  async getPublic() {
     const all = await this.settings.getAll() as { key: string; value: string }[];
     return all.filter((s) => PUBLIC_SETTING_KEYS.has(s.key));
   }
 
+  // Public single-key read — restricted to allowlisted keys
   @Public()
   @Get(':key')
   async get(@Param('key') key: string) {

@@ -1,10 +1,17 @@
+// The browser calls the backend API directly (e.g. form submissions in
+// FormRenderer), so its origin must be allowlisted in connect-src.
+function apiOrigin() {
+  const raw = process.env.NEXT_PUBLIC_API_URL || process.env.API_URL || 'http://localhost:4000/api';
+  try { return new URL(raw).origin; } catch { return 'http://localhost:4000'; }
+}
+
 const CSP = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline'",   // unsafe-inline needed for Next.js inline scripts; tighten with nonces in future
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: blob: https:",
-  "connect-src 'self' https://nominatim.openstreetmap.org https://*.tile.openstreetmap.org",
+  `connect-src 'self' ${apiOrigin()} https://nominatim.openstreetmap.org https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
