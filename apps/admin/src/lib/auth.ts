@@ -51,34 +51,45 @@ export async function setSessionCookies(
 
   const secure = process.env.NODE_ENV === 'production';
 
-  cookieStore.set(AAT, accessToken, {
-    httpOnly: true,
-    secure,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: ACCESS_MAX_AGE,
-  });
+  // cookies() is read-only during page/layout render; only Server Actions and
+  // Route Handlers may mutate it. getSession() runs in both contexts, so guard
+  // the writes — a failed refresh-persist just means we refresh again next request.
+  try {
+    cookieStore.set(AAT, accessToken, {
+      httpOnly: true,
+      secure,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: ACCESS_MAX_AGE,
+    });
 
-  cookieStore.set(ART, refreshToken, {
-    httpOnly: true,
-    secure,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: REFRESH_MAX_AGE,
-  });
+    cookieStore.set(ART, refreshToken, {
+      httpOnly: true,
+      secure,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: REFRESH_MAX_AGE,
+    });
 
-  cookieStore.set(AUSER, JSON.stringify(user), {
-    httpOnly: true,
-    secure,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: ACCESS_MAX_AGE,
-  });
+    cookieStore.set(AUSER, JSON.stringify(user), {
+      httpOnly: true,
+      secure,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: ACCESS_MAX_AGE,
+    });
+  } catch {
+    // read-only cookie context (render) — ignore
+  }
 }
 
 export async function clearSessionCookies(): Promise<void> {
   const cookieStore = cookies();
-  cookieStore.delete(AAT);
-  cookieStore.delete(ART);
-  cookieStore.delete(AUSER);
+  try {
+    cookieStore.delete(AAT);
+    cookieStore.delete(ART);
+    cookieStore.delete(AUSER);
+  } catch {
+    // read-only cookie context (render) — ignore
+  }
 }

@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { builderForms } from './seed-forms';
+import { homeBlocks } from './seed-home';
 
 const prisma = new PrismaClient();
 
@@ -105,9 +106,13 @@ async function main() {
   ];
 
   for (const p of pages) {
+    const blocks = p.slug === 'home' ? JSON.stringify(homeBlocks) : JSON.stringify([]);
     await prisma.page.upsert({
       where: { slug: p.slug },
-      update: { title: p.title, description: p.description },
+      // Home blocks are kept in sync with the seed; other pages keep edits.
+      update: p.slug === 'home'
+        ? { title: p.title, description: p.description, blocks }
+        : { title: p.title, description: p.description },
       create: {
         slug: p.slug,
         title: p.title,
@@ -117,7 +122,7 @@ async function main() {
         authorId: admin.id,
         seoTitle: p.title + ' | World Direct Link',
         seoDescription: p.description,
-        blocks: JSON.stringify([]),
+        blocks,
       },
     });
   }
