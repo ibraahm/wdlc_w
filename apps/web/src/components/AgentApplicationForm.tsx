@@ -1,6 +1,33 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useState, useRef, useEffect, type FormEvent } from 'react';
+
+interface NominatimResult {
+  display_name: string;
+  lat: string;
+  lon: string;
+  address: {
+    house_number?: string;
+    road?: string;
+    city?: string;
+    town?: string;
+    village?: string;
+    hamlet?: string;
+    state?: string;
+    postcode?: string;
+    country?: string;
+  };
+}
+
+// Maps a Nominatim country name to one of our COUNTRIES options.
+function normalizeCountry(name?: string): string {
+  if (!name) return '';
+  const n = name.toLowerCase();
+  if (n.includes('united states')) return 'United States';
+  if (n === 'usa' || n === 'us') return 'United States';
+  const match = COUNTRIES.find((c) => c.toLowerCase() === n);
+  return match ?? 'Other';
+}
 
 const US_STATES = [
   'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut',
@@ -77,8 +104,129 @@ function YesNo({ name, value, onChange }: { name: string; value: boolean | null;
   );
 }
 
+interface AddressFill {
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+}
+
+function AddressAutocomplete({
+  value,
+  onChange,
+  onSelect,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onSelect: (a: AddressFill) => void;
+}) {
+  const [results, setResults] = useState<NominatimResult[]>([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipNextRef = useRef(false);
+
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
+
+  useEffect(() => {
+    if (skipNextRef.current) {
+      skipNextRef.current = false;
+      return;
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const q = value.trim();
+    if (q.length < 4) {
+      setResults([]);
+      setOpen(false);
+      return;
+    }
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const url =
+          'https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=5&q=' +
+          encodeURIComponent(q);
+        const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+        if (res.ok) {
+          const data: NominatimResult[] = await res.json();
+          setResults(data);
+          setOpen(data.length > 0);
+        }
+      } catch {
+        /* ignore lookup failures — manual entry still works */
+      } finally {
+        setLoading(false);
+      }
+    }, 400);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [value]);
+
+  function pick(r: NominatimResult) {
+    const a = r.address;
+    const street = [a.house_number, a.road].filter(Boolean).join(' ');
+    skipNextRef.current = true;
+    onChange(street || r.display_name.split(',')[0]);
+    onSelect({
+      street: street || r.display_name.split(',')[0],
+      city: a.city || a.town || a.village || a.hamlet || '',
+      state: a.state || '',
+      zip: a.postcode || '',
+      country: normalizeCountry(a.country),
+    });
+    setOpen(false);
+    setResults([]);
+  }
+
+  return (
+    <div ref={boxRef} className="relative">
+      <input
+        name="businessStreet"
+        autoComplete="off"
+        required
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={() => results.length > 0 && setOpen(true)}
+        placeholder="Start typing an address…"
+        className={inputCls}
+      />
+      {loading && (
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-primary">…</span>
+      )}
+      {open && results.length > 0 && (
+        <ul className="absolute z-20 mt-1 w-full rounded-lg border border-[#d9e0e8] bg-white shadow-lg max-h-64 overflow-y-auto">
+          {results.map((r, i) => (
+            <li key={i}>
+              <button
+                type="button"
+                onClick={() => pick(r)}
+                className="block w-full text-left px-3 py-2 text-sm text-ink hover:bg-primary/5"
+              >
+                {r.display_name}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export default function AgentApplicationForm() {
-  const [country, setCountry] = useState('');
+  const [country, setCountry] = useState('United States');
+  const [street, setStreet] = useState('');
+  const [city, setCity] = useState('');
+  const [stateField, setStateField] = useState('');
+  const [zip, setZip] = useState('');
   const [howFound, setHowFound] = useState('');
   const [businessType, setBusinessType] = useState('');
   const [currentlyProvides, setCurrentlyProvides] = useState<boolean | null>(null);
@@ -104,11 +252,11 @@ export default function AgentApplicationForm() {
       firstName: get('firstName'),
       lastName: get('lastName'),
       company: get('company'),
-      businessStreet: get('businessStreet'),
+      businessStreet: street.trim() || undefined,
       businessCountry: country,
-      businessState: get('businessState'),
-      businessCity: get('businessCity'),
-      businessZip: get('businessZip'),
+      businessState: (showState || showProvince ? get('businessState') : stateField.trim()) || undefined,
+      businessCity: city.trim() || undefined,
+      businessZip: zip.trim() || undefined,
       businessPhone: get('businessPhone'),
       email: get('email'),
       howFound: howFound || undefined,
@@ -184,7 +332,27 @@ export default function AgentApplicationForm() {
       </Field>
 
       <Field label="Business Street" required>
-        <input name="businessStreet" required className={inputCls} />
+        <AddressAutocomplete
+          value={street}
+          onChange={setStreet}
+          onSelect={(a) => {
+            setCity(a.city);
+            setZip(a.zip);
+            if (a.country) setCountry(a.country);
+            if (a.country === 'United States') {
+              const match = US_STATES.find((s) => s.toLowerCase() === a.state.toLowerCase());
+              if (match) setStateField(match);
+            } else if (a.country === 'Canada') {
+              const match = CA_PROVINCES.find((s) => s.toLowerCase() === a.state.toLowerCase());
+              if (match) setStateField(match);
+            } else {
+              setStateField(a.state);
+            }
+          }}
+        />
+        <p className="mt-1 text-xs text-ink/50">
+          Start typing to search — selecting a result auto-fills city, state and ZIP.
+        </p>
       </Field>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -197,7 +365,13 @@ export default function AgentApplicationForm() {
 
         {showState && (
           <Field label="State" required>
-            <select name="businessState" required className={inputCls} defaultValue="">
+            <select
+              name="businessState"
+              required
+              className={inputCls}
+              value={stateField}
+              onChange={(e) => setStateField(e.target.value)}
+            >
               <option value="" disabled>Select…</option>
               {US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
@@ -205,20 +379,48 @@ export default function AgentApplicationForm() {
         )}
         {showProvince && (
           <Field label="Province" required>
-            <select name="businessState" required className={inputCls} defaultValue="">
+            <select
+              name="businessState"
+              required
+              className={inputCls}
+              value={stateField}
+              onChange={(e) => setStateField(e.target.value)}
+            >
               <option value="" disabled>Select…</option>
               {CA_PROVINCES.map((s) => <option key={s} value={s}>{s}</option>)}
             </select>
+          </Field>
+        )}
+        {!showState && !showProvince && (
+          <Field label="State / Region" required>
+            <input
+              required
+              className={inputCls}
+              value={stateField}
+              onChange={(e) => setStateField(e.target.value)}
+            />
           </Field>
         )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <Field label="Business City" required>
-          <input name="businessCity" required className={inputCls} />
+          <input
+            name="businessCity"
+            required
+            className={inputCls}
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+          />
         </Field>
         <Field label="Business Zip / Postal Code" required>
-          <input name="businessZip" required className={inputCls} />
+          <input
+            name="businessZip"
+            required
+            className={inputCls}
+            value={zip}
+            onChange={(e) => setZip(e.target.value)}
+          />
         </Field>
       </div>
 
