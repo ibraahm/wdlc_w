@@ -186,7 +186,11 @@ function AddressAutocomplete({
 
   function pick(r: NominatimResult) {
     const a = r.address;
-    const street = [a.house_number, a.road].filter(Boolean).join(' ');
+    // Nominatim may match at street level and omit the house number — keep the
+    // number the user already typed so "123 Main St" doesn't become "Main St".
+    const typedNumber = value.trim().match(/^\d+[a-zA-Z]?/)?.[0];
+    const houseNumber = a.house_number || typedNumber;
+    const street = [houseNumber, a.road].filter(Boolean).join(' ');
     skipNextRef.current = true;
     onChange(street || r.display_name.split(',')[0]);
     onSelect({
