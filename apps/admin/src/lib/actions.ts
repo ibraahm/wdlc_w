@@ -29,8 +29,14 @@ import {
   apiUpdateForm,
   apiDeleteForm,
   apiDeleteSubmission,
+  apiCreatePartner,
+  apiUpdatePartner,
+  apiDeletePartner,
+  apiCreateNetworkCountry,
+  apiUpdateNetworkCountry,
+  apiDeleteNetworkCountry,
 } from './api';
-import type { BuilderForm } from './api';
+import type { BuilderForm, Partner, NetworkCountry } from './api';
 import { getSession, setSessionCookies, clearSessionCookies } from './auth';
 
 // ---------------------------------------------------------------------------
@@ -494,6 +500,96 @@ export async function deleteSubmissionAction(
   try {
     await apiDeleteSubmission(session.accessToken, submissionId);
     revalidatePath(`/forms/${id}`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Partner actions
+// ---------------------------------------------------------------------------
+
+export async function createPartnerAction(
+  data: Partial<Partner>,
+): Promise<{ ok: boolean; id?: string; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    const partner = await apiCreatePartner(session.accessToken, data);
+    revalidatePath('/partners');
+    return { ok: true, id: partner.id };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Create failed' };
+  }
+}
+
+export async function updatePartnerAction(
+  id: string,
+  data: Partial<Partner>,
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiUpdatePartner(session.accessToken, id, data);
+    revalidatePath('/partners');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
+  }
+}
+
+export async function deletePartnerAction(id: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiDeletePartner(session.accessToken, id);
+    revalidatePath('/partners');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Network country actions
+// ---------------------------------------------------------------------------
+
+export async function createNetworkCountryAction(
+  data: Partial<NetworkCountry>,
+): Promise<{ ok: boolean; id?: string; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    const c = await apiCreateNetworkCountry(session.accessToken, data);
+    revalidatePath('/network');
+    return { ok: true, id: c.id };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Create failed' };
+  }
+}
+
+export async function updateNetworkCountryAction(
+  id: string,
+  data: Partial<NetworkCountry>,
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiUpdateNetworkCountry(session.accessToken, id, data);
+    revalidatePath('/network');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
+  }
+}
+
+export async function deleteNetworkCountryAction(id: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiDeleteNetworkCountry(session.accessToken, id);
+    revalidatePath('/network');
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };

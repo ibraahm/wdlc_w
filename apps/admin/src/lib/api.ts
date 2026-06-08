@@ -618,3 +618,75 @@ export async function apiDeleteSubmission(accessToken: string, submissionId: str
   const res = await authFetch(`/cms/forms/submissions/${submissionId}`, accessToken, { method: 'DELETE' });
   await handleResponse<void>(res);
 }
+
+// ---------------------------------------------------------------------------
+// Partners
+// ---------------------------------------------------------------------------
+
+export type Partner = {
+  id: string;
+  name: string;
+  type: string;
+  description?: string;
+  website?: string;
+  logoUrl?: string;
+  region?: string;
+  featured: boolean;
+  active: boolean;
+  order: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export async function apiListPartners(accessToken: string): Promise<Partner[]> {
+  const res = await authFetch('/cms/partners/admin', accessToken);
+  return handleResponse<Partner[]>(res);
+}
+
+export async function apiCreatePartner(accessToken: string, data: Partial<Partner>): Promise<Partner> {
+  const res = await authFetch('/cms/partners', accessToken, { method: 'POST', body: JSON.stringify(data) });
+  return handleResponse<Partner>(res);
+}
+
+export async function apiUpdatePartner(accessToken: string, id: string, data: Partial<Partner>): Promise<Partner> {
+  const res = await authFetch(`/cms/partners/${id}`, accessToken, { method: 'PATCH', body: JSON.stringify(data) });
+  return handleResponse<Partner>(res);
+}
+
+export async function apiDeletePartner(accessToken: string, id: string): Promise<void> {
+  const res = await authFetch(`/cms/partners/${id}`, accessToken, { method: 'DELETE' });
+  await handleResponse<void>(res);
+}
+
+// ---------------------------------------------------------------------------
+// Network countries (payout map)
+// ---------------------------------------------------------------------------
+
+export type NetworkCountry = {
+  id: string;
+  name: string;
+  payoutTypes: string[];
+  flagUrl?: string;
+  active: boolean;
+  updatedAt?: string;
+};
+
+export async function apiListNetworkCountries(accessToken: string): Promise<NetworkCountry[]> {
+  const res = await authFetch('/cms/network/admin', accessToken);
+  return handleResponse<NetworkCountry[]>(res);
+}
+
+export async function apiCreateNetworkCountry(accessToken: string, data: Partial<NetworkCountry>): Promise<NetworkCountry> {
+  const res = await authFetch('/cms/network', accessToken, { method: 'POST', body: JSON.stringify(data) });
+  return handleResponse<NetworkCountry>(res);
+}
+
+export async function apiUpdateNetworkCountry(accessToken: string, id: string, data: Partial<NetworkCountry>): Promise<NetworkCountry> {
+  const res = await authFetch(`/cms/network/${id}`, accessToken, { method: 'PATCH', body: JSON.stringify(data) });
+  return handleResponse<NetworkCountry>(res);
+}
+
+export async function apiDeleteNetworkCountry(accessToken: string, id: string): Promise<void> {
+  const res = await authFetch(`/cms/network/${id}`, accessToken, { method: 'DELETE' });
+  await handleResponse<void>(res);
+}

@@ -1,7 +1,10 @@
 import Link from 'next/link';
 import { company } from '@/lib/site';
+import { getCmsNetworkCountries } from '@/lib/cms';
+import NetworkMap from '@/components/NetworkMap';
 
-export default function HomePage() {
+export default async function HomePage() {
+  const networkCountries = await getCmsNetworkCountries();
   return (
     <main>
       {/* ── Hero ──────────────────────────────────────────────────────── */}
@@ -213,6 +216,26 @@ export default function HomePage() {
         </div>
         <div className="image-frame reveal">
           <div className="image-placeholder alt" />
+        </div>
+      </section>
+
+      {/* ── Global payout network map ─────────────────────────────────── */}
+      <section className="shell" id="network" style={{ padding: '80px 0' }}>
+        <div className="section-head reveal" style={{ marginBottom: '40px' }}>
+          <div>
+            <div className="eyebrow">
+              <span />
+              <p>Payout Network</p>
+            </div>
+            <h2>Where your<br /><em>money can go</em></h2>
+          </div>
+          <p>
+            Our global correspondent network reaches {networkCountries.length > 0 ? networkCountries.length : '49'}+ destinations —
+            delivering cash pickup, mobile money, and bank transfers to families around the world.
+          </p>
+        </div>
+        <div className="reveal">
+          <NetworkMap countries={networkCountries} />
         </div>
       </section>
 

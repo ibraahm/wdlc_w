@@ -11,8 +11,9 @@ import {
   ButtonOnDark,
   CtaBand,
 } from '@/components/ui';
-import { getCmsPage, cmsMetadata } from '@/lib/cms';
+import { getCmsPage, getCmsNetworkCountries, cmsMetadata } from '@/lib/cms';
 import BlockRenderer from '@/components/BlockRenderer';
+import NetworkMap from '@/components/NetworkMap';
 
 export async function generateMetadata() {
   const page = await getCmsPage('about');
@@ -23,7 +24,10 @@ export async function generateMetadata() {
 }
 
 export default async function AboutPage() {
-  const cmsPage = await getCmsPage('about');
+  const [cmsPage, networkCountries] = await Promise.all([
+    getCmsPage('about'),
+    getCmsNetworkCountries(),
+  ]);
   const cmsBlocks = Array.isArray(cmsPage?.blocks) && cmsPage.blocks.length > 0
     ? cmsPage.blocks as { type: string; data: Record<string, unknown> }[]
     : null;
@@ -103,6 +107,12 @@ export default async function AboutPage() {
           where traditional financial institutions do not operate. Our success is
           measured by clients choosing us for our price, service, and expertise.
         </Callout>
+      </Section>
+
+      {/* Global payout network map */}
+      <Section>
+        <SectionHeading title="Global Payout Network" subtitle="Explore the countries where your family can receive funds through our correspondent network." />
+        <NetworkMap countries={networkCountries} />
       </Section>
 
       {/* Network */}

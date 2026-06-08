@@ -7,11 +7,15 @@ import { SettingService } from './setting.service';
 import { SettingController } from './setting.controller';
 import { FormService } from './form.service';
 import { FormController } from './form.controller';
+import { PartnerService } from './partner.service';
+import { PartnerController } from './partner.controller';
+import { NetworkService } from './network.service';
+import { NetworkController } from './network.controller';
 import { AdminAuthModule } from '../admin-auth/admin-auth.module';
 
 @Module({
   imports: [AdminAuthModule],
-  controllers: [PageController, NavController, SettingController, FormController],
-  providers: [PageService, NavService, SettingService, FormService],
+  controllers: [PageController, NavController, SettingController, FormController, PartnerController, NetworkController],
+  providers: [PageService, NavService, SettingService, FormService, PartnerService, NetworkService],
 })
 export class CmsModule {}

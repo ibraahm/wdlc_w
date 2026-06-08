@@ -237,6 +237,43 @@ model SiteSetting {
 }
 
 // ─────────────────────────────────────────────
+// PARTNERS  (CMS-managed correspondent / integration partners)
+// type: CORRESPONDENT | TECHNOLOGY | BANKING | OTHER
+// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// NETWORK COUNTRIES  (CMS-managed payout destinations shown on the global map)
+// payoutTypes is a JSON array of strings, e.g. ["Cash Collection","Mobile Money"]
+// ─────────────────────────────────────────────
+model NetworkCountry {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  payoutTypes String   @default("[]")
+  flagUrl     String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([active])
+}
+
+model Partner {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   @default("CORRESPONDENT")
+  description String?
+  website     String?
+  logoUrl     String?
+  region      String?
+  featured    Boolean  @default(false)
+  active      Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([active, order])
+}
+
+// ─────────────────────────────────────────────
 // FORM BUILDER  (CMS-managed forms + submissions)
 // `fields` is a JSON array of field definitions (see admin form builder).
 // status: DRAFT | PUBLISHED

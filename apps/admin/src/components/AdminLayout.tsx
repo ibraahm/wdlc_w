@@ -9,6 +9,8 @@ const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: '◈' },
   { href: '/pages', label: 'Pages', icon: '◻' },
   { href: '/agents', label: 'Agent Locations', icon: '⚲' },
+  { href: '/partners', label: 'Partners', icon: '⬡' },
+  { href: '/network', label: 'Network Map', icon: '🌍' },
   { href: '/applications', label: 'Applications', icon: '✉' },
   { href: '/forms', label: 'Forms', icon: '▤' },
   { href: '/nav', label: 'Navigation', icon: '≡' },

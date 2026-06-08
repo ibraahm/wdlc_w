@@ -99,6 +99,47 @@ export const getCmsForm = cache(async (slug: string): Promise<CmsForm | null> =>
   }
 });
 
+export type CmsPartner = {
+  id: string;
+  name: string;
+  type: string;
+  description?: string;
+  website?: string;
+  logoUrl?: string;
+  region?: string;
+  featured: boolean;
+  active: boolean;
+  order: number;
+};
+
+export type CmsNetworkCountry = {
+  id: string;
+  name: string;
+  payoutTypes: string[];
+  flagUrl?: string;
+  active: boolean;
+};
+
+export const getCmsNetworkCountries = cache(async (): Promise<CmsNetworkCountry[]> => {
+  try {
+    const res = await fetch(`${API}/cms/network`, { next: { revalidate: 60 } });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch {
+    return [];
+  }
+});
+
+export const getCmsPartners = cache(async (): Promise<CmsPartner[]> => {
+  try {
+    const res = await fetch(`${API}/cms/partners`, { next: { revalidate: 60 } });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch {
+    return [];
+  }
+});
+
 // Read a site setting value (parsed JSON) by key, with a typed fallback.
 export const getCmsSetting = cache(async <T,>(key: string, fallback: T): Promise<T> => {
   try {
