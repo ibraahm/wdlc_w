@@ -8,7 +8,8 @@ import type { AdminUser } from '@/lib/api';
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: '◈' },
   { href: '/pages', label: 'Pages', icon: '◻' },
-  { href: '/agents', label: 'Agents', icon: '⚲' },
+  { href: '/agents', label: 'Agent Locations', icon: '⚲' },
+  { href: '/applications', label: 'Applications', icon: '✉' },
   { href: '/nav', label: 'Navigation', icon: '≡' },
   { href: '/settings', label: 'Settings', icon: '◎' },
   { href: '/users', label: 'Users', icon: '◉' },

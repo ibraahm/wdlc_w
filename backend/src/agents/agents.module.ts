@@ -4,10 +4,13 @@ import { AuditModule } from '../audit/audit.module';
 import { AgentsService } from './agents.service';
 import { GeocodeService } from './geocode.service';
 import { LocationsService } from './locations.service';
+import { ApplicationsService } from './applications.service';
 import { AgentsPublicController } from './agents-public.controller';
 import { AgentsPortalController } from './agents-portal.controller';
 import { AgentsAdminController } from './agents-admin.controller';
 import { LocationsAdminController } from './locations-admin.controller';
+import { ApplicationsPublicController } from './applications-public.controller';
+import { ApplicationsAdminController } from './applications-admin.controller';
 
 @Module({
   imports: [PassportModule, AuditModule],
@@ -16,7 +19,9 @@ import { LocationsAdminController } from './locations-admin.controller';
     AgentsPortalController,
     AgentsAdminController,
     LocationsAdminController,
+    ApplicationsPublicController,
+    ApplicationsAdminController,
   ],
-  providers: [AgentsService, GeocodeService, LocationsService],
+  providers: [AgentsService, GeocodeService, LocationsService, ApplicationsService],
 })
 export class AgentsModule {}

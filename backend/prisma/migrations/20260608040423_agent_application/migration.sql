@@ -1,0 +1,40 @@
+-- CreateTable
+CREATE TABLE "AgentApplication" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "firstName" TEXT NOT NULL,
+    "lastName" TEXT NOT NULL,
+    "company" TEXT NOT NULL,
+    "businessStreet" TEXT NOT NULL,
+    "businessCountry" TEXT NOT NULL,
+    "businessState" TEXT,
+    "businessCity" TEXT NOT NULL,
+    "businessZip" TEXT NOT NULL,
+    "businessPhone" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "howFound" TEXT,
+    "howFoundOther" TEXT,
+    "businessType" TEXT,
+    "businessTypeOther" TEXT,
+    "productsOffered" TEXT,
+    "currentlyProvides" BOOLEAN NOT NULL DEFAULT false,
+    "currentProvider" TEXT,
+    "currentProviderOther" TEXT,
+    "providedPast" BOOLEAN NOT NULL DEFAULT false,
+    "pastProvider" TEXT,
+    "pastProviderOther" TEXT,
+    "declinedBefore" BOOLEAN NOT NULL DEFAULT false,
+    "declinedExplain" TEXT,
+    "preferredLanguage" TEXT,
+    "preferredLanguageOther" TEXT,
+    "monthlyVolume" TEXT,
+    "totalLocations" TEXT,
+    "comments" TEXT,
+    "status" TEXT NOT NULL DEFAULT 'NEW',
+    "ip" TEXT,
+    "userAgent" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+);
+
+-- CreateIndex
+CREATE INDEX "AgentApplication_status_createdAt_idx" ON "AgentApplication"("status", "createdAt");

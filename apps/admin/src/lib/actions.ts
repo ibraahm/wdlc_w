@@ -23,6 +23,8 @@ import {
   apiSetAgentVisibility,
   apiToggleLocationActive,
   apiDeleteLocation,
+  apiSetApplicationStatus,
+  apiDeleteApplication,
 } from './api';
 import { getSession, setSessionCookies, clearSessionCookies } from './auth';
 
@@ -381,6 +383,33 @@ export async function deleteLocationAction(id: string): Promise<{ ok: boolean; e
   try {
     await apiDeleteLocation(session.accessToken, id);
     revalidatePath('/agents');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };
+  }
+}
+
+export async function setApplicationStatusAction(
+  id: string,
+  status: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiSetApplicationStatus(session.accessToken, id, status);
+    revalidatePath('/applications');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
+  }
+}
+
+export async function deleteApplicationAction(id: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiDeleteApplication(session.accessToken, id);
+    revalidatePath('/applications');
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };

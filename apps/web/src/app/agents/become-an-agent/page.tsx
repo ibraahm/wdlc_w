@@ -7,7 +7,7 @@ import {
   Steps,
   ButtonOnDark,
 } from '@/components/ui';
-import ContactForm from '@/components/ContactForm';
+import AgentApplicationForm from '@/components/AgentApplicationForm';
 import { getCmsPage, cmsMetadata } from '@/lib/cms';
 import BlockRenderer from '@/components/BlockRenderer';
 
@@ -103,28 +103,11 @@ export default async function BecomeAnAgentPage() {
       <Section>
         <div id="apply">
           <SectionHeading
-            title="Agent inquiry"
+            title="Agent application"
             subtitle="Tell us about your business and our onboarding team will follow up."
           />
           <div className="max-w-2xl">
-            <ContactForm
-              fields={[
-                { name: 'businessName', label: 'Business name', type: 'text', required: true },
-                { name: 'contactName', label: 'Contact name', type: 'text', required: true },
-                {
-                  name: 'location',
-                  label: 'Location — city/state',
-                  type: 'text',
-                  required: true,
-                },
-                { name: 'businessType', label: 'Business type', type: 'text', required: true },
-                { name: 'phone', label: 'Phone', type: 'tel', required: true },
-                { name: 'email', label: 'Email', type: 'email', required: true },
-                { name: 'message', label: 'Message', type: 'textarea', optional: true },
-              ]}
-              submitLabel="Submit Application" action="agent_inquiry"
-              successMessage="Thank you — our agent onboarding team will be in touch shortly."
-            />
+            <AgentApplicationForm />
           </div>
         </div>
       </Section>

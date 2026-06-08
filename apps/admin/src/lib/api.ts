@@ -471,3 +471,63 @@ export async function apiDeleteLocation(accessToken: string, id: string): Promis
   const res = await authFetch(`/admin/locations/${id}`, accessToken, { method: 'DELETE' });
   await handleResponse<void>(res);
 }
+
+// ---------------------------------------------------------------------------
+// Agent Applications (Become an Agent leads)
+// ---------------------------------------------------------------------------
+
+export type AgentApplication = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  company: string;
+  businessStreet: string;
+  businessCountry: string;
+  businessState: string | null;
+  businessCity: string;
+  businessZip: string;
+  businessPhone: string;
+  email: string;
+  howFound: string | null;
+  howFoundOther: string | null;
+  businessType: string | null;
+  businessTypeOther: string | null;
+  productsOffered: string | null;
+  currentlyProvides: boolean;
+  currentProvider: string | null;
+  currentProviderOther: string | null;
+  providedPast: boolean;
+  pastProvider: string | null;
+  pastProviderOther: string | null;
+  declinedBefore: boolean;
+  declinedExplain: string | null;
+  preferredLanguage: string | null;
+  preferredLanguageOther: string | null;
+  monthlyVolume: string | null;
+  totalLocations: string | null;
+  comments: string | null;
+  status: string;
+  createdAt: string;
+};
+
+export async function apiListApplications(accessToken: string): Promise<AgentApplication[]> {
+  const res = await authFetch('/admin/agent-applications', accessToken);
+  return handleResponse<AgentApplication[]>(res);
+}
+
+export async function apiSetApplicationStatus(
+  accessToken: string,
+  id: string,
+  status: string,
+): Promise<AgentApplication> {
+  const res = await authFetch(`/admin/agent-applications/${id}/status`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+  return handleResponse<AgentApplication>(res);
+}
+
+export async function apiDeleteApplication(accessToken: string, id: string): Promise<void> {
+  const res = await authFetch(`/admin/agent-applications/${id}`, accessToken, { method: 'DELETE' });
+  await handleResponse<void>(res);
+}
