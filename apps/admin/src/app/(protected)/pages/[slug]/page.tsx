@@ -41,6 +41,14 @@ export default async function EditPagePage({ params }: Props) {
           <div className="flex items-center gap-3 mt-2">
             <StatusBadge status={page.status} />
             <span className="text-sm text-gray-400 font-mono">/{page.slug}</span>
+            <a
+              href={`${process.env.NEXT_PUBLIC_WEB_URL || 'http://localhost:3000'}/${page.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-blue-500 hover:text-blue-700 underline"
+            >
+              View on site ↗
+            </a>
           </div>
         </div>
 

@@ -381,3 +381,59 @@ export async function apiGetAuditLog(
   const res = await authFetch(`/admin/audit${qs.size ? '?' + qs : ''}`, accessToken);
   return handleResponse<{ items: AuditLogEntry[]; total: number }>(res);
 }
+
+// ---------------------------------------------------------------------------
+// Agent Locations (imported)
+// ---------------------------------------------------------------------------
+
+export type AdminLocation = {
+  id: string;
+  businessName: string;
+  addressLine: string | null;
+  city: string;
+  state: string;
+  zip: string | null;
+  country: string;
+  publicPhone: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  active: boolean;
+  importKey: string | null;
+  createdAt: string;
+};
+
+export async function apiListLocations(accessToken: string): Promise<AdminLocation[]> {
+  const res = await authFetch('/admin/locations', accessToken);
+  return handleResponse<AdminLocation[]>(res);
+}
+
+export async function apiImportLocations(
+  accessToken: string,
+  file: File,
+): Promise<{ created: number; updated: number; geocoded: number }> {
+  const fd = new FormData();
+  fd.append('file', file);
+  const res = await fetch(`${API}/admin/locations/import`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: fd,
+  });
+  return handleResponse<{ created: number; updated: number; geocoded: number }>(res);
+}
+
+export async function apiToggleLocationActive(
+  accessToken: string,
+  id: string,
+  active: boolean,
+): Promise<AdminLocation> {
+  const res = await authFetch(`/admin/locations/${id}/active`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify({ active }),
+  });
+  return handleResponse<AdminLocation>(res);
+}
+
+export async function apiDeleteLocation(accessToken: string, id: string): Promise<void> {
+  const res = await authFetch(`/admin/locations/${id}`, accessToken, { method: 'DELETE' });
+  await handleResponse<void>(res);
+}

@@ -1,6 +1,6 @@
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { apiListAgents, type AdminAgent } from '@/lib/api';
+import { apiListAgents, apiListLocations, type AdminAgent, type AdminLocation } from '@/lib/api';
 import AgentsManager from '@/components/AgentsManager';
 
 export default async function AgentsPage() {
@@ -8,9 +8,14 @@ export default async function AgentsPage() {
   if (!session) redirect('/login');
 
   let agents: AdminAgent[] = [];
+  let locations: AdminLocation[] = [];
   let error = '';
+
   try {
-    agents = await apiListAgents(session.accessToken);
+    [agents, locations] = await Promise.all([
+      apiListAgents(session.accessToken),
+      apiListLocations(session.accessToken),
+    ]);
   } catch (err) {
     error = err instanceof Error ? err.message : 'Failed to load agents';
   }
@@ -20,7 +25,7 @@ export default async function AgentsPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Agents</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Review agent accounts and control which appear on the public Find an Agent map.
+          Manage agent accounts, map visibility, and bulk-import locations from Excel.
         </p>
       </div>
 
@@ -29,7 +34,7 @@ export default async function AgentsPage() {
           {error}
         </div>
       ) : (
-        <AgentsManager agents={agents} />
+        <AgentsManager agents={agents} locations={locations} accessToken={session.accessToken} />
       )}
     </div>
   );

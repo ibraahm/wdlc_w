@@ -21,6 +21,8 @@ import {
   apiSetUserActive,
   apiSetAgentStatus,
   apiSetAgentVisibility,
+  apiToggleLocationActive,
+  apiDeleteLocation,
 } from './api';
 import { getSession, setSessionCookies, clearSessionCookies } from './auth';
 
@@ -100,6 +102,24 @@ export async function changePasswordAction(formData: FormData): Promise<{ ok: bo
 }
 
 // ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+async function revalidateWebPage(slug: string) {
+  const webUrl = process.env.WEB_URL || 'http://localhost:3000';
+  const secret = process.env.REVALIDATE_SECRET || 'wdlc-revalidate-dev';
+  try {
+    await fetch(`${webUrl}/api/revalidate?token=${secret}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: `/${slug}` }),
+    });
+  } catch {
+    // Non-fatal: web app may not be running
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Page actions
 // ---------------------------------------------------------------------------
 
@@ -145,6 +165,7 @@ export async function updatePageAction(
       seoDescription: (formData.get('seoDescription') as string) || undefined,
     });
     revalidatePath('/pages');
+    await revalidateWebPage(slug);
     return { page };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Update failed' };
@@ -158,6 +179,7 @@ export async function publishPageAction(slug: string): Promise<{ error?: string 
   try {
     await apiPublishPage(session.accessToken, slug);
     revalidatePath('/pages');
+    await revalidateWebPage(slug);
     return {};
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Publish failed' };
@@ -335,6 +357,33 @@ export async function setAgentVisibilityAction(
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
+  }
+}
+
+export async function toggleLocationActiveAction(
+  id: string,
+  active: boolean,
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiToggleLocationActive(session.accessToken, id, active);
+    revalidatePath('/agents');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
+  }
+}
+
+export async function deleteLocationAction(id: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiDeleteLocation(session.accessToken, id);
+    revalidatePath('/agents');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };
   }
 }
 
