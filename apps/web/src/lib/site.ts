@@ -44,11 +44,10 @@ export const headerNav: NavNode[] = [
   {
     label: 'About Us',
     href: '/about',
-    children: [
-      { label: 'About Us', href: '/about' },
-      { label: 'Licenses & Registrations', href: '/about#licenses' },
-      { label: 'Contact Us', href: '/about/contact' },
-    ],
+  },
+  {
+    label: 'Licenses',
+    href: '/about#licenses',
   },
   {
     label: 'Services',
