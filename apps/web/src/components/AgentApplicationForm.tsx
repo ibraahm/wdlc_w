@@ -124,8 +124,10 @@ function AddressAutocomplete({
   const [results, setResults] = useState<NominatimResult[]>([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [highlight, setHighlight] = useState(-1);
   const boxRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const skipNextRef = useRef(false);
 
   useEffect(() => {
@@ -143,33 +145,44 @@ function AddressAutocomplete({
     }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     const q = value.trim();
-    if (q.length < 4) {
+    if (q.length < 3) {
       setResults([]);
       setOpen(false);
       return;
     }
     debounceRef.current = setTimeout(async () => {
+      abortRef.current?.abort();
+      const ctrl = new AbortController();
+      abortRef.current = ctrl;
       setLoading(true);
       try {
-        const url =
-          'https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&limit=5&q=' +
-          encodeURIComponent(q);
-        const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+        const res = await fetch('/api/geocode?q=' + encodeURIComponent(q), { signal: ctrl.signal });
         if (res.ok) {
           const data: NominatimResult[] = await res.json();
           setResults(data);
+          setHighlight(-1);
           setOpen(data.length > 0);
         }
       } catch {
-        /* ignore lookup failures — manual entry still works */
+        /* aborted or network error — manual entry still works */
       } finally {
-        setLoading(false);
+        if (abortRef.current === ctrl) setLoading(false);
       }
-    }, 400);
+    }, 350);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, [value]);
+
+  // Splits the first chunk (street) from the remainder for a tidy two-line display.
+  function formatResult(r: NominatimResult): { primary: string; secondary: string } {
+    const a = r.address;
+    const primary = [a.house_number, a.road].filter(Boolean).join(' ') || r.display_name.split(',')[0];
+    const secondary = [a.city || a.town || a.village || a.hamlet, a.state, a.postcode, a.country]
+      .filter(Boolean)
+      .join(', ');
+    return { primary, secondary };
+  }
 
   function pick(r: NominatimResult) {
     const a = r.address;
@@ -185,6 +198,23 @@ function AddressAutocomplete({
     });
     setOpen(false);
     setResults([]);
+    setHighlight(-1);
+  }
+
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (!open || results.length === 0) return;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      setHighlight((h) => (h + 1) % results.length);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      setHighlight((h) => (h - 1 + results.length) % results.length);
+    } else if (e.key === 'Enter' && highlight >= 0) {
+      e.preventDefault();
+      pick(results[highlight]);
+    } else if (e.key === 'Escape') {
+      setOpen(false);
+    }
   }
 
   return (
@@ -196,25 +226,31 @@ function AddressAutocomplete({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => results.length > 0 && setOpen(true)}
+        onKeyDown={onKeyDown}
         placeholder="Start typing an address…"
         className={inputCls}
       />
       {loading && (
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-primary">…</span>
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-primary animate-pulse">searching…</span>
       )}
       {open && results.length > 0 && (
-        <ul className="absolute z-20 mt-1 w-full rounded-lg border border-[#d9e0e8] bg-white shadow-lg max-h-64 overflow-y-auto">
-          {results.map((r, i) => (
-            <li key={i}>
-              <button
-                type="button"
-                onClick={() => pick(r)}
-                className="block w-full text-left px-3 py-2 text-sm text-ink hover:bg-primary/5"
-              >
-                {r.display_name}
-              </button>
-            </li>
-          ))}
+        <ul className="absolute z-20 mt-1 w-full rounded-lg border border-[#d9e0e8] bg-white shadow-lg max-h-72 overflow-y-auto">
+          {results.map((r, i) => {
+            const { primary, secondary } = formatResult(r);
+            return (
+              <li key={`${r.lat}-${r.lon}-${i}`}>
+                <button
+                  type="button"
+                  onMouseEnter={() => setHighlight(i)}
+                  onClick={() => pick(r)}
+                  className={`block w-full text-left px-3 py-2 ${i === highlight ? 'bg-primary/10' : 'hover:bg-primary/5'}`}
+                >
+                  <span className="block text-sm font-medium text-ink">{primary}</span>
+                  {secondary && <span className="block text-xs text-ink/55">{secondary}</span>}
+                </button>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
