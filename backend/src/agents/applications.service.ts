@@ -9,9 +9,10 @@ export class ApplicationsService {
   async create(dto: CreateApplicationDto, ctx?: { ip?: string; userAgent?: string }) {
     const app = await this.prisma.agentApplication.create({
       data: {
+        applicantType: dto.applicantType ?? 'BUSINESS',
         firstName: dto.firstName,
         lastName: dto.lastName,
-        company: dto.company,
+        company: dto.company ?? null,
         businessStreet: dto.businessStreet,
         businessCountry: dto.businessCountry,
         businessState: dto.businessState ?? null,

@@ -1,9 +1,10 @@
 import { IsString, IsOptional, IsBoolean, IsEmail, MaxLength, IsIn } from 'class-validator';
 
 export class CreateApplicationDto {
+  @IsOptional() @IsIn(['INDIVIDUAL', 'BUSINESS']) applicantType?: string;
   @IsString() @MaxLength(120) firstName: string;
   @IsString() @MaxLength(120) lastName: string;
-  @IsString() @MaxLength(200) company: string;
+  @IsOptional() @IsString() @MaxLength(200) company?: string;
   @IsString() @MaxLength(300) businessStreet: string;
   @IsString() @MaxLength(120) businessCountry: string;
   @IsOptional() @IsString() @MaxLength(120) businessState?: string;

@@ -82,7 +82,10 @@ export default function ApplicationsManager({ applications }: { applications: Ag
                     <div className="text-gray-400 text-xs">{a.businessPhone}</div>
                   </td>
                   <td className="px-4 py-3 align-top">
-                    <div className="text-gray-800">{a.company}</div>
+                    <span className={`inline-block mb-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${a.applicantType === 'INDIVIDUAL' ? 'bg-purple-100 text-purple-700' : 'bg-sky-100 text-sky-700'}`}>
+                      {a.applicantType === 'INDIVIDUAL' ? 'Individual' : 'Business'}
+                    </span>
+                    <div className="text-gray-800">{a.company || '—'}</div>
                     <div className="text-gray-400 text-xs">
                       {[a.businessCity, a.businessState, a.businessCountry].filter(Boolean).join(', ')}
                     </div>

@@ -188,9 +188,10 @@ model AgentLocation {
 // ─────────────────────────────────────────────
 model AgentApplication {
   id                    String   @id @default(cuid())
+  applicantType         String   @default("BUSINESS") // INDIVIDUAL | BUSINESS
   firstName             String
   lastName              String
-  company               String
+  company               String?
   businessStreet        String
   businessCountry       String
   businessState         String?

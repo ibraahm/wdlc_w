@@ -478,9 +478,10 @@ export async function apiDeleteLocation(accessToken: string, id: string): Promis
 
 export type AgentApplication = {
   id: string;
+  applicantType?: string;
   firstName: string;
   lastName: string;
-  company: string;
+  company: string | null;
   businessStreet: string;
   businessCountry: string;
   businessState: string | null;
