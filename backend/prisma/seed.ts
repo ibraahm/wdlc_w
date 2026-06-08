@@ -36,9 +36,10 @@ async function main() {
   // ── Utility bar (always-visible links above the primary nav) ───────────────
   await prisma.navItem.deleteMany({ where: { location: 'UTILITY' } });
   await prisma.navItem.createMany({ data: [
-    { label: 'Report Fraud', href: '/compliance/report', location: 'UTILITY', order: 1 },
-    { label: 'Contact Us', href: '/about/contact', location: 'UTILITY', order: 2 },
-    { label: 'Agent Application', href: '/agents/become-an-agent', location: 'UTILITY', order: 3 },
+    { label: 'Licenses', href: '/about#licenses', location: 'UTILITY', order: 1 },
+    { label: 'Report Fraud', href: '/compliance/report', location: 'UTILITY', order: 2 },
+    { label: 'Contact Us', href: '/about/contact', location: 'UTILITY', order: 3 },
+    { label: 'Agent Application', href: '/agents/become-an-agent', location: 'UTILITY', order: 4 },
   ]});
   console.log('Seeded utility navigation');
 
