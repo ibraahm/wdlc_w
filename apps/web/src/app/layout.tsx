@@ -30,8 +30,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <div className="progress" id="progress" />
-        <div className="cursor-dot" aria-hidden="true" />
-        <div className="cursor-ring" aria-hidden="true" />
         <RecaptchaProvider>
           <SiteNav />
           {children}
@@ -46,8 +44,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   var mobilePanel = document.querySelector('[data-mobile-panel]');
   var story = document.querySelector('[data-story]');
   var storyDotsEl = document.querySelector('[data-story-dots]');
-  var cursorDot = document.querySelector('.cursor-dot');
-  var cursorRing = document.querySelector('.cursor-ring');
   var storySlides = Array.from(document.querySelectorAll('.story-slide'));
 
   if (storyDotsEl && storySlides.length > 0) {
@@ -127,32 +123,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   window.addEventListener('resize', updateScroll);
   updateScroll();
 
-  if (window.matchMedia('(pointer: fine)').matches && cursorDot && cursorRing) {
-    var mouseX = 0, mouseY = 0, ringX = 0, ringY = 0;
-
-    window.addEventListener('mousemove', function (e) {
-      mouseX = e.clientX; mouseY = e.clientY;
-      cursorDot.style.transform = 'translate(' + mouseX + 'px, ' + mouseY + 'px) translate(-50%, -50%)';
-    });
-
-    function setHover(hovering) {
-      cursorRing.classList.toggle('is-hovering', hovering);
-      cursorDot.style.opacity = hovering ? '0' : '1';
-    }
-
-    document.querySelectorAll('a, button, input, textarea').forEach(function (el) {
-      el.addEventListener('mouseenter', function () { setHover(true); });
-      el.addEventListener('mouseleave', function () { setHover(false); });
-    });
-
-    function animateCursor() {
-      ringX += (mouseX - ringX) * 0.14;
-      ringY += (mouseY - ringY) * 0.14;
-      cursorRing.style.transform = 'translate(' + ringX + 'px, ' + ringY + 'px) translate(-50%, -50%)';
-      requestAnimationFrame(animateCursor);
-    }
-    animateCursor();
-  }
 })();
         `}</Script>
       </body>

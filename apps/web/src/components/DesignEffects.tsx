@@ -10,9 +10,6 @@ export default function DesignEffects() {
     const mobilePanel = document.querySelector<HTMLElement>('[data-mobile-panel]');
     const story = document.querySelector<HTMLElement>('[data-story]');
     const storyDotsEl = document.querySelector<HTMLElement>('[data-story-dots]');
-    const cursorDot = document.querySelector<HTMLElement>('.cursor-dot');
-    const cursorRing = document.querySelector<HTMLElement>('.cursor-ring');
-
     const storySlides = [...document.querySelectorAll<HTMLElement>('.story-slide')];
 
     // Story dot nav
@@ -97,42 +94,6 @@ export default function DesignEffects() {
     window.addEventListener('scroll', updateScroll, { passive: true });
     window.addEventListener('resize', updateScroll);
     updateScroll();
-
-    // Custom cursor (pointer:fine only)
-    if (window.matchMedia('(pointer: fine)').matches && cursorDot && cursorRing) {
-      let mouseX = 0, mouseY = 0, ringX = 0, ringY = 0;
-      let rafId: number;
-
-      window.addEventListener('mousemove', (e) => {
-        mouseX = e.clientX; mouseY = e.clientY;
-        cursorDot.style.transform = `translate(${mouseX}px, ${mouseY}px) translate(-50%, -50%)`;
-      });
-
-      const setHover = (hovering: boolean) => {
-        cursorRing.classList.toggle('is-hovering', hovering);
-        cursorDot.style.opacity = hovering ? '0' : '1';
-      };
-
-      document.querySelectorAll('a, button, input, textarea').forEach((el) => {
-        el.addEventListener('mouseenter', () => setHover(true));
-        el.addEventListener('mouseleave', () => setHover(false));
-      });
-
-      const animateCursor = () => {
-        ringX += (mouseX - ringX) * 0.14;
-        ringY += (mouseY - ringY) * 0.14;
-        cursorRing.style.transform = `translate(${ringX}px, ${ringY}px) translate(-50%, -50%)`;
-        rafId = requestAnimationFrame(animateCursor);
-      };
-      animateCursor();
-
-      return () => {
-        window.removeEventListener('scroll', updateScroll);
-        window.removeEventListener('resize', updateScroll);
-        revealObserver.disconnect();
-        cancelAnimationFrame(rafId);
-      };
-    }
 
     return () => {
       window.removeEventListener('scroll', updateScroll);
