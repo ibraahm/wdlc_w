@@ -1,10 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// Proxies address lookups to OpenStreetMap Nominatim with a compliant
-// User-Agent header (required by their usage policy) and sensible defaults.
+// Simple in-process rate limiter: max 20 requests per IP per minute.
+const RATE_LIMIT = 20;
+const WINDOW_MS = 60_000;
+const ipHits = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = ipHits.get(ip);
+  if (!entry || now > entry.resetAt) {
+    ipHits.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= RATE_LIMIT) return false;
+  entry.count++;
+  return true;
+}
+
+// Allow only printable ASCII characters that make sense in an address query.
+const SAFE_Q = /^[\w\s,.\-#/()&'àáâäãåèéêëìíîïòóôöõøùúûüýÿñçæœ]+$/i;
+
 export async function GET(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
+
   const q = req.nextUrl.searchParams.get('q')?.trim();
-  if (!q || q.length < 3) {
+  if (!q || q.length < 3 || q.length > 200 || !SAFE_Q.test(q)) {
     return NextResponse.json([]);
   }
 

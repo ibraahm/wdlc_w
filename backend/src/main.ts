@@ -3,7 +3,21 @@ import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 
+function assertSecrets() {
+  const isProd = process.env.NODE_ENV === 'production';
+  const placeholders = new Set(['change-me-to-a-long-random-string', 'change-me-admin-secret-openssl-rand-hex-32', 'change-me-agent-secret-openssl-rand-hex-32', '']);
+  const adminSecret = process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET;
+  const agentSecret = process.env.AGENT_JWT_SECRET || process.env.JWT_SECRET;
+  if (!adminSecret || !agentSecret) {
+    throw new Error('ADMIN_JWT_SECRET and AGENT_JWT_SECRET (or JWT_SECRET) must be set');
+  }
+  if (isProd && (placeholders.has(adminSecret) || placeholders.has(agentSecret))) {
+    throw new Error('Placeholder JWT secrets detected in production — set real values via environment variables');
+  }
+}
+
 async function bootstrap() {
+  assertSecrets();
   const app = await NestFactory.create(AppModule);
 
   // Security headers

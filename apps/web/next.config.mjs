@@ -1,7 +1,32 @@
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline'",   // unsafe-inline needed for Next.js inline scripts; tighten with nonces in future
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  "img-src 'self' data: blob: https:",
+  "connect-src 'self' https://nominatim.openstreetmap.org https://*.tile.openstreetmap.org",
+  "frame-ancestors 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+].join('; ');
+
 /** @type {import('next').NextConfig} */
 const config = {
   output: 'standalone',
   env: { API_URL: process.env.API_URL || 'http://localhost:4000/api' },
+  async headers() {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          { key: 'Content-Security-Policy', value: CSP },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+        ],
+      },
+    ];
+  },
   async redirects() {
     return [
       { source: '/company-overview',          destination: '/about/company',              permanent: true },

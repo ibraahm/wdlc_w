@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const API = process.env.API_URL || 'http://localhost:4000/api';
+const IS_PROD = process.env.NODE_ENV === 'production';
 
-const PROTECTED_PREFIXES = ['/dashboard', '/pages', '/nav', '/settings', '/users'];
+const PROTECTED_PREFIXES = ['/dashboard', '/pages', '/nav', '/settings', '/users', '/forms', '/partners', '/network', '/agents', '/applications', '/audit'];
 const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password'];
 
 function isProtected(pathname: string): boolean {
@@ -63,18 +64,21 @@ export async function middleware(req: NextRequest) {
 
           response.cookies.set('aat', data.accessToken, {
             httpOnly: true,
+            secure: IS_PROD,
             sameSite: 'lax',
             path: '/',
             maxAge: 900,
           });
           response.cookies.set('art', data.refreshToken, {
             httpOnly: true,
+            secure: IS_PROD,
             sameSite: 'lax',
             path: '/',
             maxAge: 604800,
           });
           response.cookies.set('auser', JSON.stringify(data.user), {
-            httpOnly: false,
+            httpOnly: true,
+            secure: IS_PROD,
             sameSite: 'lax',
             path: '/',
             maxAge: 900,

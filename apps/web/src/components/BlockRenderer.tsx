@@ -1,6 +1,18 @@
+import sanitizeHtml from 'sanitize-html';
 import { PageHero, Section, Callout, CtaBand, ButtonOnDark, ButtonPrimary } from '@/components/ui';
 import NetworkMap from '@/components/NetworkMap';
 import { getCmsNetworkCountries } from '@/lib/cms';
+
+const HEADING_ALLOW: sanitizeHtml.IOptions = {
+  allowedTags: ['br', 'em', 'strong', 'b', 'i', 'span'],
+  allowedAttributes: {},
+};
+const RICHTEXT_ALLOW: sanitizeHtml.IOptions = {
+  allowedTags: ['br', 'em', 'strong', 'b', 'i', 'span', 'p', 'ul', 'ol', 'li', 'a', 'h2', 'h3', 'h4'],
+  allowedAttributes: { a: ['href', 'target', 'rel'] },
+  allowedSchemes: ['https', 'http', 'mailto'],
+};
+const sh = (html: string, opts: sanitizeHtml.IOptions) => sanitizeHtml(html, opts);
 
 // Supports both Puck format ({ content: [...], root: {} }) and legacy format ([{ type, data }])
 type LegacyBlock = { type: string; data: Record<string, unknown> };
@@ -125,7 +137,7 @@ function RichTextBlock({ props }: { props: Record<string, unknown> }) {
     <Section>
       <div
         className="max-w-2xl space-y-4 text-lg text-charcoal/80 leading-relaxed prose"
-        dangerouslySetInnerHTML={{ __html: html ?? '' }}
+        dangerouslySetInnerHTML={{ __html: sh(html ?? '', RICHTEXT_ALLOW) }}
       />
     </Section>
   );
@@ -212,7 +224,7 @@ function HomeHeroBlock({ props }: { props: Record<string, unknown> }) {
         {!!str(props.eyebrow) && (
           <div className="wdl-hero-eyebrow"><span>{str(props.eyebrow)}</span></div>
         )}
-        <h1 className="wdl-em" dangerouslySetInnerHTML={{ __html: str(props.headingHtml, 'Connecting<br>the World, <em>since 1999.</em>') }} />
+        <h1 className="wdl-em" dangerouslySetInnerHTML={{ __html: sh(str(props.headingHtml, 'Connecting<br>the World, <em>since 1999.</em>'), HEADING_ALLOW) }} />
         <div className="wdl-hero-actions">
           {!!str(props.primaryText) && <a className="wdl-btn wdl-btn-primary" href={str(props.primaryHref, '#')}>{str(props.primaryText)} &rarr;</a>}
           {!!str(props.secondaryText) && <a className="wdl-btn wdl-btn-outline" href={str(props.secondaryHref, '#')}>{str(props.secondaryText)}</a>}
@@ -240,7 +252,7 @@ function HomeAboutBlock({ props }: { props: Record<string, unknown> }) {
       <div className="wdl-container wdl-about-grid">
         <div>
           {!!str(props.label) && <p className="wdl-label">{str(props.label)}</p>}
-          <h2 className="wdl-headline wdl-em" dangerouslySetInnerHTML={{ __html: str(props.headingHtml, 'Trusted by Families <em>Across the Globe</em>') }} />
+          <h2 className="wdl-headline wdl-em" dangerouslySetInnerHTML={{ __html: sh(str(props.headingHtml, 'Trusted by Families <em>Across the Globe</em>'), HEADING_ALLOW) }} />
           {lines(props.body).map((p, i) => <p className="wdl-body-text" key={i}>{p}</p>)}
           {stats.length > 0 && (
             <div className="wdl-about-stats">
@@ -266,7 +278,7 @@ function HomeWhyBlock({ props }: { props: Record<string, unknown> }) {
       <div className="wdl-container">
         <div style={{ marginBottom: 48 }}>
           {!!str(props.label) && <p className="wdl-label">{str(props.label)}</p>}
-          <h2 className="wdl-headline wdl-em" style={{ margin: 0 }} dangerouslySetInnerHTML={{ __html: str(props.headingHtml, 'Built on Trust, <em>Driven by Purpose</em>') }} />
+          <h2 className="wdl-headline wdl-em" style={{ margin: 0 }} dangerouslySetInnerHTML={{ __html: sh(str(props.headingHtml, 'Built on Trust, <em>Driven by Purpose</em>'), HEADING_ALLOW) }} />
         </div>
         <div className="wdl-why-grid">
           {items.map((item, i) => (
@@ -309,7 +321,7 @@ function HomeAgentCtaBlock({ props }: { props: Record<string, unknown> }) {
     <section className="wdl-agent" aria-label="Become an agent">
       <div className="wdl-container">
         {!!str(props.label) && <p className="wdl-label" style={{ color: 'var(--gold)' }}>{str(props.label)}</p>}
-        <h2 className="wdl-headline wdl-em" dangerouslySetInnerHTML={{ __html: str(props.headingHtml, 'Grow Your Business <em>With Our Network</em>') }} />
+        <h2 className="wdl-headline wdl-em" dangerouslySetInnerHTML={{ __html: sh(str(props.headingHtml, 'Grow Your Business <em>With Our Network</em>'), HEADING_ALLOW) }} />
         {lines(props.body).map((p, i) => <p className="wdl-body-text" key={i}>{p}</p>)}
         {features.length > 0 && (
           <div className="wdl-agent-features">
@@ -330,7 +342,7 @@ async function NetworkMapBlock({ props }: { props: Record<string, unknown> }) {
     <section className="wdl-net" aria-label="Global payout network">
       <div className="wdl-net-head">
         {!!str(props.label) && <p className="wdl-label">{str(props.label)}</p>}
-        <h2 className="wdl-headline wdl-em" style={{ margin: 0 }} dangerouslySetInnerHTML={{ __html: str(props.headingHtml, 'Where Your <em>Money Can Go</em>') }} />
+        <h2 className="wdl-headline wdl-em" style={{ margin: 0 }} dangerouslySetInnerHTML={{ __html: sh(str(props.headingHtml, 'Where Your <em>Money Can Go</em>'), HEADING_ALLOW) }} />
       </div>
       <div className="wdl-container">
         <NetworkMap countries={countries} />

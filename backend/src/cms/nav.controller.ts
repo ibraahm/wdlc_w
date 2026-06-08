@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } f
 import { IsArray, IsInt, IsString, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { AdminJwtAuthGuard } from '../admin-auth/admin-jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import { NavService } from './nav.service';
 import { CreateNavItemDto, UpdateNavItemDto } from './dto/nav.dto';
 import { Public } from '../auth/decorators/public.decorator';
@@ -17,7 +18,7 @@ class ReorderDto {
   items: ReorderItemDto[];
 }
 
-@UseGuards(AdminJwtAuthGuard)
+@UseGuards(AdminJwtAuthGuard, RolesGuard)
 @Controller('cms/nav')
 export class NavController {
   constructor(private nav: NavService) {}

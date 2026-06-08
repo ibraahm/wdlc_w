@@ -12,6 +12,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { AdminJwtAuthGuard } from '../admin-auth/admin-jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
 import { FormService } from './form.service';
 import { CreateFormDto, UpdateFormDto, SubmitFormDto } from './dto/form.dto';
 import { RecaptchaService } from '../common/recaptcha.service';
@@ -19,7 +20,7 @@ import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser, AuthUser } from '../auth/decorators/current-user.decorator';
 
-@UseGuards(AdminJwtAuthGuard)
+@UseGuards(AdminJwtAuthGuard, RolesGuard)
 @Controller('cms/forms')
 export class FormController {
   constructor(private forms: FormService, private recaptcha: RecaptchaService) {}

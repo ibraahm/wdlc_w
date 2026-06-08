@@ -8,12 +8,18 @@
     "start": "next start -p 3000"
   },
   "dependencies": {
+    "@types/sanitize-html": "^2.16.1",
+    "d3": "^7.9.0",
+    "leaflet": "^1.9.4",
     "next": "14.2.29",
     "react": "^18",
     "react-dom": "^18",
-    "react-google-recaptcha-v3": "^1.11.0"
+    "react-google-recaptcha-v3": "^1.11.0",
+    "sanitize-html": "^2.17.4"
   },
   "devDependencies": {
+    "@types/d3": "^7.4.3",
+    "@types/leaflet": "^1.9.21",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
