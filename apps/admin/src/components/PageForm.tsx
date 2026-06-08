@@ -47,8 +47,21 @@ function parsePuckData(raw: unknown): PuckData | null {
     // The API may hand us blocks already deserialized (an array/object) or as a
     // JSON string. Normalise to a value either way.
     const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
-    // Puck format has a `content` array and `root` key
-    if (parsed && typeof parsed === 'object' && Array.isArray(parsed.content)) return parsed as PuckData;
+    // Puck format has a `content` array and `root` key. Puck requires every
+    // content item to carry a unique `props.id` or it won't render the block —
+    // seeded/imported data often lacks ids, so backfill them here.
+    if (parsed && typeof parsed === 'object' && Array.isArray(parsed.content)) {
+      return {
+        ...parsed,
+        content: parsed.content.map((c: { type: string; props?: Record<string, unknown> }, i: number) => {
+          const props = { ...(c.props ?? {}) };
+          if (!props.id) props.id = `${c.type}-${i}`;
+          return { type: c.type, props };
+        }),
+        root: parsed.root ?? { props: {} },
+        zones: parsed.zones ?? {},
+      } as PuckData;
+    }
     // Legacy blocks array format: [{ type, data }] — convert to Puck content
     if (Array.isArray(parsed)) {
       if (parsed.length === 0) return null;
