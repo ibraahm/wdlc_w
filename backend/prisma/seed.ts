@@ -38,8 +38,8 @@ async function main() {
   await prisma.navItem.createMany({ data: [
     { label: 'Licenses', href: '/about#licenses', location: 'UTILITY', order: 1 },
     { label: 'Report Fraud', href: '/compliance/report', location: 'UTILITY', order: 2 },
-    { label: 'Contact Us', href: '/about/contact', location: 'UTILITY', order: 3 },
-    { label: 'Agent Application', href: '/agents/become-an-agent', location: 'UTILITY', order: 4 },
+    { label: 'Agent Application', href: '/agents/become-an-agent', location: 'UTILITY', order: 3 },
+    { label: 'Contact Us', href: '/about/contact', location: 'UTILITY', order: 4 },
   ]});
   console.log('Seeded utility navigation');
 

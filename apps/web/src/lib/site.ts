@@ -35,8 +35,8 @@ export type NavNode = { label: string; href: string; children?: { label: string;
 export const utilityNav: { label: string; href: string }[] = [
   { label: 'Licenses', href: '/about#licenses' },
   { label: 'Report Fraud', href: '/compliance/report' },
-  { label: 'Contact Us', href: '/about/contact' },
   { label: 'Agent Application', href: '/agents/become-an-agent' },
+  { label: 'Contact Us', href: '/about/contact' },
 ];
 
 // Primary header navigation
