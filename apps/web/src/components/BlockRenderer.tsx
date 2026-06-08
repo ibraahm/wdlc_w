@@ -38,11 +38,36 @@ const lines = (v: unknown): string[] => str(v).split('\n').map((l) => l.trim()).
 // Rendered once per page. Content is visible by default (no JS-gated reveal) so
 // the page is never blank, and there are no per-section font/script reloads.
 const HOME_CSS = `
-.wdl-blocks { --navy:#0B1F3A; --navy-deep:#081729; --gold:#C9A84C; --gold-light:#DFC278; --gold-dark:#A8872E; --ivory:#FAFAF7; --ivory-dark:#E8E6DF; --line:rgba(11,31,58,.10); --text-mid:#4a4a4a; --text-light:#888; --font-heading:'Cormorant Garamond',Georgia,serif; --font-body:'DM Sans',system-ui,-apple-system,sans-serif; --gutter:clamp(20px,5vw,48px); --section-y:clamp(64px,9vw,120px); font-family:var(--font-body); width:100%; overflow-x:clip; }
+.wdl-blocks { --navy:#0B1F3A; --navy-deep:#081729; --gold:#C9A84C; --gold-light:#DFC278; --gold-dark:#A8872E; --ivory:#FAFAF7; --ivory-dark:#E8E6DF; --line:rgba(11,31,58,.10); --text-mid:#4a4a4a; --text-light:#888; --font-heading:'Cormorant Garamond',Georgia,serif; --font-body:'DM Sans',system-ui,-apple-system,sans-serif; --gutter:clamp(20px,5vw,48px); --section-y:clamp(64px,9vw,120px); --container-max:1320px; font-family:var(--font-body); width:100%; overflow-x:clip; }
 .wdl-blocks * { box-sizing:border-box; }
 .wdl-blocks a { text-decoration:none; }
 .wdl-blocks img { max-width:100%; }
-.wdl-blocks .wdl-container { width:100%; max-width:1320px; margin:0 auto; padding:0 var(--gutter); }
+.wdl-blocks .wdl-container { width:100%; max-width:var(--container-max,1320px); margin:0 auto; padding:0 var(--gutter); }
+
+/* ── Per-section design options (set via data-* on .wdl-sec wrapper) ───────── */
+.wdl-blocks .wdl-sec { width:100%; }
+/* Width: controls the inner content container for any block that uses --container-max */
+.wdl-blocks .wdl-sec[data-width="boxed"] { --container-max:1080px; }
+.wdl-blocks .wdl-sec[data-width="wide"]  { --container-max:1320px; }
+.wdl-blocks .wdl-sec[data-width="full"]  { --container-max:100%; }
+/* Vertical spacing override (home sections read --section-y) */
+.wdl-blocks .wdl-sec[data-py="none"]     { --section-y:0; }
+.wdl-blocks .wdl-sec[data-py="compact"]  { --section-y:clamp(36px,5vw,56px); }
+.wdl-blocks .wdl-sec[data-py="normal"]   { --section-y:clamp(64px,9vw,120px); }
+.wdl-blocks .wdl-sec[data-py="spacious"] { --section-y:clamp(96px,13vw,180px); }
+.wdl-blocks .wdl-sec[data-py] > section, .wdl-blocks .wdl-sec[data-py] > div { padding-top:var(--section-y); padding-bottom:var(--section-y); }
+/* Background override — neutralises the block's own background so the wrapper shows */
+.wdl-blocks .wdl-sec[data-bg] > section, .wdl-blocks .wdl-sec[data-bg] > div { background:transparent; }
+.wdl-blocks .wdl-sec[data-bg="white"]    { background:#fff; }
+.wdl-blocks .wdl-sec[data-bg="ivory"]    { background:var(--ivory); }
+.wdl-blocks .wdl-sec[data-bg="navy"]     { background:radial-gradient(120% 140% at 0% 0%,#10294a 0%,var(--navy) 45%,var(--navy-deep) 100%); }
+.wdl-blocks .wdl-sec[data-bg="navy"] .wdl-headline, .wdl-blocks .wdl-sec[data-bg="navy"] .wdl-why-title { color:#fff; }
+.wdl-blocks .wdl-sec[data-bg="navy"] .wdl-body-text, .wdl-blocks .wdl-sec[data-bg="navy"] .wdl-why-desc { color:rgba(255,255,255,.78); }
+.wdl-blocks .wdl-sec[data-bg="navy"] .wdl-headline em { color:var(--gold-light); }
+/* Text alignment */
+.wdl-blocks .wdl-sec[data-align="center"] { text-align:center; }
+.wdl-blocks .wdl-sec[data-align="center"] .wdl-body-text { margin-left:auto; margin-right:auto; }
+.wdl-blocks .wdl-sec[data-align="center"] .wdl-hero-actions, .wdl-blocks .wdl-sec[data-align="center"] .wdl-hero-stats, .wdl-blocks .wdl-sec[data-align="center"] .wdl-hero-eyebrow { justify-content:center; }
 .wdl-blocks .wdl-em em, .wdl-blocks h1 em, .wdl-blocks h2 em { color:var(--gold-dark); font-style:italic; }
 .wdl-blocks .wdl-btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:15px 34px; border-radius:4px; font-size:14px; font-weight:500; letter-spacing:.04em; transition:all .3s cubic-bezier(.4,0,.2,1); white-space:nowrap; }
 .wdl-blocks .wdl-btn-primary { background:var(--gold); color:var(--navy); }
@@ -57,7 +82,7 @@ const HOME_CSS = `
 .wdl-hero { position:relative; min-height:calc(100vh - 106px); display:flex; align-items:center; overflow:hidden; background:linear-gradient(120deg,#fff 0%,#f6f4ee 100%); }
 .wdl-hero-bg { position:absolute; inset:0; background-size:cover; background-position:center; }
 .wdl-hero-overlay { position:absolute; inset:0; background:linear-gradient(110deg,rgba(255,255,255,.94) 0%,rgba(255,255,255,.82) 55%,rgba(250,250,247,.7) 100%); }
-.wdl-hero-content { position:relative; z-index:1; width:100%; max-width:1320px; margin:0 auto; padding:clamp(120px,16vh,168px) var(--gutter) clamp(72px,10vw,104px); }
+.wdl-hero-content { position:relative; z-index:1; width:100%; max-width:var(--container-max,1320px); margin:0 auto; padding:clamp(120px,16vh,168px) var(--gutter) clamp(72px,10vw,104px); }
 .wdl-hero-eyebrow { display:inline-flex; align-items:center; gap:12px; margin-bottom:24px; }
 .wdl-hero-eyebrow::before { content:''; display:block; width:32px; height:1px; background:var(--navy); }
 .wdl-hero-eyebrow span { color:var(--navy); font-size:12px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; }
@@ -89,7 +114,7 @@ const HOME_CSS = `
 
 /* Stats */
 .wdl-stats { padding:clamp(48px,7vw,72px) var(--gutter); background:linear-gradient(145deg,#fff 0%,#f5f6f8 100%); border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
-.wdl-stats-grid { max-width:1320px; margin:0 auto; display:grid; grid-template-columns:repeat(4,1fr); gap:clamp(14px,2vw,24px); }
+.wdl-stats-grid { max-width:var(--container-max,1320px); margin:0 auto; display:grid; grid-template-columns:repeat(4,1fr); gap:clamp(14px,2vw,24px); }
 .wdl-stat-card { background:#fff; padding:clamp(24px,3vw,34px) clamp(16px,2vw,22px); text-align:center; border-radius:16px; border:1px solid var(--line); box-shadow:0 18px 36px -16px rgba(11,31,58,.12); transition:transform .3s ease, box-shadow .3s ease; }
 .wdl-stat-card:hover { transform:translateY(-4px); box-shadow:0 26px 48px -18px rgba(11,31,58,.22); }
 .wdl-stat-card .v { font-family:var(--font-heading); font-size:clamp(2rem,3.4vw,3rem); font-weight:500; line-height:1; margin-bottom:10px; color:var(--navy); }
@@ -108,7 +133,7 @@ const HOME_CSS = `
 
 /* Network */
 .wdl-net { background:#fff; padding:var(--section-y) 0; }
-.wdl-net-head { max-width:1320px; margin:0 auto clamp(28px,4vw,40px); padding:0 var(--gutter); }
+.wdl-net-head { max-width:var(--container-max,1320px); margin:0 auto clamp(28px,4vw,40px); padding:0 var(--gutter); }
 
 @media (max-width:1024px){
   .wdl-blocks .wdl-stats-grid { grid-template-columns:repeat(4,1fr); }
@@ -367,7 +392,56 @@ async function NetworkMapBlock({ props }: { props: Record<string, unknown> }) {
   );
 }
 
+// ── Per-block design-options wrapper ──────────────────────────────────────────
+// Reads the shared layout props (width / paddingY / background / align) and
+// exposes them as data-* attributes that the design CSS above keys off of.
+// Defaults preserve each block's original look when nothing is configured.
+function LayoutWrap({ props, children }: { props: Record<string, unknown>; children: React.ReactNode }) {
+  const width = str(props.width, 'wide');
+  const paddingY = str(props.paddingY, 'default');
+  const background = str(props.background, 'default');
+  const align = str(props.align, 'left');
+  return (
+    <div
+      className="wdl-sec"
+      data-width={width || 'wide'}
+      data-py={paddingY !== 'default' ? paddingY : undefined}
+      data-bg={background !== 'default' ? background : undefined}
+      data-align={align !== 'left' ? align : undefined}
+    >
+      {children}
+    </div>
+  );
+}
+
 // ── Main renderer ────────────────────────────────────────────────────────────
+
+function renderBlock(type: string, props: Record<string, unknown>, key: number) {
+  switch (type) {
+    case 'Hero':
+    case 'hero':         return <HeroBlock props={props} />;
+    case 'RichText':
+    case 'richText':
+    case 'text':         return <RichTextBlock props={props} />;
+    case 'Callout':
+    case 'callout':      return <CalloutBlock props={props} />;
+    case 'FactTable':
+    case 'table':        return <FactTableBlock props={props} />;
+    case 'FeatureGrid':
+    case 'features':     return <FeatureGridBlock props={props} />;
+    case 'CtaBand':
+    case 'cta':          return <CtaBandBlock props={props} />;
+    case 'Spacer':       return <SpacerBlock props={props} />;
+    case 'HomeHero':     return <HomeHeroBlock props={props} />;
+    case 'HomeAbout':    return <HomeAboutBlock props={props} />;
+    case 'HomeWhy':      return <HomeWhyBlock props={props} />;
+    case 'HomeStats':    return <HomeStatsBlock props={props} />;
+    case 'HomeAgentCta': return <HomeAgentCtaBlock props={props} />;
+    case 'NetworkMap':
+    case 'networkMap':   return <NetworkMapBlock props={props} />;
+    default:             return null;
+  }
+}
 
 export default function BlockRenderer({ blocks }: { blocks: unknown }) {
   const normalised = normalise(blocks);
@@ -377,30 +451,15 @@ export default function BlockRenderer({ blocks }: { blocks: unknown }) {
     <div className="wdl-blocks">
       <style dangerouslySetInnerHTML={{ __html: HOME_CSS }} />
       {normalised.map((block, i) => {
-        switch (block.type) {
-          case 'Hero':
-          case 'hero':         return <HeroBlock key={i} props={block.props} />;
-          case 'RichText':
-          case 'richText':
-          case 'text':         return <RichTextBlock key={i} props={block.props} />;
-          case 'Callout':
-          case 'callout':      return <CalloutBlock key={i} props={block.props} />;
-          case 'FactTable':
-          case 'table':        return <FactTableBlock key={i} props={block.props} />;
-          case 'FeatureGrid':
-          case 'features':     return <FeatureGridBlock key={i} props={block.props} />;
-          case 'CtaBand':
-          case 'cta':          return <CtaBandBlock key={i} props={block.props} />;
-          case 'Spacer':       return <SpacerBlock key={i} props={block.props} />;
-          case 'HomeHero':     return <HomeHeroBlock key={i} props={block.props} />;
-          case 'HomeAbout':    return <HomeAboutBlock key={i} props={block.props} />;
-          case 'HomeWhy':      return <HomeWhyBlock key={i} props={block.props} />;
-          case 'HomeStats':    return <HomeStatsBlock key={i} props={block.props} />;
-          case 'HomeAgentCta': return <HomeAgentCtaBlock key={i} props={block.props} />;
-          case 'NetworkMap':
-          case 'networkMap':   return <NetworkMapBlock key={i} props={block.props} />;
-          default:             return null;
-        }
+        const inner = renderBlock(block.type, block.props, i);
+        if (inner === null) return null;
+        // Spacer has no design options — render bare.
+        if (block.type === 'Spacer') return <div key={i}>{inner}</div>;
+        return (
+          <LayoutWrap key={i} props={block.props}>
+            {inner}
+          </LayoutWrap>
+        );
       })}
     </div>
   );

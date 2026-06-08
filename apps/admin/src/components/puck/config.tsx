@@ -15,8 +15,52 @@ export type PuckData = {
   zones?: Record<string, unknown>;
 };
 
-export const puckConfig: Config = {
-  components: {
+// ── Shared design options injected into every block (except Spacer) ───────────
+// These map 1:1 to the data-* attributes the live site keys its design CSS off.
+const designFields = {
+  width: {
+    type: 'select' as const,
+    label: 'Section width',
+    options: [
+      { label: 'Boxed (1080px)', value: 'boxed' },
+      { label: 'Wide (1320px)', value: 'wide' },
+      { label: 'Full width', value: 'full' },
+    ],
+  },
+  paddingY: {
+    type: 'select' as const,
+    label: 'Vertical spacing',
+    options: [
+      { label: 'Default', value: 'default' },
+      { label: 'None', value: 'none' },
+      { label: 'Compact', value: 'compact' },
+      { label: 'Normal', value: 'normal' },
+      { label: 'Spacious', value: 'spacious' },
+    ],
+  },
+  background: {
+    type: 'select' as const,
+    label: 'Background',
+    options: [
+      { label: 'Default (block default)', value: 'default' },
+      { label: 'White', value: 'white' },
+      { label: 'Ivory', value: 'ivory' },
+      { label: 'Navy (dark)', value: 'navy' },
+    ],
+  },
+  align: {
+    type: 'radio' as const,
+    label: 'Text alignment',
+    options: [
+      { label: 'Left', value: 'left' },
+      { label: 'Center', value: 'center' },
+    ],
+  },
+};
+
+const designDefaults = { width: 'wide', paddingY: 'default', background: 'default', align: 'left' };
+
+const baseComponents: Config['components'] = {
     Hero: {
       label: 'Hero Banner',
       fields: {
@@ -447,5 +491,18 @@ export const puckConfig: Config = {
       defaultProps: { size: '48px' },
       render: ({ size }) => <div style={{ height: size as string }} />,
     },
-  },
+};
+
+// Inject the shared design options into every component except Spacer, so each
+// section exposes width / spacing / background / alignment controls in the
+// editor's right-hand panel without repeating the fields per component.
+for (const key of Object.keys(baseComponents)) {
+  if (key === 'Spacer') continue;
+  const comp = baseComponents[key] as { fields: Record<string, unknown>; defaultProps?: Record<string, unknown> };
+  comp.fields = { ...comp.fields, ...designFields };
+  comp.defaultProps = { ...(comp.defaultProps ?? {}), ...designDefaults };
+}
+
+export const puckConfig: Config = {
+  components: baseComponents,
 };
