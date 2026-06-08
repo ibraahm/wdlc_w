@@ -49,13 +49,13 @@ function LocationForm({
           onChange={(e) => set('businessName', e.target.value)}
           placeholder="Business name *"
           required
-          className="px-3 py-2 border border-gray-300 rounded text-sm"
+          className="px-3 py-2 border border-gray-300 rounded text-sm text-gray-900 bg-white"
         />
         <input
           value={form.publicPhone ?? ''}
           onChange={(e) => set('publicPhone', e.target.value)}
           placeholder="Phone"
-          className="px-3 py-2 border border-gray-300 rounded text-sm"
+          className="px-3 py-2 border border-gray-300 rounded text-sm text-gray-900 bg-white"
         />
         <input
           value={form.addressLine ?? ''}
@@ -68,7 +68,7 @@ function LocationForm({
           onChange={(e) => set('city', e.target.value)}
           placeholder="City *"
           required
-          className="px-3 py-2 border border-gray-300 rounded text-sm"
+          className="px-3 py-2 border border-gray-300 rounded text-sm text-gray-900 bg-white"
         />
         <div className="grid grid-cols-2 gap-3">
           <input
@@ -76,20 +76,20 @@ function LocationForm({
             onChange={(e) => set('state', e.target.value)}
             placeholder="State *"
             required
-            className="px-3 py-2 border border-gray-300 rounded text-sm"
+            className="px-3 py-2 border border-gray-300 rounded text-sm text-gray-900 bg-white"
           />
           <input
             value={form.zip ?? ''}
             onChange={(e) => set('zip', e.target.value)}
             placeholder="ZIP"
-            className="px-3 py-2 border border-gray-300 rounded text-sm"
+            className="px-3 py-2 border border-gray-300 rounded text-sm text-gray-900 bg-white"
           />
         </div>
         <input
           value={form.country ?? ''}
           onChange={(e) => set('country', e.target.value)}
           placeholder="Country"
-          className="px-3 py-2 border border-gray-300 rounded text-sm"
+          className="px-3 py-2 border border-gray-300 rounded text-sm text-gray-900 bg-white"
         />
       </div>
       <p className="text-xs text-gray-400">
