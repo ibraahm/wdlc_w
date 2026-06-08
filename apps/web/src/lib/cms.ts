@@ -140,12 +140,35 @@ export const getCmsPartners = cache(async (): Promise<CmsPartner[]> => {
   }
 });
 
-// Read a site setting value (parsed JSON) by key, with a typed fallback.
+// Fetch all public (allowlisted) settings in a single request. The backend
+// returns rows as { key, value } where value is a serialized JSON string, so
+// each value is parsed here into a key → value map. Cached per render.
+export const getCmsPublicSettings = cache(async (): Promise<Record<string, unknown>> => {
+  try {
+    const res = await fetch(`${API}/cms/settings/public`, { next: { revalidate: 60 } });
+    if (!res.ok) return {};
+    const rows = (await res.json()) as { key: string; value: string }[];
+    const map: Record<string, unknown> = {};
+    for (const row of rows) {
+      try {
+        map[row.key] = JSON.parse(row.value);
+      } catch {
+        map[row.key] = row.value;
+      }
+    }
+    return map;
+  } catch {
+    return {};
+  }
+});
+
+// Read a single public site setting (parsed JSON) by key, with a typed
+// fallback. Backed by the batched public-settings fetch above, so multiple
+// reads in one render share a single backend request.
 export const getCmsSetting = cache(async <T,>(key: string, fallback: T): Promise<T> => {
   try {
-    const res = await fetch(`${API}/cms/settings/${encodeURIComponent(key)}`, { next: { revalidate: 60 } });
-    if (!res.ok) return fallback;
-    const value = await res.json();
+    const settings = await getCmsPublicSettings();
+    const value = settings[key];
     return (value ?? fallback) as T;
   } catch {
     return fallback;
