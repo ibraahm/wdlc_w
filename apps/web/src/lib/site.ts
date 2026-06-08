@@ -33,7 +33,7 @@ export type NavNode = { label: string; href: string; children?: { label: string;
 
 // Top utility bar (always visible, above the primary nav)
 export const utilityNav: { label: string; href: string }[] = [
-  { label: 'Licenses', href: '/about#licenses' },
+  { label: 'Licenses', href: '/licenses' },
   { label: 'Report Fraud', href: '/compliance/report' },
   { label: 'Agent Application', href: '/agents/become-an-agent' },
   { label: 'Contact Us', href: '/about/contact' },
@@ -47,7 +47,7 @@ export const headerNav: NavNode[] = [
   },
   {
     label: 'Licenses',
-    href: '/about#licenses',
+    href: '/licenses',
   },
   {
     label: 'Services',
@@ -102,7 +102,7 @@ export const footerNav: { title: string; links: { label: string; href: string }[
     title: 'World Direct Link',
     links: [
       { label: 'About Us', href: '/about' },
-      { label: 'Licenses & Registrations', href: '/about#licenses' },
+      { label: 'Licenses & Regulatory Disclosures', href: '/licenses' },
       { label: 'Contact Us', href: '/about/contact' },
     ],
   },

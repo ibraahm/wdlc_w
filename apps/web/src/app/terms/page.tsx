@@ -30,7 +30,7 @@ export default async function TermsPage() {
             <p>Money transfer services are governed by the terms and conditions disclosed to you at the time of your transaction — including the pre-payment disclosure and receipt you receive from your authorized agent. This website does not constitute an offer or agreement to transmit funds.</p>
 
             <h2>Licensing</h2>
-            <p>{company.legalName} is a licensed money transmitter. NMLS ID #{company.nmls}. Money transmission is offered only in states where {company.shortName} holds an active license. See our <a href="/about/licenses">Licenses &amp; Registrations</a> page for current license details.</p>
+            <p>{company.legalName} is a licensed money transmitter. NMLS ID #{company.nmls}. Money transmission is offered only in states where {company.shortName} holds an active license. See our <a href="/licenses">Licenses &amp; Regulatory Disclosures</a> page for current license details.</p>
 
             <h2>Limitation of liability</h2>
             <p>This website is provided &ldquo;as is&rdquo; without warranties of any kind. {company.legalName} is not liable for any damages arising from your use of this site or reliance on its content. Liability arising from money transfer transactions is governed by your transaction agreement and applicable law.</p>

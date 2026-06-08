@@ -37,7 +37,7 @@ async function main() {
   // ── Utility bar (always-visible links above the primary nav) ───────────────
   await prisma.navItem.deleteMany({ where: { location: 'UTILITY' } });
   await prisma.navItem.createMany({ data: [
-    { label: 'Licenses', href: '/about#licenses', location: 'UTILITY', order: 1 },
+    { label: 'Licenses', href: '/licenses', location: 'UTILITY', order: 1 },
     { label: 'Report Fraud', href: '/compliance/report', location: 'UTILITY', order: 2 },
     { label: 'Agent Application', href: '/agents/become-an-agent', location: 'UTILITY', order: 3 },
     { label: 'Contact Us', href: '/about/contact', location: 'UTILITY', order: 4 },
@@ -50,7 +50,7 @@ async function main() {
 
   // About Us is a plain top-level link (no dropdown). Licenses is its own top-level item.
   await prisma.navItem.create({ data: { label: 'About Us', href: '/about', location: 'HEADER', order: 1 } });
-  await prisma.navItem.create({ data: { label: 'Licenses', href: '/about#licenses', location: 'HEADER', order: 2 } });
+  await prisma.navItem.create({ data: { label: 'Licenses', href: '/licenses', location: 'HEADER', order: 2 } });
 
   await prisma.navItem.create({ data: { label: 'Services', href: '/services', location: 'HEADER', order: 3 } });
   // Services children omitted from header dropdown to keep it clean — accessible via /services page
@@ -78,9 +78,7 @@ async function main() {
   const pages = [
     { slug: 'home',                      title: 'Home',                                  description: 'Fast, affordable, and reliable money transfers for immigrant, refugee, and diaspora families.' },
     { slug: 'about',                     title: 'About World Direct Link',               description: 'Connecting communities with the people they love since 1999.' },
-    { slug: 'about/company',             title: 'Company Overview',                      description: 'A trusted money transmitter built for the communities we serve.' },
-    { slug: 'about/network',             title: 'Our Network',                           description: 'Reliable delivery through a vetted correspondent network.' },
-    { slug: 'about/licenses',            title: 'Licenses & Registrations',              description: 'Licensed, registered, and verifiable.' },
+    { slug: 'licenses',                  title: 'Licenses & Regulatory Disclosures',     description: 'Licensed, registered, and verifiable. NMLS ID 1119263.' },
     { slug: 'about/contact',             title: 'Contact Us',                            description: "We're here to help — reach our headquarters or send us a message." },
     { slug: 'services',                  title: 'Our Services',                          description: 'One link. Every way to deliver.' },
     { slug: 'services/send-money',       title: 'Send Money',                            description: 'Send money quickly and affordably at any authorized WDL agent.' },

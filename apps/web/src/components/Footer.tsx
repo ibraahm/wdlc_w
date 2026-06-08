@@ -44,7 +44,7 @@ export default function Footer() {
             <span>&copy; {year} {company.legalName}</span>
             <Link href="/privacy">Privacy</Link>
             <Link href="/terms">Terms</Link>
-            <Link href="/about/licenses">Licenses</Link>
+            <Link href="/licenses">Licenses &amp; Regulatory Disclosures</Link>
           </div>
         </div>
       </div>
