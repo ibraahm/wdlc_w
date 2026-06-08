@@ -1,23 +1,19 @@
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { apiListAgents, apiListLocations, type AdminAgent, type AdminLocation } from '@/lib/api';
+import { apiListLocations, type AdminLocation } from '@/lib/api';
 import AgentsManager from '@/components/AgentsManager';
 
 export default async function AgentsPage() {
   const session = await getSession();
   if (!session) redirect('/login');
 
-  let agents: AdminAgent[] = [];
   let locations: AdminLocation[] = [];
   let error = '';
 
   try {
-    [agents, locations] = await Promise.all([
-      apiListAgents(session.accessToken),
-      apiListLocations(session.accessToken),
-    ]);
+    locations = await apiListLocations(session.accessToken);
   } catch (err) {
-    error = err instanceof Error ? err.message : 'Failed to load agents';
+    error = err instanceof Error ? err.message : 'Failed to load locations';
   }
 
   return (
@@ -34,7 +30,7 @@ export default async function AgentsPage() {
           {error}
         </div>
       ) : (
-        <AgentsManager agents={agents} locations={locations} accessToken={session.accessToken} />
+        <AgentsManager locations={locations} accessToken={session.accessToken} />
       )}
     </div>
   );

@@ -2,26 +2,9 @@
 
 import { useState, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import type { AdminAgent, AdminLocation, LocationInput } from '@/lib/api';
+import type { AdminLocation, LocationInput } from '@/lib/api';
 import { apiImportLocations, apiCreateLocation, apiUpdateLocation } from '@/lib/api';
-import {
-  setAgentStatusAction,
-  setAgentVisibilityAction,
-  toggleLocationActiveAction,
-  deleteLocationAction,
-} from '@/lib/actions';
-
-const STATUSES = ['PENDING', 'ACTIVE', 'SUSPENDED', 'REJECTED'];
-
-function statusClasses(status: string): string {
-  switch (status) {
-    case 'ACTIVE': return 'bg-green-100 text-green-800';
-    case 'PENDING': return 'bg-yellow-100 text-yellow-800';
-    case 'SUSPENDED': return 'bg-orange-100 text-orange-800';
-    case 'REJECTED': return 'bg-red-100 text-red-800';
-    default: return 'bg-gray-100 text-gray-700';
-  }
-}
+import { toggleLocationActiveAction, deleteLocationAction } from '@/lib/actions';
 
 const EMPTY_FORM: LocationInput = {
   businessName: '',
@@ -360,119 +343,12 @@ function LocationsList({
   );
 }
 
-function AgentAccounts({ agents }: { agents: AdminAgent[] }) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState('');
-  const [open, setOpen] = useState(false);
-
-  function changeStatus(id: string, status: string) {
-    setError('');
-    startTransition(async () => {
-      const res = await setAgentStatusAction(id, status);
-      if (!res.ok) setError(res.error ?? 'Update failed');
-      else router.refresh();
-    });
-  }
-
-  function toggleVisibility(id: string, showOnMap: boolean) {
-    setError('');
-    startTransition(async () => {
-      const res = await setAgentVisibilityAction(id, showOnMap);
-      if (!res.ok) setError(res.error ?? 'Update failed');
-      else router.refresh();
-    });
-  }
-
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-5 py-4 text-left"
-      >
-        <div>
-          <h2 className="font-semibold text-gray-900 text-sm">Portal agent accounts ({agents.length})</h2>
-          <p className="text-xs text-gray-400 mt-0.5">
-            Self-registered agents — approve accounts and optionally list their own address on the map.
-          </p>
-        </div>
-        <span className="text-gray-400 text-sm">{open ? '▲' : '▼'}</span>
-      </button>
-
-      {open && (
-        <div className="px-5 pb-5 space-y-3">
-          {error && (
-            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
-          )}
-          {agents.length === 0 ? (
-            <p className="text-sm text-gray-500">No agents have registered yet.</p>
-          ) : (
-            <div className="overflow-x-auto border border-gray-200 rounded-lg">
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="border-b border-gray-200 text-left text-gray-500">
-                    <th className="px-4 py-3 font-medium">Agent</th>
-                    <th className="px-4 py-3 font-medium">Status</th>
-                    <th className="px-4 py-3 font-medium">On map</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {agents.map((a) => (
-                    <tr key={a.id} className="border-b border-gray-100 last:border-0">
-                      <td className="px-4 py-3 align-top">
-                        <div className="font-medium text-gray-900">{a.firstName} {a.lastName}</div>
-                        <div className="text-gray-400 text-xs">{a.email}</div>
-                        {!a.emailVerified && (
-                          <span className="inline-block mt-1 text-[11px] text-orange-600">email not verified</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 align-top">
-                        <select
-                          value={a.status}
-                          disabled={isPending}
-                          onChange={(e) => changeStatus(a.id, e.target.value)}
-                          className={`text-xs font-medium rounded-full px-3 py-1 border-0 cursor-pointer ${statusClasses(a.status)}`}
-                        >
-                          {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                      </td>
-                      <td className="px-4 py-3 align-top">
-                        <label className="inline-flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={a.showOnMap}
-                            disabled={isPending}
-                            onChange={(e) => toggleVisibility(a.id, e.target.checked)}
-                            className="w-4 h-4 accent-navy"
-                          />
-                          <span className="text-xs text-gray-600">{a.showOnMap ? 'Visible' : 'Hidden'}</span>
-                        </label>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function AgentsManager({
-  agents,
   locations,
   accessToken,
 }: {
-  agents: AdminAgent[];
   locations: AdminLocation[];
   accessToken: string;
 }) {
-  return (
-    <div className="space-y-6">
-      <LocationsList locations={locations} accessToken={accessToken} />
-      <AgentAccounts agents={agents} />
-    </div>
-  );
+  return <LocationsList locations={locations} accessToken={accessToken} />;
 }
