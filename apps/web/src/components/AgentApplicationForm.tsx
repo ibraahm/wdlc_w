@@ -78,7 +78,7 @@ const LANGUAGES = ['English', 'Spanish', 'French', 'Arabic', 'Somali', 'Amharic'
 const VOLUMES = ['1 - 50 items', '51 - 250 items', '251 - 1,000 items', 'Over 1,000 items'];
 
 const inputCls =
-  'w-full rounded-lg border border-[#d9e0e8] px-3 py-2 text-ink focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none';
+  'w-full rounded-lg border border-[#d9e0e8] bg-white px-3 py-2 text-ink focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none';
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (

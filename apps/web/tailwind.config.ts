@@ -13,6 +13,7 @@ const config: Config = {
         cream: '#f5f2eb',
         smoke: '#e8e4dc',
         charcoal: '#2c2c2c',
+        ink: '#1a1f29',
         // Legacy aliases kept for any component not yet migrated
         primary: '#0b1f3a',
         'primary-strong': '#050e1a',
