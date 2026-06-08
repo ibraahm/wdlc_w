@@ -47,19 +47,14 @@ async function main() {
   // Always fix nav hrefs to match actual Next.js routes
   await prisma.navItem.deleteMany({ where: { location: 'HEADER' } });
 
-  const about = await prisma.navItem.create({ data: { label: 'About Us', href: '/about', location: 'HEADER', order: 1 } });
-  await prisma.navItem.createMany({ data: [
-    { label: 'About Us', href: '/about', parentId: about.id, location: 'HEADER', order: 1 },
-    { label: 'Company Overview', href: '/about/company', parentId: about.id, location: 'HEADER', order: 2 },
-    { label: 'Our Network', href: '/about/network', parentId: about.id, location: 'HEADER', order: 3 },
-    { label: 'Licenses & Registrations', href: '/about/licenses', parentId: about.id, location: 'HEADER', order: 4 },
-    { label: 'Contact Us', href: '/about/contact', parentId: about.id, location: 'HEADER', order: 5 },
-  ]});
+  // About Us is a plain top-level link (no dropdown). Licenses is its own top-level item.
+  await prisma.navItem.create({ data: { label: 'About Us', href: '/about', location: 'HEADER', order: 1 } });
+  await prisma.navItem.create({ data: { label: 'Licenses', href: '/about#licenses', location: 'HEADER', order: 2 } });
 
-  await prisma.navItem.create({ data: { label: 'Services', href: '/services', location: 'HEADER', order: 2 } });
+  await prisma.navItem.create({ data: { label: 'Services', href: '/services', location: 'HEADER', order: 3 } });
   // Services children omitted from header dropdown to keep it clean — accessible via /services page
 
-  const agents = await prisma.navItem.create({ data: { label: 'Agents & Partners', href: '/agents/become-an-agent', location: 'HEADER', order: 3 } });
+  const agents = await prisma.navItem.create({ data: { label: 'Agents & Partners', href: '/agents/become-an-agent', location: 'HEADER', order: 4 } });
   await prisma.navItem.createMany({ data: [
     { label: 'Find an Agent', href: '/find-an-agent', parentId: agents.id, location: 'HEADER', order: 1 },
     { label: 'Become an Agent', href: '/agents/become-an-agent', parentId: agents.id, location: 'HEADER', order: 2 },
@@ -67,7 +62,7 @@ async function main() {
     { label: 'Partners', href: '/agents/partners', parentId: agents.id, location: 'HEADER', order: 4 },
   ]});
 
-  const compliance = await prisma.navItem.create({ data: { label: 'Compliance', href: '/compliance', location: 'HEADER', order: 4 } });
+  const compliance = await prisma.navItem.create({ data: { label: 'Compliance', href: '/compliance', location: 'HEADER', order: 5 } });
   await prisma.navItem.createMany({ data: [
     { label: 'Compliance Overview', href: '/compliance', parentId: compliance.id, location: 'HEADER', order: 1 },
     { label: 'Fraud & Consumer Scams', href: '/compliance/fraud', parentId: compliance.id, location: 'HEADER', order: 2 },
