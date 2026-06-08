@@ -135,6 +135,91 @@ export class LocationsService {
     return { created, updated, geocoded };
   }
 
+  async create(dto: {
+    businessName: string;
+    addressLine?: string;
+    city: string;
+    state: string;
+    zip?: string;
+    country?: string;
+    publicPhone?: string;
+    active?: boolean;
+  }) {
+    const coords = await this.geocode.geocode({
+      addressLine: dto.addressLine,
+      city: dto.city,
+      state: dto.state,
+      zip: dto.zip,
+      country: dto.country,
+    });
+    return this.prisma.agentLocation.create({
+      data: {
+        businessName: dto.businessName,
+        addressLine: dto.addressLine ?? null,
+        city: dto.city,
+        state: dto.state,
+        zip: dto.zip ?? null,
+        country: dto.country ?? 'USA',
+        publicPhone: dto.publicPhone ?? null,
+        latitude: coords?.latitude ?? null,
+        longitude: coords?.longitude ?? null,
+        active: dto.active ?? true,
+      },
+    });
+  }
+
+  async update(
+    id: string,
+    dto: {
+      businessName?: string;
+      addressLine?: string;
+      city?: string;
+      state?: string;
+      zip?: string;
+      country?: string;
+      publicPhone?: string;
+      active?: boolean;
+    },
+  ) {
+    const existing = await this.prisma.agentLocation.findUnique({ where: { id } });
+    if (!existing) throw new BadRequestException('Location not found.');
+
+    const addressChanged =
+      (dto.addressLine !== undefined && dto.addressLine !== existing.addressLine) ||
+      (dto.city !== undefined && dto.city !== existing.city) ||
+      (dto.state !== undefined && dto.state !== existing.state) ||
+      (dto.zip !== undefined && dto.zip !== existing.zip) ||
+      (dto.country !== undefined && dto.country !== existing.country);
+
+    let coords: { latitude: number; longitude: number } | null | undefined;
+    if (addressChanged) {
+      coords = await this.geocode.geocode({
+        addressLine: dto.addressLine ?? existing.addressLine,
+        city: dto.city ?? existing.city,
+        state: dto.state ?? existing.state,
+        zip: dto.zip ?? existing.zip,
+        country: dto.country ?? existing.country,
+      });
+    }
+
+    return this.prisma.agentLocation.update({
+      where: { id },
+      data: {
+        ...(dto.businessName !== undefined ? { businessName: dto.businessName } : {}),
+        ...(dto.addressLine !== undefined ? { addressLine: dto.addressLine || null } : {}),
+        ...(dto.city !== undefined ? { city: dto.city } : {}),
+        ...(dto.state !== undefined ? { state: dto.state } : {}),
+        ...(dto.zip !== undefined ? { zip: dto.zip || null } : {}),
+        ...(dto.country !== undefined ? { country: dto.country || 'USA' } : {}),
+        ...(dto.publicPhone !== undefined ? { publicPhone: dto.publicPhone || null } : {}),
+        ...(dto.active !== undefined ? { active: dto.active } : {}),
+        ...(addressChanged
+          ? { latitude: coords?.latitude ?? null, longitude: coords?.longitude ?? null }
+          : {}),
+      },
+    });
+  }
+
   async toggleActive(id: string, active: boolean) {
     return this.prisma.agentLocation.update({ where: { id }, data: { active } });
   }

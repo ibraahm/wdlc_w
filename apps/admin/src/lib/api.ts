@@ -421,6 +421,40 @@ export async function apiImportLocations(
   return handleResponse<{ created: number; updated: number; geocoded: number }>(res);
 }
 
+export type LocationInput = {
+  businessName: string;
+  addressLine?: string;
+  city: string;
+  state: string;
+  zip?: string;
+  country?: string;
+  publicPhone?: string;
+  active?: boolean;
+};
+
+export async function apiCreateLocation(
+  accessToken: string,
+  data: LocationInput,
+): Promise<AdminLocation> {
+  const res = await authFetch('/admin/locations', accessToken, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return handleResponse<AdminLocation>(res);
+}
+
+export async function apiUpdateLocation(
+  accessToken: string,
+  id: string,
+  data: Partial<LocationInput>,
+): Promise<AdminLocation> {
+  const res = await authFetch(`/admin/locations/${id}`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+  return handleResponse<AdminLocation>(res);
+}
+
 export async function apiToggleLocationActive(
   accessToken: string,
   id: string,

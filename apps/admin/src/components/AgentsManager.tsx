@@ -2,8 +2,8 @@
 
 import { useState, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import type { AdminAgent, AdminLocation } from '@/lib/api';
-import { apiImportLocations } from '@/lib/api';
+import type { AdminAgent, AdminLocation, LocationInput } from '@/lib/api';
+import { apiImportLocations, apiCreateLocation, apiUpdateLocation } from '@/lib/api';
 import {
   setAgentStatusAction,
   setAgentVisibilityAction,
@@ -23,117 +23,116 @@ function statusClasses(status: string): string {
   }
 }
 
-function PortalAgentsTab({
-  agents,
+const EMPTY_FORM: LocationInput = {
+  businessName: '',
+  addressLine: '',
+  city: '',
+  state: '',
+  zip: '',
+  country: 'USA',
+  publicPhone: '',
+};
+
+function LocationForm({
+  initial,
+  submitLabel,
+  busy,
+  onSubmit,
+  onCancel,
 }: {
-  agents: AdminAgent[];
+  initial: LocationInput;
+  submitLabel: string;
+  busy: boolean;
+  onSubmit: (data: LocationInput) => void;
+  onCancel: () => void;
 }) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const [error, setError] = useState('');
+  const [form, setForm] = useState<LocationInput>(initial);
 
-  function changeStatus(id: string, status: string) {
-    setError('');
-    startTransition(async () => {
-      const res = await setAgentStatusAction(id, status);
-      if (!res.ok) setError(res.error ?? 'Update failed');
-      else router.refresh();
-    });
+  function set<K extends keyof LocationInput>(key: K, value: LocationInput[K]) {
+    setForm((f) => ({ ...f, [key]: value }));
   }
 
-  function toggleVisibility(id: string, showOnMap: boolean) {
-    setError('');
-    startTransition(async () => {
-      const res = await setAgentVisibilityAction(id, showOnMap);
-      if (!res.ok) setError(res.error ?? 'Update failed');
-      else router.refresh();
-    });
-  }
-
-  if (agents.length === 0) {
-    return <p className="text-sm text-gray-500 py-4">No agents have registered yet.</p>;
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.businessName.trim() || !form.city.trim() || !form.state.trim()) return;
+    onSubmit(form);
   }
 
   return (
-    <div className="space-y-4">
-      {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-          {error}
+    <form onSubmit={submit} className="space-y-3 bg-gray-50 border border-gray-200 rounded-lg p-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <input
+          value={form.businessName}
+          onChange={(e) => set('businessName', e.target.value)}
+          placeholder="Business name *"
+          required
+          className="px-3 py-2 border border-gray-300 rounded text-sm"
+        />
+        <input
+          value={form.publicPhone ?? ''}
+          onChange={(e) => set('publicPhone', e.target.value)}
+          placeholder="Phone"
+          className="px-3 py-2 border border-gray-300 rounded text-sm"
+        />
+        <input
+          value={form.addressLine ?? ''}
+          onChange={(e) => set('addressLine', e.target.value)}
+          placeholder="Street address"
+          className="px-3 py-2 border border-gray-300 rounded text-sm md:col-span-2"
+        />
+        <input
+          value={form.city}
+          onChange={(e) => set('city', e.target.value)}
+          placeholder="City *"
+          required
+          className="px-3 py-2 border border-gray-300 rounded text-sm"
+        />
+        <div className="grid grid-cols-2 gap-3">
+          <input
+            value={form.state}
+            onChange={(e) => set('state', e.target.value)}
+            placeholder="State *"
+            required
+            className="px-3 py-2 border border-gray-300 rounded text-sm"
+          />
+          <input
+            value={form.zip ?? ''}
+            onChange={(e) => set('zip', e.target.value)}
+            placeholder="ZIP"
+            className="px-3 py-2 border border-gray-300 rounded text-sm"
+          />
         </div>
-      )}
-      <div className="overflow-x-auto bg-white border border-gray-200 rounded-xl">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-200 text-left text-gray-500">
-              <th className="px-4 py-3 font-medium">Agent</th>
-              <th className="px-4 py-3 font-medium">Listing</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">On map</th>
-            </tr>
-          </thead>
-          <tbody>
-            {agents.map((a) => {
-              const hasCoords = a.latitude != null && a.longitude != null;
-              return (
-                <tr key={a.id} className="border-b border-gray-100 last:border-0">
-                  <td className="px-4 py-3 align-top">
-                    <div className="font-medium text-gray-900">{a.firstName} {a.lastName}</div>
-                    <div className="text-gray-400 text-xs">{a.email}</div>
-                    {!a.emailVerified && (
-                      <span className="inline-block mt-1 text-[11px] text-orange-600">email not verified</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    {a.businessName ? (
-                      <>
-                        <div className="text-gray-800">{a.businessName}</div>
-                        <div className="text-gray-400 text-xs">
-                          {[a.city, a.state].filter(Boolean).join(', ') || '—'}
-                        </div>
-                        {!hasCoords && (
-                          <span className="inline-block mt-1 text-[11px] text-orange-600">no map coordinates</span>
-                        )}
-                      </>
-                    ) : (
-                      <span className="text-gray-300">No listing</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <select
-                      value={a.status}
-                      disabled={isPending}
-                      onChange={(e) => changeStatus(a.id, e.target.value)}
-                      className={`text-xs font-medium rounded-full px-3 py-1 border-0 cursor-pointer ${statusClasses(a.status)}`}
-                    >
-                      {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <label className="inline-flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={a.showOnMap}
-                        disabled={isPending}
-                        onChange={(e) => toggleVisibility(a.id, e.target.checked)}
-                        className="w-4 h-4 accent-navy"
-                      />
-                      <span className="text-xs text-gray-600">{a.showOnMap ? 'Visible' : 'Hidden'}</span>
-                    </label>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <input
+          value={form.country ?? ''}
+          onChange={(e) => set('country', e.target.value)}
+          placeholder="Country"
+          className="px-3 py-2 border border-gray-300 rounded text-sm"
+        />
       </div>
       <p className="text-xs text-gray-400">
-        An agent appears on the public map only when status is <strong>ACTIVE</strong>, <strong>On map</strong> is enabled, and the listing has resolved map coordinates.
+        The address is geocoded automatically so the pin appears on the public map.
       </p>
-    </div>
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={busy}
+          className="px-4 py-1.5 bg-navy text-white text-xs font-medium rounded disabled:opacity-60"
+        >
+          {busy ? 'Saving…' : submitLabel}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-1.5 border border-gray-300 text-gray-700 text-xs rounded"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
   );
 }
 
-function ImportedLocationsTab({
+function LocationsList({
   locations,
   accessToken,
 }: {
@@ -142,8 +141,10 @@ function ImportedLocationsTab({
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [importing, setImporting] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [importResult, setImportResult] = useState<{ created: number; updated: number; geocoded: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -152,7 +153,7 @@ function ImportedLocationsTab({
     if (!file) return;
     setError('');
     setImportResult(null);
-    setImporting(true);
+    setBusy(true);
     try {
       const result = await apiImportLocations(accessToken, file);
       setImportResult(result);
@@ -160,8 +161,36 @@ function ImportedLocationsTab({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Import failed');
     } finally {
-      setImporting(false);
+      setBusy(false);
       if (fileRef.current) fileRef.current.value = '';
+    }
+  }
+
+  async function handleCreate(data: LocationInput) {
+    setError('');
+    setBusy(true);
+    try {
+      await apiCreateLocation(accessToken, data);
+      setAdding(false);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Add failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleUpdate(id: string, data: LocationInput) {
+    setError('');
+    setBusy(true);
+    try {
+      await apiUpdateLocation(accessToken, id, data);
+      setEditingId(null);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Update failed');
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -186,41 +215,54 @@ function ImportedLocationsTab({
 
   return (
     <div className="space-y-4">
-      {/* Import section */}
-      <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-3">
-        <div>
-          <h3 className="font-medium text-blue-900 text-sm">Import from Excel / CSV</h3>
-          <p className="text-xs text-blue-700 mt-1">
-            Upload an <strong>.xlsx</strong> or <strong>.csv</strong> file. Required columns: <strong>Business Name</strong>, <strong>City</strong>, <strong>State</strong>. Optional: Address, ZIP, Phone, Country, ID (for upserts).
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <label className="cursor-pointer px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-60">
-            {importing ? 'Importing…' : 'Choose file'}
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              className="hidden"
-              disabled={importing}
-              onChange={handleImport}
-            />
-          </label>
-          {importing && <span className="text-sm text-blue-600 animate-pulse">Geocoding addresses…</span>}
-        </div>
-        {importResult && (
-          <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-2 text-sm text-green-800">
-            Import complete — {importResult.created} created, {importResult.updated} updated, {importResult.geocoded} geocoded.
-          </div>
-        )}
-        {error && (
-          <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
-        )}
+      {/* Toolbar */}
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          onClick={() => { setAdding((v) => !v); setEditingId(null); }}
+          className="px-4 py-2 bg-navy text-white text-sm font-medium rounded-lg hover:bg-navy-mid transition-colors"
+        >
+          {adding ? 'Cancel' : '+ Add location'}
+        </button>
+        <label className="cursor-pointer px-4 py-2 border border-blue-300 text-blue-700 text-sm font-medium rounded-lg hover:bg-blue-50 transition-colors">
+          {busy ? 'Working…' : 'Import from Excel / CSV'}
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            className="hidden"
+            disabled={busy}
+            onChange={handleImport}
+          />
+        </label>
+        <span className="text-xs text-gray-400">
+          Excel columns: Business Name, City, State (required); Address, ZIP, Phone, Country, ID (optional)
+        </span>
       </div>
 
-      {/* Locations table */}
+      {importResult && (
+        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-2 text-sm text-green-800">
+          Import complete — {importResult.created} created, {importResult.updated} updated, {importResult.geocoded} geocoded.
+        </div>
+      )}
+      {error && (
+        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+      )}
+
+      {adding && (
+        <LocationForm
+          initial={EMPTY_FORM}
+          submitLabel="Add location"
+          busy={busy}
+          onSubmit={handleCreate}
+          onCancel={() => setAdding(false)}
+        />
+      )}
+
+      {/* Table */}
       {locations.length === 0 ? (
-        <p className="text-sm text-gray-500 py-4">No imported locations yet. Upload an Excel file above to get started.</p>
+        <p className="text-sm text-gray-500 py-4">
+          No locations yet. Add one manually or import an Excel file above.
+        </p>
       ) : (
         <div className="overflow-x-auto bg-white border border-gray-200 rounded-xl">
           <table className="min-w-full text-sm">
@@ -230,54 +272,188 @@ function ImportedLocationsTab({
                 <th className="px-4 py-3 font-medium">Location</th>
                 <th className="px-4 py-3 font-medium">Coords</th>
                 <th className="px-4 py-3 font-medium">Active</th>
-                <th className="px-4 py-3 font-medium"></th>
+                <th className="px-4 py-3 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {locations.map((loc) => (
-                <tr key={loc.id} className="border-b border-gray-100 last:border-0">
-                  <td className="px-4 py-3 align-top">
-                    <div className="font-medium text-gray-900">{loc.businessName}</div>
-                    {loc.publicPhone && <div className="text-gray-400 text-xs">{loc.publicPhone}</div>}
-                  </td>
-                  <td className="px-4 py-3 align-top text-gray-700">
-                    <div>{loc.addressLine || '—'}</div>
-                    <div className="text-gray-400 text-xs">
-                      {[loc.city, loc.state, loc.zip].filter(Boolean).join(', ')}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 align-top text-xs">
-                    {loc.latitude != null ? (
-                      <span className="text-green-700">{loc.latitude.toFixed(4)}, {loc.longitude!.toFixed(4)}</span>
-                    ) : (
-                      <span className="text-orange-500">No coords</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <label className="inline-flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={loc.active}
-                        disabled={isPending}
-                        onChange={(e) => toggleActive(loc.id, e.target.checked)}
-                        className="w-4 h-4 accent-navy"
+              {locations.map((loc) =>
+                editingId === loc.id ? (
+                  <tr key={loc.id} className="bg-blue-50">
+                    <td colSpan={5} className="px-4 py-3">
+                      <LocationForm
+                        initial={{
+                          businessName: loc.businessName,
+                          addressLine: loc.addressLine ?? '',
+                          city: loc.city,
+                          state: loc.state,
+                          zip: loc.zip ?? '',
+                          country: loc.country ?? 'USA',
+                          publicPhone: loc.publicPhone ?? '',
+                          active: loc.active,
+                        }}
+                        submitLabel="Save changes"
+                        busy={busy}
+                        onSubmit={(data) => handleUpdate(loc.id, data)}
+                        onCancel={() => setEditingId(null)}
                       />
-                      <span className="text-xs text-gray-600">{loc.active ? 'Active' : 'Hidden'}</span>
-                    </label>
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <button
-                      onClick={() => remove(loc.id)}
-                      disabled={isPending}
-                      className="text-xs text-red-500 hover:text-red-700 transition-colors"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                  </tr>
+                ) : (
+                  <tr key={loc.id} className="border-b border-gray-100 last:border-0">
+                    <td className="px-4 py-3 align-top">
+                      <div className="font-medium text-gray-900">{loc.businessName}</div>
+                      {loc.publicPhone && <div className="text-gray-400 text-xs">{loc.publicPhone}</div>}
+                    </td>
+                    <td className="px-4 py-3 align-top text-gray-700">
+                      <div>{loc.addressLine || '—'}</div>
+                      <div className="text-gray-400 text-xs">
+                        {[loc.city, loc.state, loc.zip].filter(Boolean).join(', ')}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 align-top text-xs">
+                      {loc.latitude != null ? (
+                        <span className="text-green-700">{loc.latitude.toFixed(4)}, {loc.longitude!.toFixed(4)}</span>
+                      ) : (
+                        <span className="text-orange-500">No coords</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 align-top">
+                      <label className="inline-flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={loc.active}
+                          disabled={isPending}
+                          onChange={(e) => toggleActive(loc.id, e.target.checked)}
+                          className="w-4 h-4 accent-navy"
+                        />
+                        <span className="text-xs text-gray-600">{loc.active ? 'Active' : 'Hidden'}</span>
+                      </label>
+                    </td>
+                    <td className="px-4 py-3 align-top text-right">
+                      <div className="flex items-center justify-end gap-3">
+                        <button
+                          onClick={() => { setEditingId(loc.id); setAdding(false); }}
+                          className="text-xs text-navy hover:underline"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => remove(loc.id)}
+                          disabled={isPending}
+                          className="text-xs text-red-500 hover:text-red-700 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ),
+              )}
             </tbody>
           </table>
+        </div>
+      )}
+      <p className="text-xs text-gray-400">
+        Active locations with resolved coordinates appear on the public <strong>Find an Agent</strong> map.
+      </p>
+    </div>
+  );
+}
+
+function AgentAccounts({ agents }: { agents: AdminAgent[] }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState('');
+  const [open, setOpen] = useState(false);
+
+  function changeStatus(id: string, status: string) {
+    setError('');
+    startTransition(async () => {
+      const res = await setAgentStatusAction(id, status);
+      if (!res.ok) setError(res.error ?? 'Update failed');
+      else router.refresh();
+    });
+  }
+
+  function toggleVisibility(id: string, showOnMap: boolean) {
+    setError('');
+    startTransition(async () => {
+      const res = await setAgentVisibilityAction(id, showOnMap);
+      if (!res.ok) setError(res.error ?? 'Update failed');
+      else router.refresh();
+    });
+  }
+
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between px-5 py-4 text-left"
+      >
+        <div>
+          <h2 className="font-semibold text-gray-900 text-sm">Portal agent accounts ({agents.length})</h2>
+          <p className="text-xs text-gray-400 mt-0.5">
+            Self-registered agents — approve accounts and optionally list their own address on the map.
+          </p>
+        </div>
+        <span className="text-gray-400 text-sm">{open ? '▲' : '▼'}</span>
+      </button>
+
+      {open && (
+        <div className="px-5 pb-5 space-y-3">
+          {error && (
+            <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+          )}
+          {agents.length === 0 ? (
+            <p className="text-sm text-gray-500">No agents have registered yet.</p>
+          ) : (
+            <div className="overflow-x-auto border border-gray-200 rounded-lg">
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 text-left text-gray-500">
+                    <th className="px-4 py-3 font-medium">Agent</th>
+                    <th className="px-4 py-3 font-medium">Status</th>
+                    <th className="px-4 py-3 font-medium">On map</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {agents.map((a) => (
+                    <tr key={a.id} className="border-b border-gray-100 last:border-0">
+                      <td className="px-4 py-3 align-top">
+                        <div className="font-medium text-gray-900">{a.firstName} {a.lastName}</div>
+                        <div className="text-gray-400 text-xs">{a.email}</div>
+                        {!a.emailVerified && (
+                          <span className="inline-block mt-1 text-[11px] text-orange-600">email not verified</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        <select
+                          value={a.status}
+                          disabled={isPending}
+                          onChange={(e) => changeStatus(a.id, e.target.value)}
+                          className={`text-xs font-medium rounded-full px-3 py-1 border-0 cursor-pointer ${statusClasses(a.status)}`}
+                        >
+                          {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        <label className="inline-flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={a.showOnMap}
+                            disabled={isPending}
+                            onChange={(e) => toggleVisibility(a.id, e.target.checked)}
+                            className="w-4 h-4 accent-navy"
+                          />
+                          <span className="text-xs text-gray-600">{a.showOnMap ? 'Visible' : 'Hidden'}</span>
+                        </label>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -293,37 +469,10 @@ export default function AgentsManager({
   locations: AdminLocation[];
   accessToken: string;
 }) {
-  const [tab, setTab] = useState<'portal' | 'imported'>('portal');
-
   return (
-    <div className="space-y-4">
-      {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200">
-        {([['portal', 'Portal Agents', agents.length], ['imported', 'Imported Locations', locations.length]] as const).map(
-          ([id, label, count]) => (
-            <button
-              key={id}
-              onClick={() => setTab(id)}
-              className={`px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
-                tab === id
-                  ? 'border-navy text-navy'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {label}
-              <span className="ml-1.5 text-xs rounded-full bg-gray-100 text-gray-600 px-1.5 py-0.5">
-                {count}
-              </span>
-            </button>
-          ),
-        )}
-      </div>
-
-      {tab === 'portal' ? (
-        <PortalAgentsTab agents={agents} />
-      ) : (
-        <ImportedLocationsTab locations={locations} accessToken={accessToken} />
-      )}
+    <div className="space-y-6">
+      <LocationsList locations={locations} accessToken={accessToken} />
+      <AgentAccounts agents={agents} />
     </div>
   );
 }

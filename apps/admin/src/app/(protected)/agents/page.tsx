@@ -23,9 +23,9 @@ export default async function AgentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Agents</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Agent Locations</h1>
         <p className="text-sm text-gray-500 mt-1">
-          Manage agent accounts, map visibility, and bulk-import locations from Excel.
+          One list for the public map — add locations manually or import from Excel, then edit any entry.
         </p>
       </div>
 
