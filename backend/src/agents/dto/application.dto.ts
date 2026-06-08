@@ -32,6 +32,8 @@ export class CreateApplicationDto {
   @IsOptional() @IsString() @MaxLength(120) monthlyVolume?: string;
   @IsOptional() @IsString() @MaxLength(60) totalLocations?: string;
   @IsOptional() @IsString() @MaxLength(2000) comments?: string;
+
+  @IsOptional() @IsString() @MaxLength(3000) recaptchaToken?: string;
 }
 
 export class UpdateApplicationStatusDto {

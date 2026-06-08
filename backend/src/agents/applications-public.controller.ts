@@ -1,16 +1,23 @@
-import { Body, Controller, Post, Req } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Post, Req } from '@nestjs/common';
 import { Request } from 'express';
 import { ApplicationsService } from './applications.service';
 import { CreateApplicationDto } from './dto/application.dto';
+import { RecaptchaService } from '../common/recaptcha.service';
 
 // Unauthenticated "Become an Agent" application intake.
 @Controller('agents')
 export class ApplicationsPublicController {
-  constructor(private applications: ApplicationsService) {}
+  constructor(
+    private applications: ApplicationsService,
+    private recaptcha: RecaptchaService,
+  ) {}
 
   @Post('apply')
-  apply(@Body() dto: CreateApplicationDto, @Req() req: Request) {
-    return this.applications.create(dto, {
+  async apply(@Body() dto: CreateApplicationDto, @Req() req: Request) {
+    const ok = await this.recaptcha.verify(dto.recaptchaToken, 'agent_application');
+    if (!ok) throw new ForbiddenException('Security check failed. Please try again.');
+    const { recaptchaToken: _omit, ...data } = dto;
+    return this.applications.create(data, {
       ip: req.ip,
       userAgent: req.headers['user-agent'],
     });

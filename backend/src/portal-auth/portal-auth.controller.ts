@@ -15,25 +15,34 @@ import {
 import { Public } from '../auth/decorators/public.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PortalJwtAuthGuard } from './portal-jwt-auth.guard';
+import { RecaptchaService } from '../common/recaptcha.service';
+import { ForbiddenException } from '@nestjs/common';
 
 @UseGuards(PortalJwtAuthGuard)
 @Controller('portal/auth')
 export class PortalAuthController {
-  constructor(private auth: PortalAuthService) {}
+  constructor(
+    private auth: PortalAuthService,
+    private recaptcha: RecaptchaService,
+  ) {}
 
   // ── Public ────────────────────────────────────────────────────────────────
 
   @Public()
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @Post('signup')
-  signup(@Body() dto: AgentSignupDto, @Req() req: Request) {
+  async signup(@Body() dto: AgentSignupDto, @Req() req: Request) {
+    if (!(await this.recaptcha.verify(dto.recaptchaToken, 'portal_signup')))
+      throw new ForbiddenException('Security check failed. Please try again.');
     return this.auth.signup(dto, req.ip, req.headers['user-agent']);
   }
 
   @Public()
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @Post('login')
-  login(@Body() dto: AgentLoginDto, @Req() req: Request) {
+  async login(@Body() dto: AgentLoginDto, @Req() req: Request) {
+    if (!(await this.recaptcha.verify(dto.recaptchaToken, 'portal_login')))
+      throw new ForbiddenException('Security check failed. Please try again.');
     return this.auth.login(dto.email, dto.password, req.ip, req.headers['user-agent']);
   }
 
@@ -60,7 +69,9 @@ export class PortalAuthController {
   @Public()
   @Throttle({ default: { ttl: 300_000, limit: 3 } })
   @Post('forgot-password')
-  forgotPassword(@Body() dto: AgentForgotPasswordDto) {
+  async forgotPassword(@Body() dto: AgentForgotPasswordDto) {
+    if (!(await this.recaptcha.verify(dto.recaptchaToken, 'portal_forgot_password')))
+      throw new ForbiddenException('Security check failed. Please try again.');
     return this.auth.forgotPassword(dto.email);
   }
 

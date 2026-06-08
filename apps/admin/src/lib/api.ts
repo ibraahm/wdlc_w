@@ -92,11 +92,11 @@ async function authFetch(
 // Auth
 // ---------------------------------------------------------------------------
 
-export async function apiLogin(email: string, password: string): Promise<AuthResult> {
+export async function apiLogin(email: string, password: string, recaptchaToken?: string): Promise<AuthResult> {
   const res = await fetch(`${API}/admin/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, recaptchaToken }),
   });
   return handleResponse<AuthResult>(res);
 }
@@ -118,11 +118,11 @@ export async function apiLogout(accessToken: string, refreshToken: string): Prom
   await handleResponse<void>(res);
 }
 
-export async function apiForgotPassword(email: string): Promise<{ ok: boolean }> {
+export async function apiForgotPassword(email: string, recaptchaToken?: string): Promise<{ ok: boolean }> {
   const res = await fetch(`${API}/admin/auth/forgot-password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email, recaptchaToken }),
   });
   return handleResponse<{ ok: boolean }>(res);
 }

@@ -20,13 +20,14 @@ export async function loginAction(
 ): Promise<{ error: string }> {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
+  const recaptchaToken = (formData.get('recaptchaToken') as string) || undefined;
 
   if (!email || !password) {
     return { error: 'Email and password are required.' };
   }
 
   try {
-    const result = await apiLogin(email, password);
+    const result = await apiLogin(email, password, recaptchaToken);
     await setSessionCookies(result.accessToken, result.refreshToken, result.agent);
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Login failed.' };
@@ -44,13 +45,14 @@ export async function signupAction(
   const firstName = formData.get('firstName') as string;
   const lastName = formData.get('lastName') as string;
   const phone = (formData.get('phone') as string) || undefined;
+  const recaptchaToken = (formData.get('recaptchaToken') as string) || undefined;
 
   if (!email || !password || !firstName || !lastName) {
     return { error: 'Please fill in all required fields.' };
   }
 
   try {
-    const result = await apiSignup({ email, password, firstName, lastName, phone });
+    const result = await apiSignup({ email, password, firstName, lastName, phone, recaptchaToken });
     return { ok: true, message: result.message || 'Check your email to verify your account.' };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Signup failed.' };
@@ -79,13 +81,14 @@ export async function forgotPasswordAction(
   formData: FormData,
 ): Promise<{ ok?: boolean; error?: string }> {
   const email = formData.get('email') as string;
+  const recaptchaToken = (formData.get('recaptchaToken') as string) || undefined;
 
   if (!email) {
     return { error: 'Email is required.' };
   }
 
   try {
-    await apiForgotPassword(email);
+    await apiForgotPassword(email, recaptchaToken);
     return { ok: true };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Request failed.' };

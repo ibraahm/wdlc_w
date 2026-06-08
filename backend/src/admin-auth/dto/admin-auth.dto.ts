@@ -7,6 +7,10 @@ export class AdminLoginDto {
   @IsString()
   @MinLength(8)
   password: string;
+
+  @IsOptional()
+  @IsString()
+  recaptchaToken?: string;
 }
 
 export class AdminCreateUserDto {
@@ -34,6 +38,10 @@ export class AdminRefreshDto {
 export class AdminForgotPasswordDto {
   @IsEmail()
   email: string;
+
+  @IsOptional()
+  @IsString()
+  recaptchaToken?: string;
 }
 
 export class AdminResetPasswordDto {

@@ -70,6 +70,7 @@ export async function apiSignup(data: {
   firstName: string;
   lastName: string;
   phone?: string;
+  recaptchaToken?: string;
 }): Promise<{ ok: boolean; message: string; agent: Agent }> {
   const res = await safeFetch(`${API}/portal/auth/signup`, {
     method: 'POST',
@@ -97,11 +98,11 @@ export async function apiResendVerification(email: string): Promise<{ ok: boolea
   return handleResponse(res);
 }
 
-export async function apiLogin(email: string, password: string): Promise<AuthResult> {
+export async function apiLogin(email: string, password: string, recaptchaToken?: string): Promise<AuthResult> {
   const res = await safeFetch(`${API}/portal/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+    body: JSON.stringify({ email, password, recaptchaToken }),
   });
   return handleResponse(res);
 }
@@ -126,11 +127,11 @@ export async function apiLogout(accessToken: string, refreshToken: string): Prom
   });
 }
 
-export async function apiForgotPassword(email: string): Promise<{ ok: boolean }> {
+export async function apiForgotPassword(email: string, recaptchaToken?: string): Promise<{ ok: boolean }> {
   const res = await safeFetch(`${API}/portal/auth/forgot-password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email, recaptchaToken }),
   });
   return handleResponse(res);
 }

@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { forgotPasswordAction } from '@/lib/actions';
+import RecaptchaField from '@/components/RecaptchaField';
 
 export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false);
@@ -43,6 +44,7 @@ export default function ForgotPasswordPage() {
           <label htmlFor="email" className="auth-label">Email address</label>
           <input id="email" name="email" type="email" required autoComplete="email" className="auth-input" placeholder="admin@wdlc.com" />
         </div>
+        <RecaptchaField action="admin_forgot_password" />
         <button type="submit" disabled={isPending} className="auth-submit">
           {isPending ? 'Sending…' : 'Send Reset Link'}
         </button>

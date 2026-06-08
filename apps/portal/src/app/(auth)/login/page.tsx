@@ -3,6 +3,7 @@
 import { useFormState, useFormStatus } from 'react-dom';
 import Link from 'next/link';
 import { loginAction } from '@/lib/actions';
+import RecaptchaField from '@/components/RecaptchaField';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -36,6 +37,7 @@ export default function LoginPage() {
           <input id="password" name="password" type="password" autoComplete="current-password" required className="auth-input" placeholder="••••••••••" />
         </div>
 
+        <RecaptchaField action="portal_login" />
         <SubmitButton />
       </form>
 

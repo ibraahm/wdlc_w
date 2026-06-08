@@ -3,6 +3,7 @@
 import { useFormState, useFormStatus } from 'react-dom';
 import Link from 'next/link';
 import { forgotPasswordAction } from '@/lib/actions';
+import RecaptchaField from '@/components/RecaptchaField';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -41,6 +42,7 @@ export default function ForgotPasswordPage() {
           <label htmlFor="email" className="auth-label">Email address</label>
           <input id="email" name="email" type="email" autoComplete="email" required className="auth-input" placeholder="you@example.com" />
         </div>
+        <RecaptchaField action="portal_forgot_password" />
         <SubmitButton />
       </form>
 

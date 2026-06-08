@@ -4,6 +4,7 @@ import { useFormState, useFormStatus } from 'react-dom';
 import { useState } from 'react';
 import Link from 'next/link';
 import { signupAction } from '@/lib/actions';
+import RecaptchaField from '@/components/RecaptchaField';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -80,6 +81,7 @@ export default function SignupPage() {
           {confirmError && <span style={{ fontSize: '0.72rem', color: '#7f1d1d', marginTop: '4px' }}>{confirmError}</span>}
         </div>
 
+        <RecaptchaField action="portal_signup" />
         <SubmitButton />
       </form>
 

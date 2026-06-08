@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { loginAction } from '@/lib/actions';
+import RecaptchaField from '@/components/RecaptchaField';
 
 export default function LoginPage() {
   const [error, setError] = useState('');
@@ -33,6 +34,7 @@ export default function LoginPage() {
           <label htmlFor="password" className="auth-label">Password</label>
           <input id="password" name="password" type="password" autoComplete="current-password" required className="auth-input" placeholder="••••••••" />
         </div>
+        <RecaptchaField action="admin_login" />
         <button type="submit" disabled={isPending} className="auth-submit">
           {isPending ? 'Signing in…' : 'Sign In'}
         </button>

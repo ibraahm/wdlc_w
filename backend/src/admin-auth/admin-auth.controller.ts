@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 import { AdminAuthService } from './admin-auth.service';
@@ -14,19 +14,25 @@ import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser, AuthUser } from '../auth/decorators/current-user.decorator';
 import { AdminJwtAuthGuard } from './admin-jwt-auth.guard';
+import { RecaptchaService } from '../common/recaptcha.service';
 
 // All routes in this controller use the admin JWT guard
 @UseGuards(AdminJwtAuthGuard)
 @Controller('admin/auth')
 export class AdminAuthController {
-  constructor(private auth: AdminAuthService) {}
+  constructor(
+    private auth: AdminAuthService,
+    private recaptcha: RecaptchaService,
+  ) {}
 
   // ── Public endpoints ──────────────────────────────────────────────────────
 
   @Public()
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @Post('login')
-  login(@Body() dto: AdminLoginDto, @Req() req: Request) {
+  async login(@Body() dto: AdminLoginDto, @Req() req: Request) {
+    if (!(await this.recaptcha.verify(dto.recaptchaToken, 'admin_login')))
+      throw new ForbiddenException('Security check failed. Please try again.');
     return this.auth.login(dto.email, dto.password, req.ip, req.headers['user-agent']);
   }
 
@@ -40,7 +46,9 @@ export class AdminAuthController {
   @Public()
   @Throttle({ default: { ttl: 300_000, limit: 3 } })
   @Post('forgot-password')
-  forgotPassword(@Body() dto: AdminForgotPasswordDto) {
+  async forgotPassword(@Body() dto: AdminForgotPasswordDto) {
+    if (!(await this.recaptcha.verify(dto.recaptchaToken, 'admin_forgot_password')))
+      throw new ForbiddenException('Security check failed. Please try again.');
     return this.auth.forgotPassword(dto.email);
   }
 

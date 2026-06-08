@@ -23,6 +23,10 @@ export class AgentSignupDto {
     message: 'Password must contain uppercase, lowercase, number, and special character',
   })
   password: string;
+
+  @IsOptional()
+  @IsString()
+  recaptchaToken?: string;
 }
 
 export class AgentLoginDto {
@@ -32,6 +36,10 @@ export class AgentLoginDto {
   @IsString()
   @MinLength(8)
   password: string;
+
+  @IsOptional()
+  @IsString()
+  recaptchaToken?: string;
 }
 
 export class AgentRefreshDto {
@@ -42,6 +50,10 @@ export class AgentRefreshDto {
 export class AgentForgotPasswordDto {
   @IsEmail()
   email: string;
+
+  @IsOptional()
+  @IsString()
+  recaptchaToken?: string;
 }
 
 export class AgentResetPasswordDto {

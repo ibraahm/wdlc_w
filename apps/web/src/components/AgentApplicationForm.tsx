@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, type FormEvent } from 'react';
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 
 interface NominatimResult {
   display_name: string;
@@ -279,6 +280,7 @@ export default function AgentApplicationForm() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
+  const { executeRecaptcha } = useGoogleReCaptcha();
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -287,6 +289,17 @@ export default function AgentApplicationForm() {
 
     const fd = new FormData(e.currentTarget);
     const get = (k: string) => (fd.get(k) as string)?.trim() || undefined;
+
+    let recaptchaToken: string | undefined;
+    if (executeRecaptcha) {
+      try {
+        recaptchaToken = await executeRecaptcha('agent_application');
+      } catch {
+        setError('Security check failed. Please try again.');
+        setPending(false);
+        return;
+      }
+    }
 
     const payload = {
       firstName: get('firstName'),
@@ -317,6 +330,7 @@ export default function AgentApplicationForm() {
       monthlyVolume: get('monthlyVolume'),
       totalLocations: get('totalLocations'),
       comments: get('comments'),
+      recaptchaToken,
     };
 
     try {

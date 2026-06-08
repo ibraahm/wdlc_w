@@ -35,9 +35,10 @@ import { getSession, setSessionCookies, clearSessionCookies } from './auth';
 export async function loginAction(formData: FormData): Promise<{ error?: string }> {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
+  const recaptchaToken = (formData.get('recaptchaToken') as string) || undefined;
 
   try {
-    const result = await apiLogin(email, password);
+    const result = await apiLogin(email, password, recaptchaToken);
     await setSessionCookies(result.accessToken, result.refreshToken, result.user);
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Login failed' };
@@ -63,8 +64,9 @@ export async function logoutAction(): Promise<void> {
 
 export async function forgotPasswordAction(formData: FormData): Promise<{ ok: boolean; error?: string }> {
   const email = formData.get('email') as string;
+  const recaptchaToken = (formData.get('recaptchaToken') as string) || undefined;
   try {
-    await apiForgotPassword(email);
+    await apiForgotPassword(email, recaptchaToken);
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Request failed' };
