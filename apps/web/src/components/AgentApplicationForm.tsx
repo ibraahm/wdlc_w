@@ -500,6 +500,10 @@ export default function AgentApplicationForm() {
   if (step === 0) {
     return (
       <div className="space-y-6">
+        <div className="pb-4 border-b border-[#d9e0e8]">
+          <h1 className="text-2xl font-bold text-primary-strong">Agent Application</h1>
+          <p className="text-ink/60 mt-1">Tell us about your business and our onboarding team will follow up.</p>
+        </div>
         <div>
           <h2 className="text-xl font-bold text-primary-strong">How would you like to apply?</h2>
           <p className="text-sm text-ink/60 mt-1">Choose the option that best describes you. We&apos;ll only ask for what&apos;s relevant.</p>
@@ -536,6 +540,10 @@ export default function AgentApplicationForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="pb-4 border-b border-[#d9e0e8]">
+        <h1 className="text-2xl font-bold text-primary-strong">Agent Application</h1>
+        <p className="text-ink/60 mt-1">Tell us about your business and our onboarding team will follow up.</p>
+      </div>
       <Stepper steps={stepLabels} current={step} />
 
       <div key={step} className="animate-[fadeIn_240ms_ease]">
