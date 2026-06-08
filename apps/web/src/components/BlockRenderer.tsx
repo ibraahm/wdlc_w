@@ -40,11 +40,11 @@ const HOME_CSS = `
 .wdl-blocks .wdl-headline { margin:0 0 24px; color:var(--navy); font-family:var(--font-heading); font-size:clamp(40px,4vw,56px); font-weight:400; line-height:1.12; }
 .wdl-blocks .wdl-body-text { margin:0 0 16px; color:var(--text-mid); font-size:16px; line-height:1.75; }
 
-/* Hero */
-.wdl-hero { position:relative; min-height:92vh; display:flex; align-items:center; overflow:hidden; background:#fff; }
+/* Hero — top padding clears the fixed utility bar (34px) + header (72px) */
+.wdl-hero { position:relative; min-height:calc(100vh - 106px); display:flex; align-items:center; overflow:hidden; background:#fff; }
 .wdl-hero-bg { position:absolute; inset:0; background-size:cover; background-position:center; }
 .wdl-hero-overlay { position:absolute; inset:0; background:rgba(255,255,255,.85); }
-.wdl-hero-content { position:relative; z-index:1; padding:96px 0; }
+.wdl-hero-content { position:relative; z-index:1; padding:150px 0 96px; }
 .wdl-hero-eyebrow { display:inline-flex; align-items:center; gap:12px; margin-bottom:24px; }
 .wdl-hero-eyebrow::before { content:''; display:block; width:32px; height:1px; background:var(--navy); }
 .wdl-hero-eyebrow span { color:var(--navy); font-size:12px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; }
