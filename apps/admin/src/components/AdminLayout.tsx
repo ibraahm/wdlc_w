@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: '/pages', label: 'Pages', icon: '◻' },
   { href: '/agents', label: 'Agent Locations', icon: '⚲' },
   { href: '/applications', label: 'Applications', icon: '✉' },
+  { href: '/forms', label: 'Forms', icon: '▤' },
   { href: '/nav', label: 'Navigation', icon: '≡' },
   { href: '/settings', label: 'Settings', icon: '◎' },
   { href: '/users', label: 'Users', icon: '◉' },

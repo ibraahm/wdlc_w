@@ -237,6 +237,42 @@ model SiteSetting {
 }
 
 // ─────────────────────────────────────────────
+// FORM BUILDER  (CMS-managed forms + submissions)
+// `fields` is a JSON array of field definitions (see admin form builder).
+// status: DRAFT | PUBLISHED
+// ─────────────────────────────────────────────
+model Form {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  name           String
+  description    String?
+  fields         String   @default("[]")
+  status         String   @default("DRAFT")
+  submitLabel    String   @default("Submit")
+  successMessage String   @default("Thank you — your submission has been received.")
+  recaptcha      Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  submissions    FormSubmission[]
+
+  @@index([status])
+}
+
+model FormSubmission {
+  id        String   @id @default(cuid())
+  formId    String
+  form      Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  data      String   @default("{}")
+  status    String   @default("NEW")
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([formId, createdAt])
+}
+
+// ─────────────────────────────────────────────
 // SHARED AUDIT LOG  (append-only, never deleted)
 // actorType: "admin" | "agent"
 // ─────────────────────────────────────────────

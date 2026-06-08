@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { builderForms } from './seed-forms';
 
 const prisma = new PrismaClient();
 
@@ -141,6 +142,43 @@ async function main() {
     });
   }
   console.log(`Seeded ${demoLocations.length} demo agent locations`);
+
+  // ── Form builder: seed the pre-existing public forms ───────────────────────
+  for (const f of builderForms) {
+    await prisma.form.upsert({
+      where: { slug: f.slug },
+      update: {
+        name: f.name,
+        description: f.description ?? null,
+        fields: JSON.stringify(f.fields),
+        status: f.status,
+        submitLabel: f.submitLabel ?? 'Submit',
+        successMessage: f.successMessage ?? 'Thank you — your submission has been received.',
+        recaptcha: f.recaptcha ?? true,
+      },
+      create: {
+        slug: f.slug,
+        name: f.name,
+        description: f.description ?? null,
+        fields: JSON.stringify(f.fields),
+        status: f.status,
+        submitLabel: f.submitLabel ?? 'Submit',
+        successMessage: f.successMessage ?? 'Thank you — your submission has been received.',
+        recaptcha: f.recaptcha ?? true,
+      },
+    });
+  }
+  console.log(`Seeded ${builderForms.length} forms`);
+
+  // ── Default site settings (editable in admin → Settings) ───────────────────
+  // Draft auto-save timeout for the public agent application (minutes of
+  // inactivity before the locally saved draft is considered expired).
+  await prisma.siteSetting.upsert({
+    where: { key: 'application.draftTimeoutMinutes' },
+    update: {},
+    create: { key: 'application.draftTimeoutMinutes', value: JSON.stringify(30) },
+  });
+  console.log('Seeded default site settings');
 }
 
 main()

@@ -292,10 +292,33 @@ function Stepper({ steps, current }: { steps: string[]; current: number }) {
   );
 }
 
-export default function AgentApplicationForm() {
+interface AgentApplicationFormProps {
+  // Minutes of inactivity before a locally saved draft is considered expired.
+  draftTimeoutMinutes?: number;
+  // CMS-controlled select options (admin → Forms → Agent Application). Fall back
+  // to the built-in lists when the CMS has nothing configured.
+  businessTypeOptions?: string[];
+  productOptions?: string[];
+  howFoundOptions?: string[];
+}
+
+const DRAFT_KEY = 'wdlc.agentApplication.draft';
+
+export default function AgentApplicationForm({
+  draftTimeoutMinutes = 30,
+  businessTypeOptions,
+  productOptions,
+  howFoundOptions,
+}: AgentApplicationFormProps = {}) {
+  // CMS options with built-in fallbacks.
+  const businessTypeList = businessTypeOptions?.length ? businessTypeOptions : BUSINESS_TYPES;
+  const productList = productOptions?.length ? productOptions : PRODUCTS;
+  const howFoundList = howFoundOptions?.length ? howFoundOptions : HOW_FOUND;
+
   // Wizard state
   const [applicantType, setApplicantType] = useState<ApplicantType | null>(null);
   const [step, setStep] = useState(0); // 0 = type selection
+  const [draftRestored, setDraftRestored] = useState(false);
 
   // Contact
   const [firstName, setFirstName] = useState('');
@@ -341,6 +364,66 @@ export default function AgentApplicationForm() {
   const isBusiness = applicantType === 'BUSINESS';
   const showState = country === 'United States';
   const showProvince = country === 'Canada';
+
+  // ── Draft auto-save (localStorage) with a CMS-configured expiry ────────────
+  // Restore a saved draft on mount if it hasn't expired.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) { setDraftRestored(true); return; }
+      const saved = JSON.parse(raw) as { savedAt: number; data: Record<string, unknown> };
+      const ageMin = (Date.now() - saved.savedAt) / 60000;
+      if (ageMin > draftTimeoutMinutes) {
+        localStorage.removeItem(DRAFT_KEY);
+        setDraftRestored(true);
+        return;
+      }
+      const d = saved.data;
+      if (d.applicantType) setApplicantType(d.applicantType as ApplicantType);
+      if (typeof d.step === 'number') setStep(d.step);
+      setFirstName((d.firstName as string) ?? '');
+      setLastName((d.lastName as string) ?? '');
+      setEmail((d.email as string) ?? '');
+      setPhone((d.phone as string) ?? '');
+      setCompany((d.company as string) ?? '');
+      setBusinessType((d.businessType as string) ?? '');
+      setBusinessTypeOther((d.businessTypeOther as string) ?? '');
+      setCountry((d.country as string) ?? 'United States');
+      setStreet((d.street as string) ?? '');
+      setCity((d.city as string) ?? '');
+      setStateField((d.stateField as string) ?? '');
+      setZip((d.zip as string) ?? '');
+      setProductsOffered((d.productsOffered as string) ?? '');
+      setMonthlyVolume((d.monthlyVolume as string) ?? '');
+      setTotalLocations((d.totalLocations as string) ?? '');
+      setHowFound((d.howFound as string) ?? '');
+      setHowFoundOther((d.howFoundOther as string) ?? '');
+      setComments((d.comments as string) ?? '');
+    } catch {
+      /* ignore corrupt draft */
+    }
+    setDraftRestored(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist a draft whenever the user advances past the type selector.
+  useEffect(() => {
+    if (!draftRestored || submitted) return;
+    if (step === 0 && !applicantType) return;
+    const data = {
+      applicantType, step, firstName, lastName, email, phone, company, businessType,
+      businessTypeOther, country, street, city, stateField, zip, productsOffered,
+      monthlyVolume, totalLocations, howFound, howFoundOther, comments,
+    };
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: Date.now(), data }));
+    } catch {
+      /* storage full / unavailable */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [applicantType, step, firstName, lastName, email, phone, company, businessType,
+      businessTypeOther, country, street, city, stateField, zip, productsOffered,
+      monthlyVolume, totalLocations, howFound, howFoundOther, comments]);
 
   const stepLabels = isBusiness
     ? ['Type', 'Business', 'Location', 'Experience', 'Review']
@@ -474,6 +557,7 @@ export default function AgentApplicationForm() {
         return;
       }
       setSubmitted(true);
+      try { localStorage.removeItem(DRAFT_KEY); } catch { /* noop */ }
     } catch {
       setError('Service temporarily unavailable. Please try again later.');
     }
@@ -546,6 +630,11 @@ export default function AgentApplicationForm() {
       </div>
       <Stepper steps={stepLabels} current={step} />
 
+      <p className="text-xs text-ink/50 -mt-2">
+        Your progress is saved automatically on this device. You can close this page and
+        return within {draftTimeoutMinutes} minutes to continue where you left off.
+      </p>
+
       <div key={step} className="animate-[fadeIn_240ms_ease]">
         {/* ── Step 1: details ─────────────────────────────────────────────── */}
         {step === 1 && (
@@ -567,7 +656,7 @@ export default function AgentApplicationForm() {
                 <Field label="Type of Business" required>
                   <select value={businessType} onChange={(e) => setBusinessType(e.target.value)} className={inputCls}>
                     <option value="" disabled>Select…</option>
-                    {BUSINESS_TYPES.map((b) => <option key={b} value={b}>{b}</option>)}
+                    {businessTypeList.map((b) => <option key={b} value={b}>{b}</option>)}
                   </select>
                 </Field>
                 {businessType === 'Other' && (
@@ -658,7 +747,7 @@ export default function AgentApplicationForm() {
             <Field label="Which products do you plan to offer to consumers?" required>
               <select value={productsOffered} onChange={(e) => setProductsOffered(e.target.value)} className={inputCls}>
                 <option value="" disabled>Select…</option>
-                {PRODUCTS.map((p) => <option key={p} value={p}>{p}</option>)}
+                {productList.map((p) => <option key={p} value={p}>{p}</option>)}
               </select>
             </Field>
 
@@ -744,7 +833,7 @@ export default function AgentApplicationForm() {
             <Field label="How did you find out about us?" required>
               <select value={howFound} onChange={(e) => setHowFound(e.target.value)} className={inputCls}>
                 <option value="" disabled>Select…</option>
-                {HOW_FOUND.map((h) => <option key={h} value={h}>{h}</option>)}
+                {howFoundList.map((h) => <option key={h} value={h}>{h}</option>)}
               </select>
             </Field>
             {howFound === 'Other' && (

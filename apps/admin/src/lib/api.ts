@@ -55,6 +55,40 @@ export type Setting = {
   value: string;
 };
 
+export type FormField = {
+  id: string;
+  type: string; // text | email | tel | number | textarea | select | radio | checkbox | yesno | heading
+  name: string;
+  label: string;
+  placeholder?: string;
+  required?: boolean;
+  options?: string[];
+  width?: 'full' | 'half';
+  helpText?: string;
+};
+
+export type BuilderForm = {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string;
+  fields: FormField[];
+  status: string; // DRAFT | PUBLISHED
+  submitLabel: string;
+  successMessage: string;
+  recaptcha: boolean;
+  submissionCount?: number;
+  updatedAt?: string;
+  createdAt?: string;
+};
+
+export type FormSubmission = {
+  id: string;
+  status: string;
+  data: Record<string, unknown>;
+  createdAt: string;
+};
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -530,5 +564,57 @@ export async function apiSetApplicationStatus(
 
 export async function apiDeleteApplication(accessToken: string, id: string): Promise<void> {
   const res = await authFetch(`/admin/agent-applications/${id}`, accessToken, { method: 'DELETE' });
+  await handleResponse<void>(res);
+}
+
+// ---------------------------------------------------------------------------
+// Form builder
+// ---------------------------------------------------------------------------
+
+export async function apiListForms(accessToken: string): Promise<BuilderForm[]> {
+  const res = await authFetch('/cms/forms', accessToken);
+  return handleResponse<BuilderForm[]>(res);
+}
+
+export async function apiGetForm(accessToken: string, id: string): Promise<BuilderForm> {
+  const res = await authFetch(`/cms/forms/id/${id}`, accessToken);
+  return handleResponse<BuilderForm>(res);
+}
+
+export async function apiCreateForm(
+  accessToken: string,
+  data: Partial<BuilderForm>,
+): Promise<BuilderForm> {
+  const res = await authFetch('/cms/forms', accessToken, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return handleResponse<BuilderForm>(res);
+}
+
+export async function apiUpdateForm(
+  accessToken: string,
+  id: string,
+  data: Partial<BuilderForm>,
+): Promise<BuilderForm> {
+  const res = await authFetch(`/cms/forms/id/${id}`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+  return handleResponse<BuilderForm>(res);
+}
+
+export async function apiDeleteForm(accessToken: string, id: string): Promise<void> {
+  const res = await authFetch(`/cms/forms/id/${id}`, accessToken, { method: 'DELETE' });
+  await handleResponse<void>(res);
+}
+
+export async function apiListSubmissions(accessToken: string, id: string): Promise<FormSubmission[]> {
+  const res = await authFetch(`/cms/forms/id/${id}/submissions`, accessToken);
+  return handleResponse<FormSubmission[]>(res);
+}
+
+export async function apiDeleteSubmission(accessToken: string, submissionId: string): Promise<void> {
+  const res = await authFetch(`/cms/forms/submissions/${submissionId}`, accessToken, { method: 'DELETE' });
   await handleResponse<void>(res);
 }

@@ -8,7 +8,7 @@ import {
   ButtonOnDark,
 } from '@/components/ui';
 import AgentApplicationForm from '@/components/AgentApplicationForm';
-import { getCmsPage, cmsMetadata } from '@/lib/cms';
+import { getCmsPage, cmsMetadata, getCmsForm, getCmsSetting } from '@/lib/cms';
 import BlockRenderer from '@/components/BlockRenderer';
 
 export async function generateMetadata() {
@@ -22,6 +22,12 @@ export async function generateMetadata() {
 export default async function BecomeAnAgentPage() {
   const cmsPage = await getCmsPage('agents/become-an-agent');
   const cmsBlocks = Array.isArray(cmsPage?.blocks) && cmsPage.blocks.length > 0 ? cmsPage.blocks as {type:string;data:Record<string,unknown>}[] : null;
+
+  // CMS-controlled select options (managed in admin → Forms → Agent Application)
+  // and the draft auto-save timeout (admin → Settings).
+  const cmsForm = await getCmsForm('agent-application');
+  const optionsFor = (name: string) => cmsForm?.fields.find((f) => f.name === name)?.options;
+  const draftTimeoutMinutes = await getCmsSetting<number>('application.draftTimeoutMinutes', 30);
   return (
     <>
       {cmsBlocks ? <BlockRenderer blocks={cmsBlocks} /> : (
@@ -107,7 +113,12 @@ export default async function BecomeAnAgentPage() {
             subtitle="Tell us about your business and our onboarding team will follow up."
           />
           <div className="max-w-2xl">
-            <AgentApplicationForm />
+            <AgentApplicationForm
+              draftTimeoutMinutes={draftTimeoutMinutes}
+              businessTypeOptions={optionsFor('businessType')}
+              productOptions={optionsFor('productsOffered')}
+              howFoundOptions={optionsFor('howFound')}
+            />
           </div>
         </div>
       </Section>

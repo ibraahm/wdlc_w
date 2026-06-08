@@ -64,6 +64,53 @@ export const getCmsUtilityNav = cache(async (): Promise<CmsNavItem[] | null> => 
   }
 });
 
+export type CmsFormField = {
+  id: string;
+  type: string;
+  name: string;
+  label: string;
+  placeholder?: string;
+  required?: boolean;
+  options?: string[];
+  width?: 'full' | 'half';
+  helpText?: string;
+};
+
+export type CmsForm = {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string;
+  fields: CmsFormField[];
+  status: string;
+  submitLabel: string;
+  successMessage: string;
+  recaptcha: boolean;
+};
+
+// Fetch a single published, CMS-built form by slug.
+export const getCmsForm = cache(async (slug: string): Promise<CmsForm | null> => {
+  try {
+    const res = await fetch(`${API}/cms/forms/${slug}`, { next: { revalidate: 60 } });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+});
+
+// Read a site setting value (parsed JSON) by key, with a typed fallback.
+export const getCmsSetting = cache(async <T,>(key: string, fallback: T): Promise<T> => {
+  try {
+    const res = await fetch(`${API}/cms/settings/${encodeURIComponent(key)}`, { next: { revalidate: 60 } });
+    if (!res.ok) return fallback;
+    const value = await res.json();
+    return (value ?? fallback) as T;
+  } catch {
+    return fallback;
+  }
+});
+
 // Build Next.js Metadata from a CMS page, with static fallbacks.
 export function cmsMetadata(
   page: CmsPage | null,
