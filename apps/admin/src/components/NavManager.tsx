@@ -8,7 +8,7 @@ interface NavManagerProps {
   initialItems: NavItem[];
 }
 
-const LOCATIONS = ['HEADER', 'FOOTER', 'SIDEBAR'];
+const LOCATIONS = ['UTILITY', 'HEADER', 'FOOTER', 'SIDEBAR'];
 
 function NavItemRow({
   item,

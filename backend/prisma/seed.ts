@@ -33,6 +33,15 @@ async function main() {
   }
   console.log('Seeded site settings');
 
+  // ── Utility bar (always-visible links above the primary nav) ───────────────
+  await prisma.navItem.deleteMany({ where: { location: 'UTILITY' } });
+  await prisma.navItem.createMany({ data: [
+    { label: 'Report Fraud', href: '/compliance/report', location: 'UTILITY', order: 1 },
+    { label: 'Contact Us', href: '/about/contact', location: 'UTILITY', order: 2 },
+    { label: 'Agent Application', href: '/agents/become-an-agent', location: 'UTILITY', order: 3 },
+  ]});
+  console.log('Seeded utility navigation');
+
   // ── Header navigation ─────────────────────────────────────────────────────
   // Always fix nav hrefs to match actual Next.js routes
   await prisma.navItem.deleteMany({ where: { location: 'HEADER' } });

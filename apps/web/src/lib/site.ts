@@ -31,6 +31,13 @@ export const PORTAL_URL = process.env.NEXT_PUBLIC_PORTAL_URL || 'http://localhos
 
 export type NavNode = { label: string; href: string; children?: { label: string; href: string }[] };
 
+// Top utility bar (always visible, above the primary nav)
+export const utilityNav: { label: string; href: string }[] = [
+  { label: 'Report Fraud', href: '/compliance/report' },
+  { label: 'Contact Us', href: '/about/contact' },
+  { label: 'Agent Application', href: '/agents/become-an-agent' },
+];
+
 // Primary header navigation
 export const headerNav: NavNode[] = [
   {

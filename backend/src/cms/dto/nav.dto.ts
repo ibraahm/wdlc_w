@@ -4,7 +4,7 @@ export class CreateNavItemDto {
   @IsString() @MaxLength(120) label: string;
   @IsString() @MaxLength(300) href: string;
 
-  @IsOptional() @IsString() location?: string;   // 'HEADER' | 'FOOTER'
+  @IsOptional() @IsString() location?: string;   // 'UTILITY' | 'HEADER' | 'FOOTER'
   @IsOptional() @IsString() @MaxLength(120) column?: string;
   @IsOptional() @IsInt() order?: number;
   @IsOptional() @IsString() parentId?: string;

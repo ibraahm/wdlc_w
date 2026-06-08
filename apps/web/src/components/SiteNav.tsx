@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { headerNav, company } from '@/lib/site';
-import { getCmsNav, type CmsNavItem } from '@/lib/cms';
+import { headerNav, utilityNav, company } from '@/lib/site';
+import { getCmsNav, getCmsUtilityNav, type CmsNavItem } from '@/lib/cms';
 
 type NavNode = { label: string; href: string; children?: { label: string; href: string }[] };
 
@@ -13,11 +13,21 @@ function toNavNodes(items: CmsNavItem[]): NavNode[] {
 }
 
 export default async function SiteNav() {
-  const cmsItems = await getCmsNav();
+  const [cmsItems, cmsUtility] = await Promise.all([getCmsNav(), getCmsUtilityNav()]);
   const nav: NavNode[] = cmsItems && cmsItems.length > 0 ? toNavNodes(cmsItems) : headerNav;
+  const utility: { label: string; href: string }[] =
+    cmsUtility && cmsUtility.length > 0
+      ? cmsUtility.map((i) => ({ label: i.label, href: i.href }))
+      : utilityNav;
 
   return (
     <>
+      <div className="utility-bar" aria-label="Utility navigation">
+        {utility.map((item) => (
+          <Link key={item.href} href={item.href}>{item.label}</Link>
+        ))}
+      </div>
+
       <header className="site-header" data-header>
         <Link className="brand" href="/" aria-label="Home">
           <span className="brand-main">{company.shortName}</span>

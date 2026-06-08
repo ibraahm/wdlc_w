@@ -50,6 +50,20 @@ export const getCmsNav = cache(async (): Promise<CmsNavItem[] | null> => {
   }
 });
 
+// Top utility-bar nav (always-visible links above the primary menu).
+export const getCmsUtilityNav = cache(async (): Promise<CmsNavItem[] | null> => {
+  try {
+    const res = await fetch(`${API}/cms/nav`, {
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) return null;
+    const items: CmsNavItem[] = await res.json();
+    return items.filter((i) => i.location === 'UTILITY' && i.visible);
+  } catch {
+    return null;
+  }
+});
+
 // Build Next.js Metadata from a CMS page, with static fallbacks.
 export function cmsMetadata(
   page: CmsPage | null,
