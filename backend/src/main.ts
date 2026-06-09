@@ -52,4 +52,4 @@ async function bootstrap() {
   await app.listen(port);
   console.log(`WDLC backend listening on http://localhost:${port}/api`);
 }
-bootstrap();
+void bootstrap();

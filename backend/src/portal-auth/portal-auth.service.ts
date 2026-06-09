@@ -72,7 +72,7 @@ export class PortalAuthService {
       },
     });
 
-    this.mail.sendEmailVerification(dto.email, verifyRaw);
+    void this.mail.sendEmailVerification(dto.email, verifyRaw);
     await this.audit.log({ action: 'agent.signup', agentId: agent.id, ip, userAgent: ua });
     return {
       ok: true,
@@ -105,7 +105,7 @@ export class PortalAuthService {
       where: { id: agent.id },
       data: { emailVerifyToken: hashToken(verifyRaw), emailVerifyExpiry: addHours(new Date(), EMAIL_VERIFY_HOURS) },
     });
-    this.mail.sendEmailVerification(email, verifyRaw);
+    void this.mail.sendEmailVerification(email, verifyRaw);
     await this.audit.log({ action: 'agent.verify_resent', agentId: agent.id });
     return { ok: true };
   }
@@ -184,7 +184,7 @@ export class PortalAuthService {
       where: { id: agent.id },
       data: { resetToken: hashToken(raw), resetTokenExpiry: addMinutes(new Date(), PASSWORD_RESET_MINUTES) },
     });
-    this.mail.sendPasswordReset(email, raw, 'agent');
+    void this.mail.sendPasswordReset(email, raw, 'agent');
     await this.audit.log({ action: 'agent.password_reset.requested', agentId: agent.id });
     return { ok: true };
   }

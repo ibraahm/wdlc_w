@@ -109,7 +109,7 @@ export class AdminAuthService {
       where: { id: user.id },
       data: { resetToken: hashToken(raw), resetTokenExpiry: addMinutes(new Date(), PASSWORD_RESET_MINUTES) },
     });
-    this.mail.sendPasswordReset(email, raw, 'admin');
+    void this.mail.sendPasswordReset(email, raw, 'admin');
     await this.audit.log({ action: 'admin.password_reset.requested', adminId: user.id });
     return { ok: true };
   }
