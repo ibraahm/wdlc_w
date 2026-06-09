@@ -5,9 +5,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Map as LeafletMap, GeoJSON as LeafletGeoJSON } from 'leaflet';
 import type * as D3 from 'd3';
 
+export type PayoutDetails = {
+  mobileMoney?: string[];
+  cashPartner?: string;
+  bankName?: string;
+};
+
 export type NetworkCountryData = {
   name: string;
   payoutTypes: string[];
+  payoutDetails?: PayoutDetails;
   flagUrl?: string;
 };
 
@@ -40,7 +47,7 @@ export default function NetworkMap({ countries }: { countries: NetworkCountryDat
   const mapInstance = useRef<LeafletMap | null>(null);
   const geoLayer = useRef<LeafletGeoJSON | null>(null);
   const currentLayer = useRef<unknown>(null);
-  const [panel, setPanel] = useState<{ name: string; payoutTypes: string[]; flagUrl?: string } | null>(null);
+  const [panel, setPanel] = useState<NetworkCountryData | null>(null);
   const [ready, setReady] = useState(false);
 
   const countryMap = useMemo(() => {
@@ -244,6 +251,27 @@ export default function NetworkMap({ countries }: { countries: NetworkCountryDat
                   {panel.payoutTypes.map((t) => (
                     <span key={t} className={`rounded-full px-3 py-0.5 text-xs font-semibold ${PAYOUT_COLORS[t] ?? 'bg-gray-100 text-gray-600'}`}>{t}</span>
                   ))}
+                </div>
+                {/* Per-type detail lines */}
+                <div className="mt-3 space-y-1.5 text-sm">
+                  {panel.payoutDetails?.mobileMoney?.length ? (
+                    <div className="flex items-start gap-1.5 text-emerald-700">
+                      <span className="mt-0.5 text-base leading-none">📱</span>
+                      <span>{panel.payoutDetails.mobileMoney.join(' · ')}</span>
+                    </div>
+                  ) : null}
+                  {panel.payoutDetails?.cashPartner ? (
+                    <div className="flex items-start gap-1.5 text-amber-700">
+                      <span className="mt-0.5 text-base leading-none">💵</span>
+                      <span>{panel.payoutDetails.cashPartner}</span>
+                    </div>
+                  ) : null}
+                  {panel.payoutDetails?.bankName ? (
+                    <div className="flex items-start gap-1.5 text-blue-700">
+                      <span className="mt-0.5 text-base leading-none">🏦</span>
+                      <span>{panel.payoutDetails.bankName}</span>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </div>

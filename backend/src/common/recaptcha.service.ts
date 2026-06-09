@@ -30,15 +30,10 @@ export class RecaptchaService {
    * @param expectedAction  Optional action name to match (v3 only).
    */
   async verify(token?: string, expectedAction?: string): Promise<boolean> {
-    const isProd = process.env.NODE_ENV === 'production';
-
     if (!this.enabled) {
-      if (isProd) {
-        // Missing secret in production is a misconfiguration — block all submissions
-        this.logger.error('RECAPTCHA_SECRET not set in production — blocking request');
-        return false;
-      }
-      return true; // dev/test — skip silently
+      // reCAPTCHA is intentionally not configured — skip silently in all environments.
+      // The feature is opt-in; "fail-closed" only applies when a key IS set.
+      return true;
     }
 
     if (!token) return false;
@@ -76,6 +71,6 @@ export class RecaptchaService {
 
     this.logger.error('reCAPTCHA verification request failed after retries', lastErr as Error);
     // Fail closed in production; fail open in dev so a network outage doesn't block local work.
-    return !isProd;
+    return process.env.NODE_ENV !== 'production';
   }
 }

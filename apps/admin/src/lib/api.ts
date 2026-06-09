@@ -533,10 +533,17 @@ export async function apiDeletePartner(accessToken: string, id: string): Promise
 // Network countries (payout map)
 // ---------------------------------------------------------------------------
 
+export type PayoutDetails = {
+  mobileMoney?: string[];
+  cashPartner?: string;
+  bankName?: string;
+};
+
 export type NetworkCountry = {
   id: string;
   name: string;
   payoutTypes: string[];
+  payoutDetails?: PayoutDetails;
   flagUrl?: string;
   active: boolean;
   updatedAt?: string;

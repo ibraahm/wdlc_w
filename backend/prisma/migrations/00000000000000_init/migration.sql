@@ -238,6 +238,7 @@ CREATE TABLE "NetworkCountry" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "payoutTypes" TEXT NOT NULL DEFAULT '[]',
+    "payoutDetails" TEXT NOT NULL DEFAULT '{}',
     "flagUrl" TEXT,
     "active" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,

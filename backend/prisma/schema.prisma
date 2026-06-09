@@ -304,13 +304,15 @@ model SiteSetting {
 // payoutTypes is a JSON array of strings, e.g. ["Cash Collection","Mobile Money"]
 // ─────────────────────────────────────────────
 model NetworkCountry {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  payoutTypes String   @default("[]")
-  flagUrl     String?
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(cuid())
+  name           String   @unique
+  payoutTypes    String   @default("[]")
+  // JSON: { mobileMoney?: string[], cashPartner?: string, bankName?: string }
+  payoutDetails  String   @default("{}")
+  flagUrl        String?
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([active])
 }
