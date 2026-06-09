@@ -69,5 +69,8 @@
   },
   "engines": {
     "node": ">=20.0.0"
+  },
+  "overrides": {
+    "multer": "^2.1.1"
   }
 }
