@@ -1,12 +1,4 @@
-import {
-  Section,
-  PageHero,
-  SectionHeading,
-  StatStrip,
-  Checklist,
-  Steps,
-  ButtonOnDark,
-} from '@/components/ui';
+import { Section, PageHero, ButtonOnDark } from '@/components/ui';
 import AgentApplicationForm from '@/components/AgentApplicationForm';
 import { getCmsPage, cmsMetadata, getCmsForm, getCmsSetting } from '@/lib/cms';
 import BlockRenderer from '@/components/BlockRenderer';
@@ -23,96 +15,31 @@ export default async function BecomeAnAgentPage() {
   const cmsPage = await getCmsPage('agents/become-an-agent');
   const cmsBlocks = Array.isArray(cmsPage?.blocks) && cmsPage.blocks.length > 0 ? cmsPage.blocks as {type:string;data:Record<string,unknown>}[] : null;
 
-  // CMS-controlled select options (managed in admin → Forms → Agent Application)
-  // and the draft auto-save timeout (admin → Settings).
   const cmsForm = await getCmsForm('agent-application');
   const optionsFor = (name: string) => cmsForm?.fields.find((f) => f.name === name)?.options;
   const draftTimeoutMinutes = await getCmsSetting<number>('application.draftTimeoutMinutes', 30);
+
+  if (cmsBlocks) return <BlockRenderer blocks={cmsBlocks} />;
+
   return (
     <>
-      {cmsBlocks ? <BlockRenderer blocks={cmsBlocks} /> : (
-        <>
       <PageHero
         eyebrow="Agents & Partners"
         title="Become a WDL Agent"
-        subtitle="Grow with a trusted principal."
+        subtitle="Partner with a licensed money transmitter. Earn commissions and serve your community."
       >
         <ButtonOnDark href="#apply">Start Your Application</ButtonOnDark>
       </PageHero>
 
       <Section>
-        <StatStrip
-          stats={[
-            { value: 'Earn commissions', label: 'Add a new revenue stream to your existing business.' },
-            { value: 'Serve your community', label: 'Help neighbors send money home with confidence.' },
-            {
-              value: 'Full compliance support & training',
-              label: 'We guide you through BSA/AML obligations every step of the way.',
-            },
-          ]}
-        />
-        <p className="mt-10 text-lg text-gray-700 leading-relaxed max-w-3xl">
-          Partner with World Direct Link to offer money transfer services in your community. We provide
-          the platform, training, and compliance support you need to operate confidently as an
-          authorized agent.
-        </p>
-      </Section>
+        <div className="grid lg:grid-cols-5 gap-10 items-start">
 
-      <Section muted>
-        <SectionHeading title="What we look for" />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-4">
-          <Checklist
-            items={[
-              'A physical business or commercial location',
-              'Commitment to our BSA/AML compliance program',
-            ]}
-          />
-          <Checklist items={['Successful background and OFAC screening']} />
-        </div>
-      </Section>
-
-      <Section>
-        <SectionHeading title="Application requirements" />
-        <Steps
-          items={[
-            { title: 'Completed and signed Agent Application' },
-            { title: 'Signed credit and background check authorization' },
-            {
-              title:
-                "Business license / occupancy permit, or property-use documentation (lease, ownership, or alternate proof such as a current utility bill or insurance in the agent's or business's name)",
-            },
-            { title: 'Copy of a current driver\'s license or valid government-issued photo ID' },
-          ]}
-        />
-      </Section>
-
-      <Section muted>
-        <SectionHeading title="How it works" />
-        <Steps
-          items={[
-            { title: 'Apply', body: 'Submit your Agent Application and required documents.' },
-            {
-              title: 'Screening',
-              body: 'We complete background and OFAC screening on the business and principals.',
-            },
-            {
-              title: 'Risk assessment',
-              body: 'Our compliance team evaluates the location, business type, and risk profile.',
-            },
-            { title: 'Training', body: 'Complete BSA/AML and operational training before launch.' },
-            { title: 'System setup', body: 'We provision your access and configure your location.' },
-            { title: 'Go live', body: 'Begin serving customers as an authorized WDL agent.' },
-          ]}
-        />
-      </Section>
-
-      <Section>
-        <div id="apply">
-          <SectionHeading
-            title="Agent application"
-            subtitle="Tell us about your business and our onboarding team will follow up."
-          />
-          <div className="max-w-2xl">
+          {/* Form — left, larger column */}
+          <div className="lg:col-span-3" id="apply">
+            <h2 className="text-xl font-bold text-gray-900 mb-1">Agent Application</h2>
+            <p className="text-sm text-gray-500 mb-6">
+              Takes about 5 minutes. Our onboarding team will follow up within 2 business days.
+            </p>
             <AgentApplicationForm
               draftTimeoutMinutes={draftTimeoutMinutes}
               businessTypeOptions={optionsFor('businessType')}
@@ -120,10 +47,59 @@ export default async function BecomeAnAgentPage() {
               howFoundOptions={optionsFor('howFound')}
             />
           </div>
+
+          {/* Benefits sidebar — right */}
+          <div className="lg:col-span-2 space-y-6 lg:sticky lg:top-8">
+            <div className="rounded-xl border border-[#d9e0e8] bg-white p-6 space-y-4">
+              <h3 className="font-bold text-gray-900">Why partner with WDL?</h3>
+              <ul className="space-y-3 text-sm text-gray-700">
+                {[
+                  { icon: '💰', text: 'Earn commissions on every transfer — no upfront fees' },
+                  { icon: '🏘️', text: 'Serve your community with a trusted brand since 1999' },
+                  { icon: '🎓', text: 'Full BSA/AML training and compliance support included' },
+                  { icon: '⚙️', text: 'Simple system — no complex hardware required' },
+                  { icon: '📞', text: 'Dedicated onboarding team and ongoing support' },
+                ].map(({ icon, text }) => (
+                  <li key={text} className="flex gap-3">
+                    <span className="shrink-0">{icon}</span>
+                    <span>{text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-xl border border-[#d9e0e8] bg-white p-6 space-y-3">
+              <h3 className="font-bold text-gray-900">What you'll need</h3>
+              <ul className="space-y-2 text-sm text-gray-600">
+                {[
+                  'A physical business or commercial location',
+                  'Valid government-issued photo ID',
+                  'Business license (if applicable)',
+                  'Willingness to complete a background check',
+                ].map((item) => (
+                  <li key={item} className="flex gap-2">
+                    <span className="text-green-500 font-bold shrink-0">✓</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="rounded-xl bg-[#1a3c6e] text-white p-6 space-y-3">
+              <h3 className="font-bold">How it works</h3>
+              <ol className="space-y-2 text-sm text-white/85">
+                {['Submit your application', 'Background & OFAC screening', 'Compliance training', 'System setup & go live'].map((step, i) => (
+                  <li key={step} className="flex gap-2">
+                    <span className="shrink-0 font-semibold text-white/60">{i + 1}.</span>
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </div>
+
         </div>
       </Section>
-        </>
-      )}
     </>
   );
 }
