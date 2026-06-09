@@ -477,7 +477,6 @@ export default function AgentApplicationForm({
     if (s === 4) {
       if (!howFound) return 'Please tell us how you found out about us.';
       if (howFound === 'Other' && !howFoundOther.trim()) return 'Please specify how you found us.';
-      if (!comments.trim()) return 'Please add a comment or note for our team.';
     }
     return '';
   }
@@ -583,40 +582,33 @@ export default function AgentApplicationForm({
   // ── Step 0: choose applicant type ──────────────────────────────────────────
   if (step === 0) {
     return (
-      <div className="space-y-6">
-        <div className="pb-4 border-b border-[#d9e0e8]">
-          <h1 className="text-2xl font-bold text-primary-strong">Agent Application</h1>
-          <p className="text-ink/60 mt-1">Tell us about your business and our onboarding team will follow up.</p>
-        </div>
+      <div className="space-y-5">
         <div>
-          <h2 className="text-xl font-bold text-primary-strong">How would you like to apply?</h2>
-          <p className="text-sm text-ink/60 mt-1">Choose the option that best describes you. We&apos;ll only ask for what&apos;s relevant.</p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <button
-            type="button"
-            onClick={() => pickType('INDIVIDUAL')}
-            className="group text-left rounded-xl border-2 border-[#d9e0e8] hover:border-primary bg-white p-6 transition-colors focus:outline-none focus:border-primary"
-          >
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-purple-100 text-purple-700 mb-4">
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-            </div>
-            <h3 className="font-bold text-primary-strong">Individual</h3>
-            <p className="text-sm text-ink/60 mt-1">Applying as a sole proprietor or an individual without a registered company.</p>
-            <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-primary group-hover:gap-2 transition-all">Continue →</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => pickType('BUSINESS')}
-            className="group text-left rounded-xl border-2 border-[#d9e0e8] hover:border-primary bg-white p-6 transition-colors focus:outline-none focus:border-primary"
-          >
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-sky-100 text-sky-700 mb-4">
-              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2M5 21H3m6-14h6m-6 4h6m-2 4h2" /></svg>
-            </div>
-            <h3 className="font-bold text-primary-strong">Business / Company</h3>
-            <p className="text-sm text-ink/60 mt-1">Applying on behalf of a registered company, store, or multi-location business.</p>
-            <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-primary group-hover:gap-2 transition-all">Continue →</span>
-          </button>
+          <p className="text-sm font-medium text-gray-700 mb-3">Are you applying as an individual or on behalf of a business?</p>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => pickType('INDIVIDUAL')}
+              className="group text-left rounded-xl border-2 border-[#d9e0e8] hover:border-primary bg-white p-4 transition-colors focus:outline-none focus:border-primary"
+            >
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-purple-100 text-purple-700 mb-3">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+              </div>
+              <p className="font-bold text-primary-strong text-sm">Individual</p>
+              <p className="text-xs text-ink/60 mt-0.5">Sole proprietor, no registered company</p>
+            </button>
+            <button
+              type="button"
+              onClick={() => pickType('BUSINESS')}
+              className="group text-left rounded-xl border-2 border-[#d9e0e8] hover:border-primary bg-white p-4 transition-colors focus:outline-none focus:border-primary"
+            >
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-100 text-sky-700 mb-3">
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0H5m14 0h2M5 21H3m6-14h6m-6 4h6m-2 4h2" /></svg>
+              </div>
+              <p className="font-bold text-primary-strong text-sm">Business</p>
+              <p className="text-xs text-ink/60 mt-0.5">Registered company or multi-location store</p>
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -624,16 +616,19 @@ export default function AgentApplicationForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="pb-4 border-b border-[#d9e0e8]">
-        <h1 className="text-2xl font-bold text-primary-strong">Agent Application</h1>
-        <p className="text-ink/60 mt-1">Tell us about your business and our onboarding team will follow up.</p>
+      {/* Type pill — tap to restart */}
+      <div className="flex items-center gap-2 text-sm">
+        <span className="text-gray-500">Applying as:</span>
+        <button
+          type="button"
+          onClick={() => { setStep(0); setError(''); }}
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-[#d9e0e8] bg-white font-medium text-primary-strong hover:bg-gray-50 transition-colors"
+        >
+          {isBusiness ? '🏢 Business' : '👤 Individual'}
+          <span className="text-xs text-gray-400">change</span>
+        </button>
       </div>
       <Stepper steps={stepLabels} current={step} />
-
-      <p className="text-xs text-ink/50 -mt-2">
-        Your progress is saved automatically on this device. You can close this page and
-        return within {draftTimeoutMinutes} minutes to continue where you left off.
-      </p>
 
       <div key={step} className="animate-[fadeIn_240ms_ease]">
         {/* ── Step 1: details ─────────────────────────────────────────────── */}
@@ -841,8 +836,8 @@ export default function AgentApplicationForm({
                 <input value={howFoundOther} onChange={(e) => setHowFoundOther(e.target.value)} className={inputCls} />
               </Field>
             )}
-            <Field label="Comments" required>
-              <textarea value={comments} onChange={(e) => setComments(e.target.value)} rows={4} className={inputCls} />
+            <Field label="Anything else you'd like us to know? (optional)">
+              <textarea value={comments} onChange={(e) => setComments(e.target.value)} rows={3} placeholder="Questions, notes, or context for our team…" className={inputCls} />
             </Field>
 
             <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 text-sm">
