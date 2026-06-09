@@ -40,14 +40,14 @@ export const envValidationSchema = Joi.object({
   AGENT_JWT_SECRET: secretField,
 
   LOG_LEVEL: Joi.string()
-    .valid('fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent')
+    .valid('fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent', '')
     .optional(),
-  CORS_ORIGIN: Joi.string().optional(),
-  SEED_ADMIN_EMAIL: Joi.string().email().optional(),
-  SEED_ADMIN_PASSWORD: Joi.string().optional(),
+  CORS_ORIGIN: Joi.string().allow('').optional(),
+  SEED_ADMIN_EMAIL: Joi.string().email().allow('').optional(),
+  SEED_ADMIN_PASSWORD: Joi.string().allow('').optional(),
 
-  RECAPTCHA_SECRET: Joi.string().optional(),
-  SENDGRID_API_KEY: Joi.string().optional(),
+  RECAPTCHA_SECRET: Joi.string().allow('').optional(),
+  SENDGRID_API_KEY: Joi.string().allow('').optional(),
 })
   // Require that the admin & agent portals end up with usable, distinct secrets
   // in production: either both per-portal secrets, or a shared JWT_SECRET.
