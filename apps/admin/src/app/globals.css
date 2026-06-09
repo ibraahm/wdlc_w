@@ -71,26 +71,89 @@ a { color: inherit; text-decoration: none; }
 }
 .admin-nav {
   flex: 1;
-  padding: 16px 12px;
+  padding: 14px 12px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+}
+.admin-nav-group { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
+.admin-nav-heading {
+  margin: 12px 12px 4px;
+  color: rgba(250, 250, 247, 0.32);
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
 }
 .admin-nav-link {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  color: rgba(250, 250, 247, 0.55);
-  font-size: 0.6rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  transition: color 200ms ease, background 200ms ease;
+  gap: 11px;
+  padding: 9px 12px;
+  border-left: 2px solid transparent;
+  border-radius: 0 6px 6px 0;
+  color: rgba(250, 250, 247, 0.72);
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition: color 160ms ease, background 160ms ease, border-color 160ms ease;
 }
-.admin-nav-link:hover { color: var(--ivory); background: rgba(250, 250, 247, 0.05); }
-.admin-nav-link.is-active { color: var(--gold); background: rgba(200, 150, 12, 0.1); }
-.admin-nav-icon { font-size: 0.9rem; width: 16px; text-align: center; flex-shrink: 0; opacity: 0.6; }
+.admin-nav-link:hover { color: var(--ivory); background: rgba(250, 250, 247, 0.06); }
+.admin-nav-link.is-active {
+  color: var(--gold);
+  background: rgba(200, 150, 12, 0.12);
+  border-left-color: var(--gold);
+}
+.admin-nav-icon { font-size: 0.95rem; width: 18px; text-align: center; flex-shrink: 0; opacity: 0.7; }
+
+/* Hamburger + drawer (mobile/tablet) */
+.admin-hamburger {
+  display: none;
+  background: transparent;
+  border: 0;
+  color: var(--navy);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+  margin-right: 4px;
+}
+.admin-topbar-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.admin-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(11, 31, 58, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+  z-index: 40;
+}
+.admin-drawer-backdrop.is-open { opacity: 1; pointer-events: auto; }
+.admin-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100svh;
+  width: 264px;
+  background: var(--navy);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(-100%);
+  transition: transform 220ms ease;
+  z-index: 50;
+}
+.admin-drawer.is-open { transform: translateX(0); }
+.admin-drawer .admin-sidebar-brand { justify-content: space-between; }
+.admin-drawer-close {
+  background: transparent;
+  border: 0;
+  color: rgba(250, 250, 247, 0.6);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.admin-drawer-close:hover { color: var(--ivory); }
 .admin-sidebar-user {
   padding: 16px 24px;
   border-top: 1px solid rgba(250, 250, 247, 0.07);
@@ -152,26 +215,6 @@ a { color: inherit; text-decoration: none; }
   overflow-y: auto;
   padding: clamp(24px, 4vw, 40px);
 }
-
-/* Mobile nav */
-.admin-mobile-nav {
-  background: var(--ivory);
-  border-bottom: 1px solid var(--smoke);
-  display: flex;
-  overflow-x: auto;
-  padding: 8px 16px;
-  gap: 4px;
-}
-.admin-mobile-nav a {
-  flex-shrink: 0;
-  padding: 6px 12px;
-  font-size: 0.6rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--muted);
-  transition: color 200ms, background 200ms;
-}
-.admin-mobile-nav a.is-active { color: var(--gold); background: rgba(200, 150, 12, 0.08); }
 
 /* ── Auth (admin login) ───────────────────────────────────────────────────── */
 .auth-wrap {
@@ -292,8 +335,13 @@ a { color: inherit; text-decoration: none; }
 .status-active-user { color: #166534; background: rgba(22, 101, 52, 0.08); }
 .status-super { color: var(--navy); background: rgba(200, 150, 12, 0.12); color: var(--gold); }
 
-/* Responsive */
-@media (max-width: 768px) {
+/* Responsive: below 1024px the fixed sidebar collapses into a drawer that the
+   hamburger toggles. Above it, the drawer/backdrop/hamburger stay hidden. */
+.admin-drawer, .admin-drawer-backdrop { display: none; }
+
+@media (max-width: 1024px) {
   .admin-sidebar { display: none; }
-  .admin-sidebar-mobile-hidden { display: none; }
+  .admin-drawer, .admin-drawer-backdrop { display: flex; }
+  .admin-drawer-backdrop { display: block; }
+  .admin-hamburger { display: inline-flex; align-items: center; }
 }
