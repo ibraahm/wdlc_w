@@ -107,6 +107,15 @@ export async function apiLogin(email: string, password: string, recaptchaToken?:
   return handleResponse(res);
 }
 
+export async function apiAdminLogin(email: string, password: string): Promise<AuthResult> {
+  const res = await safeFetch(`${API}/portal/auth/admin-login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  return handleResponse(res);
+}
+
 export async function apiRefresh(refreshToken: string): Promise<AuthResult> {
   const res = await safeFetch(`${API}/portal/auth/refresh`, {
     method: 'POST',

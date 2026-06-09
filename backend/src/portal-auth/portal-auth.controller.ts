@@ -5,6 +5,7 @@ import { PortalAuthService } from './portal-auth.service';
 import {
   AgentSignupDto,
   AgentLoginDto,
+  AgentAdminLoginDto,
   AgentRefreshDto,
   AgentForgotPasswordDto,
   AgentResetPasswordDto,
@@ -44,6 +45,13 @@ export class PortalAuthController {
     if (!(await this.recaptcha.verify(dto.recaptchaToken, 'portal_login')))
       throw new ForbiddenException('Security check failed. Please try again.');
     return this.auth.login(dto.email, dto.password, req.ip, req.headers['user-agent']);
+  }
+
+  @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @Post('admin-login')
+  async adminLogin(@Body() dto: AgentAdminLoginDto, @Req() req: Request) {
+    return this.auth.adminLogin(dto.email, dto.password, req.ip, req.headers['user-agent']);
   }
 
   @Public()

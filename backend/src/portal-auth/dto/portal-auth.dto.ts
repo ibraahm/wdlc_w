@@ -42,6 +42,15 @@ export class AgentLoginDto {
   recaptchaToken?: string;
 }
 
+export class AgentAdminLoginDto {
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  @MinLength(8)
+  password: string;
+}
+
 export class AgentRefreshDto {
   @IsString()
   refreshToken: string;
