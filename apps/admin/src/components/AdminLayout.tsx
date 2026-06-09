@@ -61,6 +61,22 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
   const current = ALL_ITEMS.find((i) => isActive(i.href));
   const pageTitle = current?.label ?? 'Admin';
 
+  // Breadcrumbs from the path: first segment resolves to its nav label, deeper
+  // segments (ids/slugs/"new") render as readable trailing crumbs.
+  const segments = pathname.split('/').filter(Boolean);
+  const crumbs = segments.map((seg, i) => {
+    const href = '/' + segments.slice(0, i + 1).join('/');
+    const navLabel = ALL_ITEMS.find((it) => it.href === href)?.label;
+    const label =
+      navLabel ??
+      (seg === 'new'
+        ? 'New'
+        : seg.length > 24
+          ? seg.slice(0, 21) + '…'
+          : seg.replace(/-/g, ' '));
+    return { href, label, last: i === segments.length - 1 };
+  });
+
   const nav = (
     <nav className="admin-nav" aria-label="Main">
       {NAV_GROUPS.map((group) => (
@@ -150,6 +166,20 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
             </form>
           </div>
         </header>
+
+        {crumbs.length > 1 && (
+          <nav className="admin-breadcrumbs" aria-label="Breadcrumb">
+            {crumbs.map((c) => (
+              <span key={c.href} className="admin-crumb">
+                {c.last ? (
+                  <span aria-current="page" className="admin-crumb-current">{c.label}</span>
+                ) : (
+                  <Link href={c.href}>{c.label}</Link>
+                )}
+              </span>
+            ))}
+          </nav>
+        )}
 
         <main className="admin-content">{children}</main>
       </div>

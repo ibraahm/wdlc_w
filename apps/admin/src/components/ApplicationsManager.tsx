@@ -4,6 +4,7 @@ import { Fragment, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { AgentApplication } from '@/lib/api';
 import { setApplicationStatusAction, deleteApplicationAction } from '@/lib/actions';
+import { EmptyState } from './ui-admin';
 
 const STATUSES = ['NEW', 'REVIEWING', 'APPROVED', 'REJECTED'];
 
@@ -52,7 +53,15 @@ export default function ApplicationsManager({ applications }: { applications: Ag
   }
 
   if (applications.length === 0) {
-    return <p className="text-sm text-gray-500">No applications received yet.</p>;
+    return (
+      <EmptyState
+        icon="✉"
+        title="No agent applications yet"
+        description="Submissions from the public “Become an Agent” form will appear here for review. Approving an application opens its due-diligence file automatically."
+        actionHref="/agent-dd"
+        actionLabel="Go to Due Diligence"
+      />
+    );
   }
 
   return (

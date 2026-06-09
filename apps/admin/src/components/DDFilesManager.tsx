@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { DDFile, DDDashboard } from '@/lib/api';
 import { createDDFileAction } from '@/lib/actions';
+import { EmptyState } from './ui-admin';
 
 const STAGES = ['APPLICATION', 'UNDER_REVIEW', 'DD_IN_PROGRESS', 'ACTIVE', 'SUSPENDED', 'TERMINATED', 'REJECTED'];
 
@@ -106,6 +107,13 @@ export default function DDFilesManager({
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
+      {initialFiles.length === 0 ? (
+        <EmptyState
+          icon="✔"
+          title="No due-diligence files yet"
+          description="A DD file opens automatically when you approve an agent application, or create one here manually. Each file tracks the 19-item checklist, expiries, risk rating, and the review cycle."
+        />
+      ) : (
       <div className="overflow-x-auto rounded-lg border border-gray-200">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50 text-left text-xs uppercase text-gray-500">
@@ -153,6 +161,7 @@ export default function DDFilesManager({
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }
