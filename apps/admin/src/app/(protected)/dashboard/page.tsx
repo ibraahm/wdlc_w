@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { getSession } from '@/lib/auth';
 import {
-  apiListPages,
   apiGetAuditLog,
   apiListApplications,
   apiDDDashboard,
@@ -21,15 +20,6 @@ function timeAgo(iso: string) {
 
 function actionLabel(action: string) {
   const map: Record<string, string> = {
-    'page.create': 'Created page',
-    'page.update': 'Updated page',
-    'page.publish': 'Published page',
-    'page.unpublish': 'Unpublished page',
-    'page.delete': 'Deleted page',
-    'nav.create': 'Added nav item',
-    'nav.update': 'Updated nav item',
-    'nav.delete': 'Removed nav item',
-    'nav.reorder': 'Reordered nav',
     'setting.set': 'Changed setting',
     'setting.delete': 'Deleted setting',
     'admin.login.success': 'Signed in',
@@ -53,20 +43,12 @@ export default async function DashboardPage() {
   const session = await getSession();
   if (!session) redirect('/login');
 
-  let totalPages = 0;
-  let publishedPages = 0;
-  let draftPages = 0;
   let pendingApps = 0;
   let totalApps = 0;
   let dd: DDDashboard = { expiring: 0, expired: 0, missing: 0, reviewsDue: 0 };
   let auditItems: Awaited<ReturnType<typeof apiGetAuditLog>>['items'] = [];
 
   await Promise.allSettled([
-    apiListPages(session.accessToken).then((pages) => {
-      totalPages = pages.length;
-      publishedPages = pages.filter((p) => p.status === 'PUBLISHED').length;
-      draftPages = pages.filter((p) => p.status === 'DRAFT').length;
-    }),
     apiListApplications(session.accessToken).then((apps) => {
       totalApps = apps.length;
       pendingApps = apps.filter((a) => a.status === 'NEW' || a.status === 'REVIEWING').length;
@@ -97,14 +79,11 @@ export default async function DashboardPage() {
   };
 
   const stats = [
-    { label: 'Total Pages', value: totalPages, color: 'bg-ivory border-smoke text-navy' },
-    { label: 'Published', value: publishedPages, color: 'bg-green-50 border-green-200 text-green-800' },
-    { label: 'Drafts', value: draftPages, color: 'bg-amber-50 border-amber-200 text-amber-800' },
     { label: 'Agent Applications', value: totalApps, color: 'bg-ivory border-smoke text-navy' },
+    { label: 'To review', value: pendingApps, color: 'bg-blue-50 border-blue-200 text-blue-800' },
   ];
 
   const quickLinks = [
-    { href: '/pages/new', label: 'New Page', desc: 'Create a new CMS page' },
     { href: '/applications', label: 'Applications', desc: 'Review agent leads' },
     { href: '/agent-dd', label: 'Due Diligence', desc: 'Onboarding & ongoing DD' },
     { href: '/settings', label: 'Settings', desc: 'Configure site settings' },
@@ -143,7 +122,7 @@ export default async function DashboardPage() {
       </div>
 
       <div>
-        <h2 className="admin-section-title">Content</h2>
+        <h2 className="admin-section-title">Agents</h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {stats.map((stat) => (
             <div key={stat.label} className={`rounded-xl border p-6 ${stat.color}`}>
@@ -187,11 +166,7 @@ export default async function DashboardPage() {
                   <tr key={entry.id} className="hover:bg-ivory/60 transition-colors">
                     <td className="px-6 py-3 text-sm text-navy font-medium">{actionLabel(entry.action)}</td>
                     <td className="px-6 py-3 text-sm text-charcoal/60 font-mono">
-                      {entry.entityId ? (
-                        entry.entity === 'Page'
-                          ? <Link href={`/pages/${entry.entityId}`} className="hover:text-gold hover:underline">{entry.entityId}</Link>
-                          : entry.entityId
-                      ) : '—'}
+                      {entry.entityId ?? '—'}
                     </td>
                     <td className="px-6 py-3 text-sm text-charcoal/60 hidden md:table-cell">
                       {entry.admin?.name ?? entry.admin?.email ?? entry.agent?.email ?? '—'}

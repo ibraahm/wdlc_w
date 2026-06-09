@@ -18,8 +18,6 @@ const NAV_GROUPS: NavGroup[] = [
   {
     heading: 'Content',
     items: [
-      { href: '/pages', label: 'Pages', icon: '◻' },
-      { href: '/nav', label: 'Navigation', icon: '≡' },
       { href: '/forms', label: 'Forms', icon: '▤' },
     ],
   },

@@ -8,15 +8,7 @@ import {
   apiForgotPassword,
   apiResetPassword,
   apiChangePassword,
-  apiCreatePage,
-  apiUpdatePage,
-  apiPublishPage,
-  apiUnpublishPage,
-  apiDeletePage,
   apiSetSetting,
-  apiCreateNavItem,
-  apiUpdateNavItem,
-  apiDeleteNavItem,
   apiCreateUser,
   apiSetUserActive,
   apiSetAgentStatus,
@@ -122,113 +114,6 @@ export async function changePasswordAction(formData: FormData): Promise<{ ok: bo
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-async function revalidateWebPage(slug: string) {
-  const webUrl = process.env.WEB_URL || 'http://localhost:3000';
-  const secret = process.env.REVALIDATE_SECRET || 'wdlc-revalidate-dev';
-  try {
-    await fetch(`${webUrl}/api/revalidate?token=${secret}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path: `/${slug}` }),
-    });
-  } catch {
-    // Non-fatal: web app may not be running
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Page actions
-// ---------------------------------------------------------------------------
-
-export async function createPageAction(
-  formData: FormData,
-): Promise<{ page?: { slug: string }; error?: string }> {
-  const session = await getSession();
-  if (!session) return { error: 'Not authenticated' };
-
-  const blocksRaw = formData.get('blocks') as string;
-
-  try {
-    const page = await apiCreatePage(session.accessToken, {
-      slug: formData.get('slug') as string,
-      title: formData.get('title') as string,
-      description: (formData.get('description') as string) || undefined,
-      blocks: JSON.parse(blocksRaw || '[]'),
-      seoTitle: (formData.get('seoTitle') as string) || undefined,
-      seoDescription: (formData.get('seoDescription') as string) || undefined,
-    });
-    revalidatePath('/pages');
-    return { page };
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : 'Create failed' };
-  }
-}
-
-export async function updatePageAction(
-  formData: FormData,
-): Promise<{ page?: { slug: string }; error?: string }> {
-  const session = await getSession();
-  if (!session) return { error: 'Not authenticated' };
-
-  const slug = formData.get('slug') as string;
-  const blocksRaw = formData.get('blocks') as string;
-
-  try {
-    const page = await apiUpdatePage(session.accessToken, slug, {
-      title: formData.get('title') as string,
-      description: (formData.get('description') as string) || undefined,
-      blocks: JSON.parse(blocksRaw || '[]'),
-      seoTitle: (formData.get('seoTitle') as string) || undefined,
-      seoDescription: (formData.get('seoDescription') as string) || undefined,
-    });
-    revalidatePath('/pages');
-    await revalidateWebPage(slug);
-    return { page };
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : 'Update failed' };
-  }
-}
-
-export async function publishPageAction(slug: string): Promise<{ error?: string }> {
-  const session = await getSession();
-  if (!session) return { error: 'Not authenticated' };
-
-  try {
-    await apiPublishPage(session.accessToken, slug);
-    revalidatePath('/pages');
-    await revalidateWebPage(slug);
-    return {};
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : 'Publish failed' };
-  }
-}
-
-export async function unpublishPageAction(slug: string): Promise<{ error?: string }> {
-  const session = await getSession();
-  if (!session) return { error: 'Not authenticated' };
-
-  try {
-    await apiUnpublishPage(session.accessToken, slug);
-    revalidatePath('/pages');
-    return {};
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : 'Unpublish failed' };
-  }
-}
-
-export async function deletePageAction(slug: string): Promise<void> {
-  const session = await getSession();
-  if (!session) redirect('/login');
-
-  await apiDeletePage(session.accessToken, slug);
-  revalidatePath('/pages');
-  redirect('/pages');
-}
-
-// ---------------------------------------------------------------------------
 // Settings actions
 // ---------------------------------------------------------------------------
 
@@ -260,69 +145,6 @@ export async function addSettingAction(formData: FormData): Promise<{ ok: boolea
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Add failed' };
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Nav actions
-// ---------------------------------------------------------------------------
-
-export async function createNavItemAction(
-  formData: FormData,
-): Promise<{ ok: boolean; error?: string }> {
-  const session = await getSession();
-  if (!session) return { ok: false, error: 'Not authenticated' };
-
-  try {
-    await apiCreateNavItem(session.accessToken, {
-      label: formData.get('label') as string,
-      href: formData.get('href') as string,
-      location: (formData.get('location') as string) || 'header',
-      column: (formData.get('column') as string) || undefined,
-      order: parseInt((formData.get('order') as string) || '0', 10),
-      parentId: (formData.get('parentId') as string) || undefined,
-    });
-    revalidatePath('/nav');
-    return { ok: true };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Create failed' };
-  }
-}
-
-export async function updateNavItemAction(
-  formData: FormData,
-): Promise<{ ok: boolean; error?: string }> {
-  const session = await getSession();
-  if (!session) return { ok: false, error: 'Not authenticated' };
-
-  const id = formData.get('id') as string;
-
-  try {
-    await apiUpdateNavItem(session.accessToken, id, {
-      label: formData.get('label') as string,
-      href: formData.get('href') as string,
-      location: (formData.get('location') as string) || 'header',
-      column: (formData.get('column') as string) || undefined,
-      order: parseInt((formData.get('order') as string) || '0', 10),
-      visible: formData.get('visible') === 'true',
-    });
-    revalidatePath('/nav');
-    return { ok: true };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
-  }
-}
-
-export async function deleteNavItemAction(id: string): Promise<{ ok: boolean; error?: string }> {
-  const session = await getSession();
-  if (!session) return { ok: false, error: 'Not authenticated' };
-
-  try {
-    await apiDeleteNavItem(session.accessToken, id);
-    revalidatePath('/nav');
-    return { ok: true };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };
   }
 }
 
