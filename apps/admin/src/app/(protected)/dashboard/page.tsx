@@ -1,6 +1,12 @@
 import Link from 'next/link';
 import { getSession } from '@/lib/auth';
-import { apiListPages, apiGetAuditLog } from '@/lib/api';
+import {
+  apiListPages,
+  apiGetAuditLog,
+  apiListApplications,
+  apiDDDashboard,
+  type DDDashboard,
+} from '@/lib/api';
 import { redirect } from 'next/navigation';
 
 function timeAgo(iso: string) {
@@ -26,9 +32,19 @@ function actionLabel(action: string) {
     'nav.reorder': 'Reordered nav',
     'setting.set': 'Changed setting',
     'setting.delete': 'Deleted setting',
-    'admin.login': 'Signed in',
+    'admin.login.success': 'Signed in',
+    'admin.login.failed': 'Failed sign-in',
+    'admin.login.locked': 'Account locked',
     'admin.logout': 'Signed out',
-    'admin.create': 'Created admin user',
+    'admin.user.create': 'Created admin user',
+    'admin.user.activated': 'Activated user',
+    'admin.user.deactivated': 'Deactivated user',
+    'agent.application.status.change': 'Application status changed',
+    'agent.dd.file.create': 'Opened DD file',
+    'agent.dd.document.update': 'Updated DD document',
+    'agent.dd.stage.change': 'DD stage changed',
+    'agent.dd.risk.change': 'DD risk changed',
+    'agent.dd.review.record': 'Recorded DD review',
   };
   return map[action] ?? action;
 }
@@ -40,6 +56,9 @@ export default async function DashboardPage() {
   let totalPages = 0;
   let publishedPages = 0;
   let draftPages = 0;
+  let pendingApps = 0;
+  let totalApps = 0;
+  let dd: DDDashboard = { expiring: 0, expired: 0, missing: 0, reviewsDue: 0 };
   let auditItems: Awaited<ReturnType<typeof apiGetAuditLog>>['items'] = [];
 
   await Promise.allSettled([
@@ -48,22 +67,47 @@ export default async function DashboardPage() {
       publishedPages = pages.filter((p) => p.status === 'PUBLISHED').length;
       draftPages = pages.filter((p) => p.status === 'DRAFT').length;
     }),
+    apiListApplications(session.accessToken).then((apps) => {
+      totalApps = apps.length;
+      pendingApps = apps.filter((a) => a.status === 'NEW' || a.status === 'REVIEWING').length;
+    }),
+    apiDDDashboard(session.accessToken).then((d) => {
+      dd = d;
+    }),
     apiGetAuditLog(session.accessToken, { take: 15 }).then((r) => {
       auditItems = r.items;
     }),
   ]);
 
+  // Surfaced first when non-zero: the things an operator must act on.
+  const attention = [
+    { label: 'Applications to review', value: pendingApps, href: '/applications', tone: 'blue' as const },
+    { label: 'DD documents expired', value: dd.expired, href: '/agent-dd', tone: 'red' as const },
+    { label: 'DD documents expiring', value: dd.expiring, href: '/agent-dd', tone: 'amber' as const },
+    { label: 'DD reviews due', value: dd.reviewsDue, href: '/agent-dd', tone: 'amber' as const },
+    { label: 'DD documents missing', value: dd.missing, href: '/agent-dd', tone: 'gray' as const },
+  ];
+  const hasAttention = attention.some((a) => a.value > 0);
+
+  const toneClasses: Record<string, string> = {
+    red: 'bg-red-50 border-red-200 text-red-800',
+    amber: 'bg-amber-50 border-amber-200 text-amber-800',
+    blue: 'bg-blue-50 border-blue-200 text-blue-800',
+    gray: 'bg-gray-50 border-gray-200 text-gray-700',
+  };
+
   const stats = [
     { label: 'Total Pages', value: totalPages, color: 'bg-ivory border-smoke text-navy' },
     { label: 'Published', value: publishedPages, color: 'bg-green-50 border-green-200 text-green-800' },
     { label: 'Drafts', value: draftPages, color: 'bg-amber-50 border-amber-200 text-amber-800' },
+    { label: 'Agent Applications', value: totalApps, color: 'bg-ivory border-smoke text-navy' },
   ];
 
   const quickLinks = [
     { href: '/pages/new', label: 'New Page', desc: 'Create a new CMS page' },
-    { href: '/nav', label: 'Navigation', desc: 'Manage nav items & order' },
+    { href: '/applications', label: 'Applications', desc: 'Review agent leads' },
+    { href: '/agent-dd', label: 'Due Diligence', desc: 'Onboarding & ongoing DD' },
     { href: '/settings', label: 'Settings', desc: 'Configure site settings' },
-    { href: '/users', label: 'Users', desc: 'Manage admin users' },
   ];
 
   return (
@@ -73,13 +117,41 @@ export default async function DashboardPage() {
         <p className="admin-page-sub">Welcome back, {session.user.name}.</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className={`rounded-xl border p-6 ${stat.color}`}>
-            <div className="text-3xl font-bold">{stat.value}</div>
-            <div className="text-sm font-medium mt-1 opacity-75">{stat.label}</div>
+      {/* Needs attention — only when there's something to act on */}
+      <div>
+        <h2 className="admin-section-title">Needs attention</h2>
+        {hasAttention ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {attention
+              .filter((a) => a.value > 0)
+              .map((a) => (
+                <Link
+                  key={a.label}
+                  href={a.href}
+                  className={`rounded-xl border p-4 transition-shadow hover:shadow-sm ${toneClasses[a.tone]}`}
+                >
+                  <div className="text-2xl font-bold">{a.value}</div>
+                  <div className="text-xs font-medium mt-1">{a.label}</div>
+                </Link>
+              ))}
           </div>
-        ))}
+        ) : (
+          <div className="rounded-xl border border-green-200 bg-green-50 px-5 py-4 text-sm text-green-800">
+            All clear — no pending applications, expiring documents, or reviews due.
+          </div>
+        )}
+      </div>
+
+      <div>
+        <h2 className="admin-section-title">Content</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {stats.map((stat) => (
+            <div key={stat.label} className={`rounded-xl border p-6 ${stat.color}`}>
+              <div className="text-3xl font-bold">{stat.value}</div>
+              <div className="text-sm font-medium mt-1 opacity-75">{stat.label}</div>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div>
