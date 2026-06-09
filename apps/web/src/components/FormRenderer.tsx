@@ -13,6 +13,7 @@ const inputCls =
 export default function FormRenderer({ form }: { form: CmsForm }) {
   const { executeRecaptcha } = useGoogleReCaptcha();
   const [values, setValues] = useState<Record<string, unknown>>({});
+  const [consent, setConsent] = useState(false);
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
   const [done, setDone] = useState(false);
@@ -29,6 +30,7 @@ export default function FormRenderer({ form }: { form: CmsForm }) {
         return `Please complete: ${f.label}`;
       }
     }
+    if (!consent) return 'Please acknowledge the privacy and electronic-communications consent to continue.';
     return '';
   }
 
@@ -54,7 +56,11 @@ export default function FormRenderer({ form }: { form: CmsForm }) {
       const res = await fetch(`${API}/cms/forms/${form.slug}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: values, recaptchaToken }),
+        // Record the consent acknowledgement alongside the submission as evidence.
+        body: JSON.stringify({
+          data: { ...values, _consentAcknowledged: true, _consentAt: new Date().toISOString() },
+          recaptchaToken,
+        }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => null);
@@ -88,6 +94,24 @@ export default function FormRenderer({ form }: { form: CmsForm }) {
           />
         ))}
       </div>
+
+      <label className="flex items-start gap-2 text-sm text-ink/80">
+        <input
+          type="checkbox"
+          checked={consent}
+          onChange={(e) => setConsent(e.target.checked)}
+          className="mt-1"
+        />
+        <span>
+          I have read the{' '}
+          <a href="/privacy" target="_blank" className="text-primary underline">Privacy Policy</a>{' '}
+          and consent to the{' '}
+          <a href="/legal/electronic-communications" target="_blank" className="text-primary underline">
+            Electronic Communications
+          </a>{' '}
+          terms. I consent to World Direct Link processing the information I provide to respond to my request. *
+        </span>
+      </label>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 

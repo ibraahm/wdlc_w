@@ -129,6 +129,9 @@ async function main() {
     { slug: 'support/contact',           title: 'Contact Support',                       description: "We're here to help with transfers, tracking, refunds, and general questions." },
     { slug: 'privacy',                   title: 'Privacy Policy',                        description: 'Privacy policy for World Direct Link, Corp.' },
     { slug: 'terms',                     title: 'Terms of Use',                          description: 'Terms of use for the World Direct Link, Corp. website.' },
+    { slug: 'legal/cookies',             title: 'Cookie Policy',                         description: 'How World Direct Link, Corp. uses cookies and similar technologies.' },
+    { slug: 'legal/electronic-communications', title: 'Electronic Communications Consent', description: 'Consent to receive disclosures and communications electronically.' },
+    { slug: 'accessibility',             title: 'Accessibility Statement',               description: 'World Direct Link, Corp. is committed to digital accessibility for all users.' },
   ];
 
   // Additive: only create pages that don't exist yet. Existing pages — including

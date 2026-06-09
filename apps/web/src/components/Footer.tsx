@@ -43,7 +43,10 @@ export default function Footer() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', alignItems: 'center' }}>
             <span>&copy; {year} {company.legalName}</span>
             <Link href="/privacy">Privacy</Link>
+            <Link href="/legal/cookies">Cookies</Link>
+            <Link href="/legal/electronic-communications">E-Sign Consent</Link>
             <Link href="/terms">Terms</Link>
+            <Link href="/accessibility">Accessibility</Link>
             <Link href="/licenses">Licenses &amp; Regulatory Disclosures</Link>
           </div>
         </div>
