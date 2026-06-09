@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength, IsOptional, IsIn } from 'class-validator';
+import { IsEmail, IsString, MinLength, IsOptional, IsIn, IsBoolean } from 'class-validator';
 
 export const ADMIN_ROLES = ['SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR'] as const;
 
@@ -35,6 +35,11 @@ export class AdminCreateUserDto {
 export class AdminRefreshDto {
   @IsString()
   refreshToken: string;
+}
+
+export class AdminSetActiveDto {
+  @IsBoolean()
+  active: boolean;
 }
 
 export class AdminForgotPasswordDto {

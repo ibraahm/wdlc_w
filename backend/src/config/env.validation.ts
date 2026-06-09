@@ -36,6 +36,9 @@ export const envValidationSchema = Joi.object({
   ADMIN_JWT_SECRET: secret,
   AGENT_JWT_SECRET: secret,
 
+  LOG_LEVEL: Joi.string()
+    .valid('fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent')
+    .optional(),
   CORS_ORIGIN: Joi.string().optional(),
   SEED_ADMIN_EMAIL: Joi.string().email().optional(),
   SEED_ADMIN_PASSWORD: Joi.string().optional(),

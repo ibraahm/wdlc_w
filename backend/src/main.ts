@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { Logger } from 'nestjs-pino';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 
@@ -18,7 +19,10 @@ function assertSecrets() {
 
 async function bootstrap() {
   assertSecrets();
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+
+  // Route Nest's logger through pino (structured, redacted).
+  app.useLogger(app.get(Logger));
 
   // Behind a load balancer / reverse proxy in production: trust X-Forwarded-*
   // so req.ip is the real client (correct rate limiting, lockout, audit IPs).
@@ -50,6 +54,6 @@ async function bootstrap() {
 
   const port = parseInt(process.env.PORT || '4000', 10);
   await app.listen(port);
-  console.log(`WDLC backend listening on http://localhost:${port}/api`);
+  app.get(Logger).log(`WDLC backend listening on http://localhost:${port}/api`);
 }
 void bootstrap();

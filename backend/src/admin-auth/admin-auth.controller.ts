@@ -9,6 +9,7 @@ import {
   AdminForgotPasswordDto,
   AdminResetPasswordDto,
   AdminChangePasswordDto,
+  AdminSetActiveDto,
 } from './dto/admin-auth.dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -95,9 +96,9 @@ export class AdminAuthController {
   @Patch('users/:id/active')
   setActive(
     @Param('id') targetId: string,
-    @Body('active') active: boolean,
+    @Body() dto: AdminSetActiveDto,
     @CurrentUser('id') id: string,
   ) {
-    return this.auth.setUserActive(targetId, active, id);
+    return this.auth.setUserActive(targetId, dto.active, id);
   }
 }

@@ -13,6 +13,23 @@ export type Session = {
   agent: Agent;
 };
 
+// Refresh tokens rotate on every use with reuse-detection on the backend. When
+// several server components render concurrently and all find an expired access
+// token, each would call apiRefresh() with the SAME refresh token — the first
+// rotates it, the rest present a now-revoked token and trip reuse-detection,
+// logging the user out. Collapse concurrent refreshes for a given token into a
+// single in-flight promise so only one rotation happens per request burst.
+type RefreshResult = Awaited<ReturnType<typeof apiRefresh>>;
+const inFlight = new Map<string, Promise<RefreshResult>>();
+
+function dedupedRefresh(token: string): Promise<RefreshResult> {
+  const existing = inFlight.get(token);
+  if (existing) return existing;
+  const p = apiRefresh(token).finally(() => inFlight.delete(token));
+  inFlight.set(token, p);
+  return p;
+}
+
 export async function getSession(): Promise<Session | null> {
   const cookieStore = cookies();
   const pat = cookieStore.get(PAT)?.value;
@@ -30,7 +47,7 @@ export async function getSession(): Promise<Session | null> {
 
   if (prt) {
     try {
-      const result = await apiRefresh(prt);
+      const result = await dedupedRefresh(prt);
       await setSessionCookies(result.accessToken, result.refreshToken, result.agent);
       return { accessToken: result.accessToken, agent: result.agent };
     } catch {
@@ -51,34 +68,45 @@ export async function setSessionCookies(
 
   const secure = process.env.NODE_ENV === 'production';
 
-  cookieStore.set(PAT, accessToken, {
-    httpOnly: true,
-    secure,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: ACCESS_MAX_AGE,
-  });
+  // cookies() is read-only during page/layout render; only Server Actions and
+  // Route Handlers may mutate it. Guard the writes — a failed refresh-persist
+  // just means we refresh again next request.
+  try {
+    cookieStore.set(PAT, accessToken, {
+      httpOnly: true,
+      secure,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: ACCESS_MAX_AGE,
+    });
 
-  cookieStore.set(PRT, refreshToken, {
-    httpOnly: true,
-    secure,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: REFRESH_MAX_AGE,
-  });
+    cookieStore.set(PRT, refreshToken, {
+      httpOnly: true,
+      secure,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: REFRESH_MAX_AGE,
+    });
 
-  cookieStore.set(PAGENT, JSON.stringify(agent), {
-    httpOnly: true,
-    secure,
-    sameSite: 'lax',
-    path: '/',
-    maxAge: ACCESS_MAX_AGE,
-  });
+    cookieStore.set(PAGENT, JSON.stringify(agent), {
+      httpOnly: true,
+      secure,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: ACCESS_MAX_AGE,
+    });
+  } catch {
+    // read-only cookie context (render) — ignore
+  }
 }
 
 export async function clearSessionCookies(): Promise<void> {
   const cookieStore = cookies();
-  cookieStore.delete(PAT);
-  cookieStore.delete(PRT);
-  cookieStore.delete(PAGENT);
+  try {
+    cookieStore.delete(PAT);
+    cookieStore.delete(PRT);
+    cookieStore.delete(PAGENT);
+  } catch {
+    // read-only cookie context (render) — ignore
+  }
 }

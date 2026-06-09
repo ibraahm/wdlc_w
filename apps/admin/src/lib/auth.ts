@@ -13,6 +13,23 @@ export type Session = {
   user: AdminUser;
 };
 
+// Refresh tokens rotate on every use with reuse-detection on the backend. When
+// several server components render concurrently and all find an expired access
+// token, each would call apiRefresh() with the SAME refresh token — the first
+// rotates it, the rest present a now-revoked token and trip reuse-detection,
+// logging the user out. Collapse concurrent refreshes for a given token into a
+// single in-flight promise so only one rotation happens per request burst.
+type RefreshResult = Awaited<ReturnType<typeof apiRefresh>>;
+const inFlight = new Map<string, Promise<RefreshResult>>();
+
+function dedupedRefresh(token: string): Promise<RefreshResult> {
+  const existing = inFlight.get(token);
+  if (existing) return existing;
+  const p = apiRefresh(token).finally(() => inFlight.delete(token));
+  inFlight.set(token, p);
+  return p;
+}
+
 export async function getSession(): Promise<Session | null> {
   const cookieStore = cookies();
   const aat = cookieStore.get(AAT)?.value;
@@ -30,7 +47,7 @@ export async function getSession(): Promise<Session | null> {
 
   if (art) {
     try {
-      const result = await apiRefresh(art);
+      const result = await dedupedRefresh(art);
       await setSessionCookies(result.accessToken, result.refreshToken, result.user);
       return { accessToken: result.accessToken, user: result.user };
     } catch {
