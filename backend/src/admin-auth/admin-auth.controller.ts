@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 import { AdminAuthService } from './admin-auth.service';
@@ -33,9 +33,10 @@ export class AdminAuthController {
   @Public()
   @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @Post('login')
-  async login(@Body() dto: AdminLoginDto, @Req() req: Request) {
-    if (!(await this.recaptcha.verify(dto.recaptchaToken, 'admin_login')))
-      throw new ForbiddenException('Security check failed. Please try again.');
+  login(@Body() dto: AdminLoginDto, @Req() req: Request) {
+    // reCAPTCHA is intentionally skipped for the internal admin portal.
+    // The portal is not public-facing; rate limiting + account lockout are the
+    // relevant controls here.
     return this.auth.login(dto.email, dto.password, req.ip, req.headers['user-agent']);
   }
 
@@ -49,9 +50,7 @@ export class AdminAuthController {
   @Public()
   @Throttle({ default: { ttl: 300_000, limit: 3 } })
   @Post('forgot-password')
-  async forgotPassword(@Body() dto: AdminForgotPasswordDto) {
-    if (!(await this.recaptcha.verify(dto.recaptchaToken, 'admin_forgot_password')))
-      throw new ForbiddenException('Security check failed. Please try again.');
+  forgotPassword(@Body() dto: AdminForgotPasswordDto) {
     return this.auth.forgotPassword(dto.email);
   }
 
