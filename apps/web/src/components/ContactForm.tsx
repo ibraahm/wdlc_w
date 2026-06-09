@@ -9,17 +9,21 @@ export type Field =
   | { name: string; label: string; type: 'select'; options: string[]; required?: boolean; optional?: boolean }
   | { name: string; label: string; type: 'file'; required?: boolean; optional?: boolean };
 
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+
 export default function ContactForm({
   fields,
   submitLabel = 'Submit',
   successMessage = "Thanks — we've received your message and will respond shortly.",
-  action = 'contact_form',
+  action = 'form_submit',
+  /** CMS form slug to POST submissions to. When omitted the form is display-only. */
+  formSlug,
 }: {
   fields: Field[];
   submitLabel?: string;
   successMessage?: string;
-  /** reCAPTCHA v3 action name — use a descriptive slug per form (e.g. "complaint_form") */
   action?: string;
+  formSlug?: string;
 }) {
   const { executeRecaptcha } = useGoogleReCaptcha();
   const [submitted, setSubmitted] = useState(false);
@@ -31,15 +35,36 @@ export default function ContactForm({
     setError('');
     setPending(true);
 
-    // If reCAPTCHA is configured, get a token before submitting.
-    // The token should be verified server-side when a form-intake endpoint exists.
+    let recaptchaToken: string | undefined;
     if (executeRecaptcha) {
       try {
-        await executeRecaptcha(action);
-        // Token obtained — pass to your backend as a hidden field or
-        // request header when you wire up the intake endpoint.
+        recaptchaToken = await executeRecaptcha(action);
       } catch {
         setError('Security check failed. Please try again.');
+        setPending(false);
+        return;
+      }
+    }
+
+    if (formSlug) {
+      const form = e.currentTarget;
+      const data: Record<string, string> = {};
+      for (const field of fields) {
+        const el = form.elements.namedItem(field.name) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null;
+        if (el) data[field.name] = el.value;
+      }
+      try {
+        const res = await fetch(`${API}/cms/forms/${formSlug}/submit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data, recaptchaToken }),
+        });
+        if (!res.ok) {
+          const j = await res.json().catch(() => null);
+          throw new Error(j?.message || 'Submission failed. Please try again.');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Submission failed. Please try again.');
         setPending(false);
         return;
       }
@@ -132,13 +157,15 @@ export default function ContactForm({
             </>
           ) : submitLabel}
         </button>
-        <p className="text-xs text-muted mt-3 leading-relaxed">
-          Protected by reCAPTCHA.{' '}
-          <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">Privacy</a>
-          {' & '}
-          <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">Terms</a>
-          {' apply.'}
-        </p>
+        {executeRecaptcha && (
+          <p className="text-xs text-muted mt-3 leading-relaxed">
+            Protected by reCAPTCHA.{' '}
+            <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">Privacy</a>
+            {' & '}
+            <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">Terms</a>
+            {' apply.'}
+          </p>
+        )}
       </div>
     </form>
   );

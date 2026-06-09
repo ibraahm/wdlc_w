@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { PageHero, Section, SectionHeading } from '@/components/ui';
 import ContactForm, { type Field } from '@/components/ContactForm';
+import HQMap from '@/components/HQMap';
 import { company } from '@/lib/site';
 import { getCmsPage, cmsMetadata } from '@/lib/cms';
 import BlockRenderer from '@/components/BlockRenderer';
@@ -14,16 +15,10 @@ export async function generateMetadata() {
 }
 
 const fields: Field[] = [
-  { name: 'name', label: 'Name', type: 'text', required: true },
-  { name: 'email', label: 'Email', type: 'email', required: true },
+  { name: 'name', label: 'Full Name', type: 'text', required: true },
+  { name: 'email', label: 'Email Address', type: 'email', required: true },
   { name: 'phone', label: 'Phone', type: 'tel', optional: true },
-  {
-    name: 'topic',
-    label: 'Topic',
-    type: 'select',
-    required: true,
-    options: ['General', 'Agent inquiry', 'Compliance', 'Claims'],
-  },
+  { name: 'subject', label: 'Subject', type: 'text', required: true },
   { name: 'message', label: 'Message', type: 'textarea', required: true },
 ];
 
@@ -77,9 +72,8 @@ export default async function ContactPage() {
               </dl>
             </div>
 
-            <div className="mt-8 flex items-center justify-center rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 py-16 px-4 text-center text-gray-400">
-              [ Map: {company.address.line1}, {company.address.city}, {company.address.state}{' '}
-              {company.address.zip} ]
+            <div className="mt-8">
+              <HQMap />
             </div>
 
             <p className="mt-6 text-sm text-gray-600">
@@ -93,7 +87,7 @@ export default async function ContactPage() {
 
           <div>
             <SectionHeading title="Send us a message" />
-            <ContactForm fields={fields} submitLabel="Send Message" action="contact_us" />
+            <ContactForm fields={fields} submitLabel="Send Message" action="form_submit" formSlug="contact-us" successMessage="Thanks for reaching out — we will get back to you shortly." />
           </div>
         </div>
       </Section>

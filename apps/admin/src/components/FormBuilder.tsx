@@ -3,8 +3,8 @@
 import { useState, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import type { BuilderForm, FormField, FormSubmission } from '@/lib/api';
-import { saveFormAction, deleteSubmissionAction } from '@/lib/actions';
+import type { BuilderForm, FormField } from '@/lib/api';
+import { saveFormAction } from '@/lib/actions';
 
 const FIELD_TYPES: { type: string; label: string; icon: string }[] = [
   { type: 'text', label: 'Text', icon: 'T' },
@@ -32,16 +32,10 @@ function nameFromLabel(label: string): string {
 const inputCls = 'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900';
 const labelCls = 'block text-xs font-semibold text-gray-600 mb-1';
 
-export default function FormBuilder({
-  form,
-  submissions,
-}: {
-  form: BuilderForm;
-  submissions: FormSubmission[];
-}) {
+export default function FormBuilder({ form }: { form: BuilderForm }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [tab, setTab] = useState<'build' | 'settings' | 'submissions'>('build');
+  const [tab, setTab] = useState<'build' | 'settings'>('build');
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
 
@@ -122,36 +116,17 @@ export default function FormBuilder({
     });
   }
 
-  function removeSubmission(submissionId: string) {
-    if (!confirm('Delete this submission?')) return;
-    startTransition(async () => {
-      const res = await deleteSubmissionAction(form.id, submissionId);
-      if (!res.ok) setError(res.error ?? 'Delete failed');
-      else router.refresh();
-    });
-  }
-
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <Link href="/forms" className="text-xs text-gray-400 hover:underline">← All forms</Link>
-          <h1 className="text-2xl font-bold text-gray-900">{name || 'Untitled form'}</h1>
-          <p className="text-sm text-gray-500">
-            Public URL: <code>/forms/{slug}</code>
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {saved && <span className="text-sm text-green-600">Saved ✓</span>}
-          <button
-            onClick={save}
-            disabled={isPending}
-            className="rounded-lg bg-navy px-5 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
-          >
-            {isPending ? 'Saving…' : 'Save form'}
-          </button>
-        </div>
+      <div className="flex items-center gap-3">
+        {saved && <span className="text-sm text-green-600 ml-auto">Saved ✓</span>}
+        <button
+          onClick={save}
+          disabled={isPending}
+          className="ml-auto rounded-lg bg-navy px-5 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+        >
+          {isPending ? 'Saving…' : 'Save form'}
+        </button>
       </div>
 
       {error && (
@@ -160,7 +135,7 @@ export default function FormBuilder({
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-gray-200">
-        {([['build', 'Builder'], ['settings', 'Settings'], ['submissions', `Submissions (${submissions.length})`]] as const).map(([id, label]) => (
+        {([['build', 'Builder'], ['settings', 'Settings']] as const).map(([id, label]) => (
           <button
             key={id}
             onClick={() => setTab(id)}
@@ -325,30 +300,6 @@ export default function FormBuilder({
       )}
 
       {/* SUBMISSIONS */}
-      {tab === 'submissions' && (
-        <div className="space-y-3">
-          {submissions.length === 0 ? (
-            <p className="text-sm text-gray-500">No submissions yet.</p>
-          ) : (
-            submissions.map((s) => (
-              <div key={s.id} className="rounded-xl border border-gray-200 bg-white p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-gray-400">{new Date(s.createdAt).toLocaleString()}</span>
-                  <button onClick={() => removeSubmission(s.id)} className="text-xs text-red-500 hover:text-red-700">Delete</button>
-                </div>
-                <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
-                  {Object.entries(s.data).map(([k, v]) => (
-                    <div key={k}>
-                      <dt className="text-xs text-gray-400">{k}</dt>
-                      <dd className="text-sm text-gray-800 break-words">{Array.isArray(v) ? v.join(', ') : String(v)}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
-            ))
-          )}
-        </div>
-      )}
     </div>
   );
 }
