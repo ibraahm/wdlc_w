@@ -103,14 +103,25 @@ describe('AdminAuthService', () => {
       expect(prisma.adminUser.update).not.toHaveBeenCalled();
     });
 
-    it('blocks login while the account is locked', async () => {
+    it('blocks login while the account is locked (only after a valid password)', async () => {
       prisma.adminUser.findUnique.mockResolvedValue({
         ...baseUser,
         lockedUntil: new Date(Date.now() + 600_000),
       });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
       await expect(service.login('admin@wdlc.test', 'correct')).rejects.toThrow('temporarily locked');
       expect(audit.log).toHaveBeenCalledWith(expect.objectContaining({ action: 'admin.login.locked' }));
+    });
+
+    it('does NOT reveal the lock to a wrong password (no enumeration)', async () => {
+      prisma.adminUser.findUnique.mockResolvedValue({
+        ...baseUser,
+        lockedUntil: new Date(Date.now() + 600_000),
+      });
+      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
+
+      await expect(service.login('admin@wdlc.test', 'wrong')).rejects.toThrow('Invalid credentials');
     });
 
     it('rejects an inactive account even with the right password', async () => {

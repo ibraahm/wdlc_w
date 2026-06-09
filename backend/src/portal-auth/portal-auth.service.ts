@@ -13,6 +13,7 @@ import { AuditService } from '../audit/audit.service';
 import { MailService } from '../common/mail.service';
 import { RefreshTokenService } from '../common/refresh-token.service';
 import { generateToken, hashToken } from '../common/crypto.util';
+import { verifyPassword } from '../common/password.util';
 import { isLocked, nextFailedAttempt, CLEAR_LOCKOUT } from '../common/lockout.util';
 import {
   BCRYPT_ROUNDS,
@@ -114,17 +115,23 @@ export class PortalAuthService {
   async login(email: string, password: string, ip?: string, ua?: string) {
     const agent = await this.prisma.agentUser.findUnique({ where: { email } });
 
-    if (isLocked(agent?.lockedUntil)) {
-      await this.logHistory(agent!.id, ip, ua, false, 'LOCKED');
-      throw new UnauthorizedException('Account temporarily locked — try again later');
-    }
+    // Always verify the password (dummy compare when the account is missing) so
+    // neither the response nor its timing reveals whether the email exists.
+    const passwordValid = await verifyPassword(password, agent?.passwordHash);
 
-    if (!agent || !(await bcrypt.compare(password, agent.passwordHash))) {
+    if (!agent || !passwordValid) {
       if (agent) {
         await this.prisma.agentUser.update({ where: { id: agent.id }, data: nextFailedAttempt(agent.failedAttempts) });
         await this.logHistory(agent.id, ip, ua, false, 'BAD_PASSWORD');
       }
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Credentials are correct — the account-state messages below require the
+    // right password to reach, so they cannot be used for enumeration.
+    if (isLocked(agent.lockedUntil)) {
+      await this.logHistory(agent.id, ip, ua, false, 'LOCKED');
+      throw new UnauthorizedException('Account temporarily locked — try again later');
     }
 
     if (!agent.emailVerified) {

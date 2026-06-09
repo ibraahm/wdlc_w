@@ -13,6 +13,7 @@ import { AuditService } from '../audit/audit.service';
 import { MailService } from '../common/mail.service';
 import { RefreshTokenService } from '../common/refresh-token.service';
 import { generateToken, hashToken } from '../common/crypto.util';
+import { verifyPassword } from '../common/password.util';
 import { isLocked, nextFailedAttempt, CLEAR_LOCKOUT } from '../common/lockout.util';
 import {
   BCRYPT_ROUNDS,
@@ -49,17 +50,27 @@ export class AdminAuthService {
   async login(email: string, password: string, ip?: string, ua?: string) {
     const user = await this.prisma.adminUser.findUnique({ where: { email } });
 
-    if (isLocked(user?.lockedUntil)) {
-      await this.audit.log({ action: 'admin.login.locked', adminId: user!.id, ip, userAgent: ua });
-      throw new UnauthorizedException('Account temporarily locked — try again later');
-    }
+    // Always verify the password (dummy compare when the account is missing) so
+    // neither the response nor its timing reveals whether the email exists.
+    const passwordValid = await verifyPassword(password, user?.passwordHash);
 
-    if (!user || !user.active || !(await bcrypt.compare(password, user.passwordHash))) {
+    if (!user || !passwordValid) {
       if (user) {
         await this.prisma.adminUser.update({ where: { id: user.id }, data: nextFailedAttempt(user.failedAttempts) });
         await this.audit.log({ action: 'admin.login.failed', adminId: user.id, ip, userAgent: ua });
       }
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Credentials are correct — account-state messages below cannot be used for
+    // enumeration since they require the right password to reach.
+    if (isLocked(user.lockedUntil)) {
+      await this.audit.log({ action: 'admin.login.locked', adminId: user.id, ip, userAgent: ua });
+      throw new UnauthorizedException('Account temporarily locked — try again later');
+    }
+    if (!user.active) {
+      await this.audit.log({ action: 'admin.login.inactive', adminId: user.id, ip, userAgent: ua });
+      throw new UnauthorizedException('Account is not active — contact support');
     }
 
     await this.prisma.adminUser.update({ where: { id: user.id }, data: { ...CLEAR_LOCKOUT, lastLoginAt: new Date() } });
