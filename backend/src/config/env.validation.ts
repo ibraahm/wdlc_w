@@ -14,13 +14,16 @@ const PLACEHOLDERS = [
   'change-me-agent-secret-openssl-rand-hex-32',
 ];
 
-// In production, secrets must be present, long, and not a known placeholder.
-const prodSecret = Joi.string()
-  .min(32)
-  .invalid(...PLACEHOLDERS)
-  .required();
-const devSecret = Joi.string().min(8).optional();
-const secret = isProd ? prodSecret : devSecret;
+// Each secret is OPTIONAL at the field level — the cross-field .custom() below
+// enforces that every portal ends up with a usable secret (per-portal OR the
+// shared JWT_SECRET fallback), matching assertSecrets() in main.ts. When a
+// secret IS provided in production it must be long and not a known placeholder.
+const secretField = isProd
+  ? Joi.string()
+      .min(32)
+      .invalid(...PLACEHOLDERS)
+      .optional()
+  : Joi.string().min(8).optional();
 
 export const envValidationSchema = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'test', 'production').default('development'),
@@ -30,11 +33,11 @@ export const envValidationSchema = Joi.object({
     ? Joi.string().uri({ scheme: ['postgres', 'postgresql'] }).required()
     : Joi.string().required(),
 
-  // Either a shared JWT_SECRET or per-portal secrets must satisfy validation.
-  // We validate each individually; main.ts asserts at least one path is set.
-  JWT_SECRET: secret,
-  ADMIN_JWT_SECRET: secret,
-  AGENT_JWT_SECRET: secret,
+  // JWT_SECRET is a shared fallback; ADMIN/AGENT are the per-portal secrets.
+  // Presence is enforced per-portal in the cross-field check below.
+  JWT_SECRET: secretField,
+  ADMIN_JWT_SECRET: secretField,
+  AGENT_JWT_SECRET: secretField,
 
   LOG_LEVEL: Joi.string()
     .valid('fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent')
@@ -53,13 +56,13 @@ export const envValidationSchema = Joi.object({
     const admin = value.ADMIN_JWT_SECRET || value.JWT_SECRET;
     const agent = value.AGENT_JWT_SECRET || value.JWT_SECRET;
     if (!admin || !agent) {
-      return helpers.error('any.custom', {
-        message: 'Set ADMIN_JWT_SECRET and AGENT_JWT_SECRET (or a shared JWT_SECRET) in production',
+      return helpers.message({
+        custom: 'Set ADMIN_JWT_SECRET and AGENT_JWT_SECRET (or a shared JWT_SECRET) in production',
       });
     }
     if (value.ADMIN_JWT_SECRET && value.AGENT_JWT_SECRET && value.ADMIN_JWT_SECRET === value.AGENT_JWT_SECRET) {
-      return helpers.error('any.custom', {
-        message: 'ADMIN_JWT_SECRET and AGENT_JWT_SECRET must differ in production',
+      return helpers.message({
+        custom: 'ADMIN_JWT_SECRET and AGENT_JWT_SECRET must differ in production',
       });
     }
     return value;
