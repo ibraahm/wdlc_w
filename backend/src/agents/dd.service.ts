@@ -172,6 +172,26 @@ export class DDService {
     return updated;
   }
 
+  /**
+   * Recomputes statuses across ALL files (nightly job entry point). Only writes
+   * rows whose status actually changed; returns how many transitioned.
+   */
+  async recomputeAllStatuses(): Promise<{ scanned: number; changed: number }> {
+    const docs = await this.prisma.agentDocument.findMany({
+      where: { status: { not: 'NA' } },
+    });
+    let changed = 0;
+    for (const doc of docs) {
+      const hasExpiry = DD_CATALOG.find((c) => c.code === doc.code)?.hasExpiry ?? true;
+      const status = computeDocStatus({ present: doc.present, hasExpiry, expiry: doc.expiry });
+      if (status !== doc.status) {
+        await this.prisma.agentDocument.update({ where: { id: doc.id }, data: { status } });
+        changed++;
+      }
+    }
+    return { scanned: docs.length, changed };
+  }
+
   /** Recomputes every document's status (e.g. nightly, as expiries pass). */
   async recomputeStatuses(fileId: string) {
     const docs = await this.prisma.agentDocument.findMany({ where: { ddFileId: fileId } });

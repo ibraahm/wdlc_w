@@ -2,6 +2,8 @@ import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { builderForms } from './seed-forms';
 import { homeBlocks } from './seed-home';
+import { DD_CATALOG } from '../src/agents/dd-catalog';
+import { computeDocStatus } from '../src/agents/dd-status.util';
 
 const prisma = new PrismaClient();
 
@@ -212,6 +214,97 @@ async function main() {
     create: { key: 'application.draftTimeoutMinutes', value: JSON.stringify(30) },
   });
   console.log('Seeded default site settings');
+
+  // ── Example agent DD files (dev demo data) ─────────────────────────────────
+  // Seeded once; safe to leave in place. Shows the lifecycle/register screens
+  // with a mix of OK / EXPIRING / EXPIRED / MISSING states.
+  await seedOnce('agent.dd.examples.v1', async () => {
+    const day = 24 * 60 * 60 * 1000;
+    const future = (d: number) => new Date(Date.now() + d * day);
+    const past = (d: number) => new Date(Date.now() - d * day);
+
+    type Demo = {
+      agentName: string;
+      entityType: 'BUSINESS' | 'INDIVIDUAL';
+      states: string;
+      stage: string;
+      riskRating: string;
+      // expiry override per catalog code; absent = present with no expiry; null-skip = MISSING
+      docs: Record<string, { present: boolean; expiry?: Date | null; notes?: string }>;
+    };
+
+    const demos: Demo[] = [
+      {
+        agentName: 'Cedar Riverside Remittance',
+        entityType: 'BUSINESS',
+        states: 'MN',
+        stage: 'ACTIVE',
+        riskRating: 'MEDIUM',
+        // mostly complete; one expiring, one expired
+        docs: {
+          r0: { present: true },
+          r1: { present: true, expiry: future(200) },
+          r2: { present: true, expiry: future(300) },
+          r3: { present: true },
+          r4: { present: true, expiry: future(45), notes: 'Utility bill on file' },
+          r5: { present: true, expiry: past(5), notes: 'ID expired — renewal requested' },
+          r6: { present: true, expiry: future(120) },
+          r9: { present: true, expiry: future(120) },
+          r10: { present: true, expiry: future(120) },
+          r11: { present: true },
+          r12: { present: true, expiry: future(30) },
+        },
+      },
+      {
+        agentName: 'Horn Express Services',
+        entityType: 'BUSINESS',
+        states: 'OH',
+        stage: 'DD_IN_PROGRESS',
+        riskRating: 'HIGH',
+        docs: {
+          r0: { present: true },
+          r2: { present: true, expiry: future(365) },
+          r3: { present: true },
+          // many still missing → DD in progress
+        },
+      },
+    ];
+
+    for (const d of demos) {
+      const file = await prisma.agentDDFile.create({
+        data: {
+          agentName: d.agentName,
+          entityType: d.entityType,
+          states: d.states,
+          stage: d.stage,
+          riskRating: d.riskRating,
+          onboardedAt: d.stage === 'ACTIVE' ? past(120) : null,
+          lastReviewedAt: d.stage === 'ACTIVE' ? past(120) : null,
+          reviewedBy: d.stage === 'ACTIVE' ? 'WDLC Compliance' : null,
+          nextReviewDueAt: d.stage === 'ACTIVE' ? future(245) : null,
+          documents: {
+            create: DD_CATALOG.map((item) => {
+              const applicable = !(item.businessOnly && d.entityType === 'INDIVIDUAL');
+              const set = d.docs[item.code];
+              const present = applicable ? !!set?.present : false;
+              const expiry = set?.expiry ?? null;
+              const status = computeDocStatus({ present, applicable, hasExpiry: item.hasExpiry, expiry });
+              return {
+                code: item.code,
+                section: item.section,
+                label: item.label,
+                present,
+                expiry,
+                status,
+                notes: set?.notes ?? null,
+              };
+            }),
+          },
+        },
+      });
+      console.log(`Seeded demo DD file: ${file.agentName}`);
+    }
+  });
 }
 
 main()

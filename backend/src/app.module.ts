@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
+import { ScheduleModule } from '@nestjs/schedule';
 import { envValidationSchema } from './config/env.validation';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
@@ -21,6 +22,9 @@ import { HealthModule } from './health/health.module';
       validationSchema: envValidationSchema,
       validationOptions: { abortEarly: false },
     }),
+
+    // Cron scheduling (nightly DD status recompute).
+    ScheduleModule.forRoot(),
 
     // Structured JSON logging in prod; pretty-printed in dev. Redacts secrets
     // and PII so tokens/passwords never reach the logs.
