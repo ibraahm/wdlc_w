@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: '/partners', label: 'Partners', icon: '⬡' },
   { href: '/network', label: 'Network Map', icon: '🌍' },
   { href: '/applications', label: 'Applications', icon: '✉' },
+  { href: '/agent-dd', label: 'Agent Due Diligence', icon: '✔' },
   { href: '/forms', label: 'Forms', icon: '▤' },
   { href: '/nav', label: 'Navigation', icon: '≡' },
   { href: '/settings', label: 'Settings', icon: '◎' },

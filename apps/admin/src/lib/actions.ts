@@ -35,6 +35,11 @@ import {
   apiCreateNetworkCountry,
   apiUpdateNetworkCountry,
   apiDeleteNetworkCountry,
+  apiCreateDDFile,
+  apiUpdateDDDocument,
+  apiSetDDStage,
+  apiSetDDRisk,
+  apiRecordDDReview,
 } from './api';
 import type { BuilderForm, Partner, NetworkCountry } from './api';
 import { getSession, setSessionCookies, clearSessionCookies } from './auth';
@@ -593,5 +598,81 @@ export async function deleteNetworkCountryAction(id: string): Promise<{ ok: bool
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };
+  }
+}
+
+// ─── Agent Due Diligence ────────────────────────────────────────────────────
+export async function createDDFileAction(data: {
+  agentName: string;
+  entityType?: string;
+  states?: string;
+  regionalOffice?: string;
+  applicationId?: string;
+}): Promise<{ ok: boolean; id?: string; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    const file = await apiCreateDDFile(session.accessToken, data);
+    revalidatePath('/agent-dd');
+    return { ok: true, id: file.id };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Create failed' };
+  }
+}
+
+export async function updateDDDocumentAction(
+  fileId: string,
+  code: string,
+  data: { present?: boolean; expiry?: string | null; notes?: string; dropboxUrl?: string },
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiUpdateDDDocument(session.accessToken, fileId, code, data);
+    revalidatePath(`/agent-dd/${fileId}`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
+  }
+}
+
+export async function setDDStageAction(id: string, stage: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiSetDDStage(session.accessToken, id, stage);
+    revalidatePath(`/agent-dd/${id}`);
+    revalidatePath('/agent-dd');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
+  }
+}
+
+export async function setDDRiskAction(id: string, riskRating: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiSetDDRisk(session.accessToken, id, riskRating);
+    revalidatePath(`/agent-dd/${id}`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
+  }
+}
+
+export async function recordDDReviewAction(
+  id: string,
+  reviewedBy: string,
+  nextReviewDueAt?: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiRecordDDReview(session.accessToken, id, reviewedBy, nextReviewDueAt);
+    revalidatePath(`/agent-dd/${id}`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
   }
 }

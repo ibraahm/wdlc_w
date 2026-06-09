@@ -690,3 +690,108 @@ export async function apiDeleteNetworkCountry(accessToken: string, id: string): 
   const res = await authFetch(`/cms/network/${id}`, accessToken, { method: 'DELETE' });
   await handleResponse<void>(res);
 }
+
+// ─── Agent Due Diligence (lifecycle) ────────────────────────────────────────
+export interface DDDocument {
+  id: string;
+  code: string;
+  section: 'DOCUMENTATION' | 'COMPLIANCE' | 'ONGOING';
+  label: string;
+  present: boolean;
+  expiry: string | null;
+  status: 'OK' | 'EXPIRING' | 'EXPIRED' | 'MISSING' | 'NA';
+  notes: string | null;
+  dropboxUrl: string | null;
+}
+
+export interface DDFile {
+  id: string;
+  applicationId: string | null;
+  agentName: string;
+  entityType: 'BUSINESS' | 'INDIVIDUAL';
+  states: string | null;
+  regionalOffice: string | null;
+  stage: string;
+  riskRating: 'LOW' | 'MEDIUM' | 'HIGH' | null;
+  onboardedAt: string | null;
+  lastReviewedAt: string | null;
+  reviewedBy: string | null;
+  nextReviewDueAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  documents?: DDDocument[];
+  summary?: Record<string, number>;
+  compliant?: boolean;
+}
+
+export interface DDDashboard {
+  expiring: number;
+  expired: number;
+  missing: number;
+  reviewsDue: number;
+}
+
+export async function apiListDDFiles(accessToken: string, stage?: string): Promise<DDFile[]> {
+  const q = stage ? `?stage=${encodeURIComponent(stage)}` : '';
+  const res = await authFetch(`/admin/agent-dd${q}`, accessToken);
+  return handleResponse<DDFile[]>(res);
+}
+
+export async function apiDDDashboard(accessToken: string): Promise<DDDashboard> {
+  const res = await authFetch('/admin/agent-dd/dashboard', accessToken);
+  return handleResponse<DDDashboard>(res);
+}
+
+export async function apiGetDDFile(accessToken: string, id: string): Promise<DDFile> {
+  const res = await authFetch(`/admin/agent-dd/${id}`, accessToken);
+  return handleResponse<DDFile>(res);
+}
+
+export interface CreateDDFileInput {
+  agentName: string;
+  entityType?: string;
+  states?: string;
+  regionalOffice?: string;
+  applicationId?: string;
+}
+
+export async function apiCreateDDFile(accessToken: string, data: CreateDDFileInput): Promise<DDFile> {
+  const res = await authFetch('/admin/agent-dd', accessToken, { method: 'POST', body: JSON.stringify(data) });
+  return handleResponse<DDFile>(res);
+}
+
+export async function apiUpdateDDDocument(
+  accessToken: string,
+  fileId: string,
+  code: string,
+  data: Partial<Pick<DDDocument, 'present' | 'expiry' | 'notes' | 'dropboxUrl'>>,
+): Promise<DDDocument> {
+  const res = await authFetch(`/admin/agent-dd/${fileId}/documents/${code}`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+  return handleResponse<DDDocument>(res);
+}
+
+export async function apiSetDDStage(accessToken: string, id: string, stage: string): Promise<DDFile> {
+  const res = await authFetch(`/admin/agent-dd/${id}/stage`, accessToken, { method: 'PATCH', body: JSON.stringify({ stage }) });
+  return handleResponse<DDFile>(res);
+}
+
+export async function apiSetDDRisk(accessToken: string, id: string, riskRating: string): Promise<DDFile> {
+  const res = await authFetch(`/admin/agent-dd/${id}/risk`, accessToken, { method: 'PATCH', body: JSON.stringify({ riskRating }) });
+  return handleResponse<DDFile>(res);
+}
+
+export async function apiRecordDDReview(
+  accessToken: string,
+  id: string,
+  reviewedBy: string,
+  nextReviewDueAt?: string,
+): Promise<DDFile> {
+  const res = await authFetch(`/admin/agent-dd/${id}/review`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify({ reviewedBy, nextReviewDueAt }),
+  });
+  return handleResponse<DDFile>(res);
+}
