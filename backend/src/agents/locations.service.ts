@@ -1,7 +1,8 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { GeocodeService } from './geocode.service';
-import * as XLSX from 'xlsx';
+import { Readable } from 'stream';
+import ExcelJS from 'exceljs';
 
 export interface ImportRow {
   businessName: string;
@@ -40,18 +41,47 @@ export class LocationsService {
     return this.prisma.agentLocation.findMany({ orderBy: { createdAt: 'desc' } });
   }
 
-  async parseExcel(buffer: Buffer): Promise<ImportRow[]> {
-    let workbook: XLSX.WorkBook;
+  async parseExcel(buffer: Buffer, filename?: string): Promise<ImportRow[]> {
+    const isCsv = !!filename && filename.toLowerCase().endsWith('.csv');
+    const workbook = new ExcelJS.Workbook();
     try {
-      workbook = XLSX.read(buffer, { type: 'buffer' });
+      if (isCsv) {
+        await workbook.csv.read(Readable.from(buffer));
+      } else {
+        // exceljs's bundled Buffer typings predate ArrayBufferLike; cast is safe.
+        await workbook.xlsx.load(buffer as unknown as ExcelJS.Buffer);
+      }
     } catch {
       throw new BadRequestException('Could not parse file. Upload a valid .xlsx or .csv file.');
     }
 
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const sheet = workbook.worksheets[0];
     if (!sheet) throw new BadRequestException('Excel file has no sheets.');
 
-    const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet, { defval: '' });
+    // First non-empty row is the header; remaining rows become objects keyed by header.
+    const headerRow = sheet.getRow(1);
+    const headers: string[] = [];
+    headerRow.eachCell({ includeEmpty: true }, (cell, col) => {
+      headers[col] = cell.text?.trim() ?? '';
+    });
+    if (headers.filter(Boolean).length === 0) {
+      throw new BadRequestException('No data rows found in the spreadsheet.');
+    }
+
+    const rows: Record<string, string>[] = [];
+    for (let i = 2; i <= sheet.rowCount; i++) {
+      const row = sheet.getRow(i);
+      const obj: Record<string, string> = {};
+      let hasValue = false;
+      headerRow.eachCell({ includeEmpty: true }, (_cell, col) => {
+        const key = headers[col];
+        if (!key) return;
+        const text = row.getCell(col).text?.trim() ?? '';
+        obj[key] = text;
+        if (text) hasValue = true;
+      });
+      if (hasValue) rows.push(obj);
+    }
     if (rows.length === 0) throw new BadRequestException('No data rows found in the spreadsheet.');
 
     // Normalise column headers (case-insensitive, strips spaces/underscores)

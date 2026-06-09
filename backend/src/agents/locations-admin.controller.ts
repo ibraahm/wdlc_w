@@ -34,7 +34,7 @@ export class LocationsAdminController {
   @UseInterceptors(FileInterceptor('file', { storage: memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } }))
   async import(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('No file uploaded.');
-    const rows = await this.locations.parseExcel(file.buffer);
+    const rows = await this.locations.parseExcel(file.buffer, file.originalname);
     return this.locations.importRows(rows);
   }
 

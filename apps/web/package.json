@@ -10,7 +10,6 @@
     "format": "prettier --write \"src/**/*.{ts,tsx}\""
   },
   "dependencies": {
-    "@types/sanitize-html": "^2.16.1",
     "d3": "^7.9.0",
     "leaflet": "^1.9.4",
     "next": "14.2.29",
@@ -25,6 +24,7 @@
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
+    "@types/sanitize-html": "^2.16.1",
     "autoprefixer": "^10",
     "postcss": "^8",
     "tailwindcss": "^3",

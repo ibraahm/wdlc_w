@@ -1,11 +1,11 @@
-// SQLite for zero-infra dev.
-// Switch to PostgreSQL: change provider + DATABASE_URL only.
+// PostgreSQL for parity across dev/staging/prod.
+// DATABASE_URL example: postgresql://user:pass@localhost:5432/wdlc?schema=public
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

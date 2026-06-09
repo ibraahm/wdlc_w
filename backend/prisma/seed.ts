@@ -5,6 +5,29 @@ import { homeBlocks } from './seed-home';
 
 const prisma = new PrismaClient();
 
+/**
+ * Seed ledger: records which named seed steps have already run (stored as
+ * SiteSetting keys prefixed `__seed__:`). Lets us add NEW seed data over time
+ * without re-running — and therefore without overwriting — content that was
+ * already seeded and possibly edited in the admin. Bump the `version` suffix
+ * when a step's data genuinely needs to be re-applied.
+ */
+async function seedOnce(name: string, fn: () => Promise<void>) {
+  const key = `__seed__:${name}`;
+  const existing = await prisma.siteSetting.findUnique({ where: { key } });
+  if (existing) {
+    console.log(`Skipping seed step (already applied): ${name}`);
+    return;
+  }
+  await fn();
+  await prisma.siteSetting.upsert({
+    where: { key },
+    update: { value: JSON.stringify(new Date().toISOString()) },
+    create: { key, value: JSON.stringify(new Date().toISOString()) },
+  });
+  console.log(`Applied seed step: ${name}`);
+}
+
 async function main() {
   // ── Admin user ────────────────────────────────────────────────────────────
   const email = process.env.SEED_ADMIN_EMAIL || 'admin@worlddirectlink.com';
@@ -36,44 +59,47 @@ async function main() {
   console.log('Seeded site settings');
 
   // ── Utility bar (always-visible links above the primary nav) ───────────────
-  await prisma.navItem.deleteMany({ where: { location: 'UTILITY' } });
-  await prisma.navItem.createMany({ data: [
-    { label: 'Licenses', href: '/licenses', location: 'UTILITY', order: 1 },
-    { label: 'Report Fraud', href: '/compliance/report', location: 'UTILITY', order: 2 },
-    { label: 'Agent Application', href: '/agents/become-an-agent', location: 'UTILITY', order: 3 },
-    { label: 'Contact Us', href: '/about/contact', location: 'UTILITY', order: 4 },
-  ]});
-  console.log('Seeded utility navigation');
+  // Seeded once: after first run, admin edits/additions are preserved.
+  await seedOnce('nav.utility.v1', async () => {
+    await prisma.navItem.deleteMany({ where: { location: 'UTILITY' } });
+    await prisma.navItem.createMany({ data: [
+      { label: 'Licenses', href: '/licenses', location: 'UTILITY', order: 1 },
+      { label: 'Report Fraud', href: '/compliance/report', location: 'UTILITY', order: 2 },
+      { label: 'Agent Application', href: '/agents/become-an-agent', location: 'UTILITY', order: 3 },
+      { label: 'Contact Us', href: '/about/contact', location: 'UTILITY', order: 4 },
+    ]});
+  });
 
   // ── Header navigation ─────────────────────────────────────────────────────
-  // Always fix nav hrefs to match actual Next.js routes
-  await prisma.navItem.deleteMany({ where: { location: 'HEADER' } });
+  // Seeded once: hrefs match Next.js routes at first run; later admin edits stay.
+  await seedOnce('nav.header.v1', async () => {
+    await prisma.navItem.deleteMany({ where: { location: 'HEADER' } });
 
-  // About Us is a plain top-level link (no dropdown). Licenses is its own top-level item.
-  await prisma.navItem.create({ data: { label: 'About Us', href: '/about', location: 'HEADER', order: 1 } });
-  await prisma.navItem.create({ data: { label: 'Licenses', href: '/licenses', location: 'HEADER', order: 2 } });
+    // About Us is a plain top-level link (no dropdown). Licenses is its own top-level item.
+    await prisma.navItem.create({ data: { label: 'About Us', href: '/about', location: 'HEADER', order: 1 } });
+    await prisma.navItem.create({ data: { label: 'Licenses', href: '/licenses', location: 'HEADER', order: 2 } });
 
-  await prisma.navItem.create({ data: { label: 'Services', href: '/services', location: 'HEADER', order: 3 } });
-  // Services children omitted from header dropdown to keep it clean — accessible via /services page
+    await prisma.navItem.create({ data: { label: 'Services', href: '/services', location: 'HEADER', order: 3 } });
+    // Services children omitted from header dropdown to keep it clean — accessible via /services page
 
-  const agents = await prisma.navItem.create({ data: { label: 'Agents & Partners', href: '/agents/become-an-agent', location: 'HEADER', order: 4 } });
-  await prisma.navItem.createMany({ data: [
-    { label: 'Find an Agent', href: '/find-an-agent', parentId: agents.id, location: 'HEADER', order: 1 },
-    { label: 'Become an Agent', href: '/agents/become-an-agent', parentId: agents.id, location: 'HEADER', order: 2 },
-    { label: 'Agent Resources', href: '/agents/resources', parentId: agents.id, location: 'HEADER', order: 3 },
-    { label: 'Partners', href: '/agents/partners', parentId: agents.id, location: 'HEADER', order: 4 },
-  ]});
+    const agents = await prisma.navItem.create({ data: { label: 'Agents & Partners', href: '/agents/become-an-agent', location: 'HEADER', order: 4 } });
+    await prisma.navItem.createMany({ data: [
+      { label: 'Find an Agent', href: '/find-an-agent', parentId: agents.id, location: 'HEADER', order: 1 },
+      { label: 'Become an Agent', href: '/agents/become-an-agent', parentId: agents.id, location: 'HEADER', order: 2 },
+      { label: 'Agent Resources', href: '/agents/resources', parentId: agents.id, location: 'HEADER', order: 3 },
+      { label: 'Partners', href: '/agents/partners', parentId: agents.id, location: 'HEADER', order: 4 },
+    ]});
 
-  const compliance = await prisma.navItem.create({ data: { label: 'Compliance', href: '/compliance', location: 'HEADER', order: 5 } });
-  await prisma.navItem.createMany({ data: [
-    { label: 'Compliance Overview', href: '/compliance', parentId: compliance.id, location: 'HEADER', order: 1 },
-    { label: 'Fraud & Consumer Scams', href: '/compliance/fraud', parentId: compliance.id, location: 'HEADER', order: 2 },
-    { label: 'Report Suspicious Activity', href: '/compliance/report', parentId: compliance.id, location: 'HEADER', order: 3 },
-    { label: 'Agent Regulatory Notices', href: '/compliance/notices', parentId: compliance.id, location: 'HEADER', order: 4 },
-    { label: 'Law Enforcement Requests', href: '/compliance/law-enforcement', parentId: compliance.id, location: 'HEADER', order: 5 },
-    { label: 'Compliance Resources', href: '/compliance/resources', parentId: compliance.id, location: 'HEADER', order: 6 },
-  ]});
-  console.log('Seeded header navigation');
+    const compliance = await prisma.navItem.create({ data: { label: 'Compliance', href: '/compliance', location: 'HEADER', order: 5 } });
+    await prisma.navItem.createMany({ data: [
+      { label: 'Compliance Overview', href: '/compliance', parentId: compliance.id, location: 'HEADER', order: 1 },
+      { label: 'Fraud & Consumer Scams', href: '/compliance/fraud', parentId: compliance.id, location: 'HEADER', order: 2 },
+      { label: 'Report Suspicious Activity', href: '/compliance/report', parentId: compliance.id, location: 'HEADER', order: 3 },
+      { label: 'Agent Regulatory Notices', href: '/compliance/notices', parentId: compliance.id, location: 'HEADER', order: 4 },
+      { label: 'Law Enforcement Requests', href: '/compliance/law-enforcement', parentId: compliance.id, location: 'HEADER', order: 5 },
+      { label: 'Compliance Resources', href: '/compliance/resources', parentId: compliance.id, location: 'HEADER', order: 6 },
+    ]});
+  });
 
   // ── All frontend pages ────────────────────────────────────────────────────
   const pages = [
@@ -105,15 +131,16 @@ async function main() {
     { slug: 'terms',                     title: 'Terms of Use',                          description: 'Terms of use for the World Direct Link, Corp. website.' },
   ];
 
+  // Additive: only create pages that don't exist yet. Existing pages — including
+  // any edited in the admin (home blocks, copy, SEO) — are left untouched, so
+  // re-running the seed to add NEW pages never clobbers previously seeded ones.
+  let createdPages = 0;
   for (const p of pages) {
+    const existing = await prisma.page.findUnique({ where: { slug: p.slug }, select: { id: true } });
+    if (existing) continue;
     const blocks = p.slug === 'home' ? JSON.stringify(homeBlocks) : JSON.stringify([]);
-    await prisma.page.upsert({
-      where: { slug: p.slug },
-      // Home blocks are kept in sync with the seed; other pages keep edits.
-      update: p.slug === 'home'
-        ? { title: p.title, description: p.description, blocks }
-        : { title: p.title, description: p.description },
-      create: {
+    await prisma.page.create({
+      data: {
         slug: p.slug,
         title: p.title,
         description: p.description,
@@ -125,8 +152,9 @@ async function main() {
         blocks,
       },
     });
+    createdPages++;
   }
-  console.log(`Seeded ${pages.length} pages`);
+  console.log(`Seeded ${createdPages} new page(s); ${pages.length - createdPages} already existed`);
 
   // ── Demo agent locations for the public "Find an Agent" map ────────────────
   // The public map reads only from AgentLocation (single source of truth).
@@ -137,14 +165,13 @@ async function main() {
     { importKey: 'demo-seattle', businessName: 'Rainier Money Transfer', addressLine: '7301 Martin Luther King Jr Way S', city: 'Seattle', state: 'WA', zip: '98118', publicPhone: '206-555-0173', latitude: 47.5392, longitude: -122.2876 },
   ];
 
+  // Additive: create only missing demo locations so admin edits/removals stick.
   for (const l of demoLocations) {
-    await prisma.agentLocation.upsert({
-      where: { importKey: l.importKey },
-      update: { ...l, country: 'USA', active: true },
-      create: { ...l, country: 'USA', active: true },
-    });
+    const existing = await prisma.agentLocation.findUnique({ where: { importKey: l.importKey }, select: { id: true } });
+    if (existing) continue;
+    await prisma.agentLocation.create({ data: { ...l, country: 'USA', active: true } });
   }
-  console.log(`Seeded ${demoLocations.length} demo agent locations`);
+  console.log(`Seeded demo agent locations (additive)`);
 
   // ── Form builder: seed the pre-existing public forms ───────────────────────
   for (const f of builderForms) {
