@@ -498,3 +498,43 @@ export async function recordDDReviewAction(
     return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
   }
 }
+
+// ---------------------------------------------------------------------------
+// News actions
+// ---------------------------------------------------------------------------
+
+export async function createNewsPostAction(data: import('./api').NewsPostInput): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await import('./api').then((m) => m.apiCreateNewsPost(session.accessToken, data));
+    revalidatePath('/news');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Create failed' };
+  }
+}
+
+export async function updateNewsPostAction(id: string, data: Partial<import('./api').NewsPostInput>): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await import('./api').then((m) => m.apiUpdateNewsPost(session.accessToken, id, data));
+    revalidatePath('/news');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
+  }
+}
+
+export async function deleteNewsPostAction(id: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await import('./api').then((m) => m.apiDeleteNewsPost(session.accessToken, id));
+    revalidatePath('/news');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };
+  }
+}

@@ -185,3 +185,38 @@ export function cmsMetadata(
     description: page?.seoDescription ?? page?.description ?? fallback.description,
   };
 }
+
+export type NewsPostSummary = {
+  id: string;
+  title: string;
+  slug: string;
+  category: string;
+  summary?: string;
+  author?: string;
+  imageUrl?: string;
+  publishedAt?: string;
+  createdAt: string;
+};
+
+export type NewsPostFull = NewsPostSummary & { body: string };
+
+export const getCmsNewsPosts = cache(async (category?: string): Promise<NewsPostSummary[]> => {
+  try {
+    const qs = category ? `?category=${category}` : '';
+    const res = await fetch(`${API}/cms/news${qs}`, { next: { revalidate: 120 } });
+    if (!res.ok) return [];
+    return await res.json();
+  } catch {
+    return [];
+  }
+});
+
+export const getCmsNewsPost = cache(async (slug: string): Promise<NewsPostFull | null> => {
+  try {
+    const res = await fetch(`${API}/cms/news/${slug}`, { next: { revalidate: 120 } });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+});

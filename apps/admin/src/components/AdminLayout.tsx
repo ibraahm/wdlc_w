@@ -19,6 +19,7 @@ const NAV_GROUPS: NavGroup[] = [
     heading: 'Content',
     items: [
       { href: '/forms', label: 'Forms', icon: '▤' },
+      { href: '/news', label: 'News & Press', icon: '📰' },
     ],
   },
   {

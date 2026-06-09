@@ -673,3 +673,55 @@ export async function apiRecordDDReview(
   });
   return handleResponse<DDFile>(res);
 }
+
+// ---------------------------------------------------------------------------
+// News Posts
+// ---------------------------------------------------------------------------
+
+export type NewsPost = {
+  id: string;
+  title: string;
+  slug: string;
+  category: string; // NEWS | PRESS
+  summary?: string;
+  body: string;
+  author?: string;
+  imageUrl?: string;
+  publishedAt?: string;
+  status: string; // DRAFT | PUBLISHED
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type NewsPostInput = {
+  title: string;
+  slug: string;
+  category?: string;
+  summary?: string;
+  body?: string;
+  author?: string;
+  imageUrl?: string;
+  status?: string;
+  publishedAt?: string | null;
+};
+
+export async function apiListNewsPosts(accessToken: string, category?: string): Promise<NewsPost[]> {
+  const qs = category ? `?category=${category}` : '';
+  const res = await authFetch(`/cms/news/admin/all${qs}`, accessToken);
+  return handleResponse<NewsPost[]>(res);
+}
+
+export async function apiCreateNewsPost(accessToken: string, data: NewsPostInput): Promise<NewsPost> {
+  const res = await authFetch('/cms/news', accessToken, { method: 'POST', body: JSON.stringify(data) });
+  return handleResponse<NewsPost>(res);
+}
+
+export async function apiUpdateNewsPost(accessToken: string, id: string, data: Partial<NewsPostInput>): Promise<NewsPost> {
+  const res = await authFetch(`/cms/news/${id}`, accessToken, { method: 'PATCH', body: JSON.stringify(data) });
+  return handleResponse<NewsPost>(res);
+}
+
+export async function apiDeleteNewsPost(accessToken: string, id: string): Promise<{ ok: boolean }> {
+  const res = await authFetch(`/cms/news/${id}`, accessToken, { method: 'DELETE' });
+  return handleResponse<{ ok: boolean }>(res);
+}

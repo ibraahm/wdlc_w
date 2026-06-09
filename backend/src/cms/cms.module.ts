@@ -11,11 +11,13 @@ import { PartnerService } from './partner.service';
 import { PartnerController } from './partner.controller';
 import { NetworkService } from './network.service';
 import { NetworkController } from './network.controller';
+import { NewsService } from './news.service';
+import { NewsController } from './news.controller';
 import { AdminAuthModule } from '../admin-auth/admin-auth.module';
 
 @Module({
   imports: [AdminAuthModule],
-  controllers: [PageController, NavController, SettingController, FormController, PartnerController, NetworkController],
-  providers: [PageService, NavService, SettingService, FormService, PartnerService, NetworkService],
+  controllers: [PageController, NavController, SettingController, FormController, PartnerController, NetworkController, NewsController],
+  providers: [PageService, NavService, SettingService, FormService, PartnerService, NetworkService, NewsService],
 })
 export class CmsModule {}
