@@ -31,7 +31,7 @@ export class AdminAuthController {
   // ── Public endpoints ──────────────────────────────────────────────────────
 
   @Public()
-  @Throttle({ default: { ttl: 60_000, limit: 5 } })
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @Post('login')
   async login(@Body() dto: AdminLoginDto, @Req() req: Request) {
     if (!(await this.recaptcha.verify(dto.recaptchaToken, 'admin_login')))
