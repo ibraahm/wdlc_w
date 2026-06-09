@@ -188,6 +188,43 @@ CREATE TABLE "AgentApplication" (
 );
 
 -- CreateTable
+CREATE TABLE "AgentDDFile" (
+    "id" TEXT NOT NULL,
+    "applicationId" TEXT,
+    "agentName" TEXT NOT NULL,
+    "entityType" TEXT NOT NULL DEFAULT 'BUSINESS',
+    "states" TEXT,
+    "regionalOffice" TEXT,
+    "stage" TEXT NOT NULL DEFAULT 'DD_IN_PROGRESS',
+    "riskRating" TEXT,
+    "onboardedAt" TIMESTAMP(3),
+    "lastReviewedAt" TIMESTAMP(3),
+    "reviewedBy" TEXT,
+    "nextReviewDueAt" TIMESTAMP(3),
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AgentDDFile_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "AgentDocument" (
+    "id" TEXT NOT NULL,
+    "ddFileId" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "section" TEXT NOT NULL,
+    "label" TEXT NOT NULL,
+    "present" BOOLEAN NOT NULL DEFAULT false,
+    "expiry" TIMESTAMP(3),
+    "status" TEXT NOT NULL DEFAULT 'MISSING',
+    "notes" TEXT,
+    "dropboxUrl" TEXT,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "AgentDocument_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "SiteSetting" (
     "key" TEXT NOT NULL,
     "value" TEXT NOT NULL,
@@ -327,6 +364,21 @@ CREATE INDEX "AgentLocation_active_idx" ON "AgentLocation"("active");
 CREATE INDEX "AgentApplication_status_createdAt_idx" ON "AgentApplication"("status", "createdAt");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "AgentDDFile_applicationId_key" ON "AgentDDFile"("applicationId");
+
+-- CreateIndex
+CREATE INDEX "AgentDDFile_stage_idx" ON "AgentDDFile"("stage");
+
+-- CreateIndex
+CREATE INDEX "AgentDDFile_nextReviewDueAt_idx" ON "AgentDDFile"("nextReviewDueAt");
+
+-- CreateIndex
+CREATE INDEX "AgentDocument_status_idx" ON "AgentDocument"("status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "AgentDocument_ddFileId_code_key" ON "AgentDocument"("ddFileId", "code");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "NetworkCountry_name_key" ON "NetworkCountry"("name");
 
 -- CreateIndex
@@ -364,6 +416,12 @@ ALTER TABLE "Page" ADD CONSTRAINT "Page_authorId_fkey" FOREIGN KEY ("authorId") 
 
 -- AddForeignKey
 ALTER TABLE "NavItem" ADD CONSTRAINT "NavItem_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "NavItem"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AgentDDFile" ADD CONSTRAINT "AgentDDFile_applicationId_fkey" FOREIGN KEY ("applicationId") REFERENCES "AgentApplication"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "AgentDocument" ADD CONSTRAINT "AgentDocument_ddFileId_fkey" FOREIGN KEY ("ddFileId") REFERENCES "AgentDDFile"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "FormSubmission" ADD CONSTRAINT "FormSubmission_formId_fkey" FOREIGN KEY ("formId") REFERENCES "Form"("id") ON DELETE CASCADE ON UPDATE CASCADE;

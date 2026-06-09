@@ -1,10 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
+import { DDService } from './dd.service';
 import { CreateApplicationDto } from './dto/application.dto';
 
 @Injectable()
 export class ApplicationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private audit: AuditService,
+    private dd: DDService,
+  ) {}
 
   async create(dto: CreateApplicationDto, ctx?: { ip?: string; userAgent?: string }) {
     const app = await this.prisma.agentApplication.create({
@@ -52,10 +58,27 @@ export class ApplicationsService {
     });
   }
 
-  async setStatus(id: string, status: string) {
+  async setStatus(id: string, status: string, adminId?: string) {
     const existing = await this.prisma.agentApplication.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Application not found');
-    return this.prisma.agentApplication.update({ where: { id }, data: { status } });
+
+    const updated = await this.prisma.agentApplication.update({ where: { id }, data: { status } });
+
+    // Audit every transition (previously unlogged — compliance gap).
+    await this.audit.log({
+      action: 'agent.application.status.change',
+      adminId,
+      entity: 'AgentApplication',
+      entityId: id,
+      before: { status: existing.status },
+      after: { status },
+    });
+
+    // On approval, open the agent's DD file so onboarding can begin (idempotent).
+    if (status === 'APPROVED' && adminId) {
+      await this.dd.ensureFileForApplication(id, adminId);
+    }
+    return updated;
   }
 
   async remove(id: string) {

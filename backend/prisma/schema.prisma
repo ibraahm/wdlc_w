@@ -227,7 +227,66 @@ model AgentApplication {
   createdAt             DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
+  ddFile               AgentDDFile?
+
   @@index([status, createdAt])
+}
+
+// ─────────────────────────────────────────────
+// AGENT DUE DILIGENCE  (onboarding → ongoing DD)
+// One file per agent. Mirrors the "Agent Due Diligence File Checklist"
+// (BSA/AML & MSB Compliance Program). Files are stored in Dropbox; this
+// record tracks the register, statuses, risk rating, and review cycle.
+// ─────────────────────────────────────────────
+model AgentDDFile {
+  id              String    @id @default(cuid())
+
+  // Optional link back to the originating public application (lifecycle start).
+  application     AgentApplication? @relation(fields: [applicationId], references: [id])
+  applicationId   String?   @unique
+
+  agentName       String
+  entityType      String    @default("BUSINESS") // BUSINESS | INDIVIDUAL
+  states          String?
+  regionalOffice  String?
+
+  // APPLICATION | UNDER_REVIEW | DD_IN_PROGRESS | ACTIVE | SUSPENDED | TERMINATED | REJECTED
+  stage           String    @default("DD_IN_PROGRESS")
+  riskRating      String?   // LOW | MEDIUM | HIGH
+
+  onboardedAt     DateTime?
+  lastReviewedAt  DateTime?
+  reviewedBy      String?
+  nextReviewDueAt DateTime?
+
+  documents       AgentDocument[]
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([stage])
+  @@index([nextReviewDueAt])
+}
+
+model AgentDocument {
+  id          String      @id @default(cuid())
+  ddFile      AgentDDFile @relation(fields: [ddFileId], references: [id], onDelete: Cascade)
+  ddFileId    String
+
+  code        String      // stable catalog key r0..r18
+  section     String      // DOCUMENTATION | COMPLIANCE | ONGOING
+  label       String
+
+  present     Boolean     @default(false)
+  expiry      DateTime?
+  status      String      @default("MISSING") // OK | EXPIRING | EXPIRED | MISSING | NA
+  notes       String?
+  dropboxUrl  String?     // pointer to the file in Dropbox (file stays out-of-app)
+
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([ddFileId, code])
+  @@index([status])
 }
 
 model SiteSetting {

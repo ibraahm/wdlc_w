@@ -16,7 +16,6 @@ export class ApplicationsPublicController {
   async apply(@Body() dto: CreateApplicationDto, @Req() req: Request) {
     const ok = await this.recaptcha.verify(dto.recaptchaToken, 'agent_application');
     if (!ok) throw new ForbiddenException('Security check failed. Please try again.');
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { recaptchaToken: _recaptchaToken, ...data } = dto;
     return this.applications.create(data, {
       ip: req.ip,
