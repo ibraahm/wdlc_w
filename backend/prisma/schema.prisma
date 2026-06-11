@@ -1,0 +1,424 @@
+// PostgreSQL for parity across dev/staging/prod.
+// DATABASE_URL example: postgresql://user:pass@localhost:5432/wdlc?schema=public
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// ADMIN / CMS USERS  (back-office & compliance)
+// Roles: SUPER_ADMIN | COMPLIANCE_OFFICER | MANAGER | EDITOR
+// ─────────────────────────────────────────────
+model AdminUser {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String
+  name            String
+  role            String    @default("EDITOR")
+  active          Boolean   @default(true)
+  mfaEnabled      Boolean   @default(false)
+  mfaSecret       String?
+  resetToken        String?   @unique
+  resetTokenExpiry  DateTime?
+  lastLoginAt     DateTime?
+  failedAttempts  Int       @default(0)
+  lockedUntil     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  refreshTokens   AdminRefreshToken[]
+  pages           Page[]
+  auditLogs       AuditLog[]
+}
+
+// Refresh token per admin session — hashed, rotated on each use
+model AdminRefreshToken {
+  id          String    @id @default(cuid())
+  tokenHash   String    @unique
+  adminId     String
+  admin       AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+
+  @@index([adminId])
+}
+
+// ─────────────────────────────────────────────
+// AGENT / PORTAL USERS  (external agent portal)
+// Status: PENDING | ACTIVE | SUSPENDED | REJECTED
+// ─────────────────────────────────────────────
+model AgentUser {
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  passwordHash        String
+  firstName           String
+  lastName            String
+  phone               String?
+  active              Boolean   @default(false)  // false until email verified
+  status              String    @default("PENDING")
+  emailVerified       Boolean   @default(false)
+  emailVerifyToken    String?   @unique
+  emailVerifyExpiry   DateTime?
+  resetToken          String?   @unique
+  resetTokenExpiry    DateTime?
+  failedAttempts      Int       @default(0)
+  lockedUntil         DateTime?
+  lastLoginAt         DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  // ── Public agent-locator listing (opt-in) ──────────────────────────────
+  businessName        String?
+  addressLine         String?
+  city                String?
+  state               String?
+  zip                 String?
+  country             String?   @default("USA")
+  publicPhone         String?
+  latitude            Float?
+  longitude           Float?
+  showOnMap           Boolean   @default(false)
+
+  refreshTokens       AgentRefreshToken[]
+  loginHistory        AgentLoginHistory[]
+  auditLogs           AuditLog[]
+
+  @@index([showOnMap, status])
+}
+
+model AgentRefreshToken {
+  id          String    @id @default(cuid())
+  tokenHash   String    @unique
+  agentId     String
+  agent       AgentUser @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+
+  @@index([agentId])
+}
+
+// Per-session login history for agents (compliance requirement)
+model AgentLoginHistory {
+  id          String    @id @default(cuid())
+  agentId     String
+  agent       AgentUser @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  ip          String?
+  userAgent   String?
+  success     Boolean
+  failReason  String?
+  createdAt   DateTime  @default(now())
+
+  @@index([agentId, createdAt])
+}
+
+// ─────────────────────────────────────────────
+// CMS
+// ─────────────────────────────────────────────
+model Page {
+  id             String    @id @default(cuid())
+  slug           String    @unique
+  title          String
+  description    String?
+  status         String    @default("DRAFT")
+  blocks         String    @default("[]")
+  seoTitle       String?
+  seoDescription String?
+  publishedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  author         AdminUser? @relation(fields: [authorId], references: [id])
+  authorId       String?
+
+  @@index([status])
+}
+
+model NavItem {
+  id       String   @id @default(cuid())
+  label    String
+  href     String
+  location String   @default("HEADER")
+  column   String?
+  order    Int      @default(0)
+  visible  Boolean  @default(true)
+
+  parent   NavItem?  @relation("NavTree", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId String?
+  children NavItem[] @relation("NavTree")
+
+  @@index([location, order])
+}
+
+// ─────────────────────────────────────────────
+// AGENT LOCATIONS  (bulk-imported via Excel / manual admin entry)
+// Separate from portal AgentUser accounts — no login required.
+// ─────────────────────────────────────────────
+model AgentLocation {
+  id           String   @id @default(cuid())
+  businessName String
+  addressLine  String?
+  city         String
+  state        String
+  zip          String?
+  country      String   @default("USA")
+  publicPhone  String?
+  latitude     Float?
+  longitude    Float?
+  active       Boolean  @default(true)
+  importKey    String?  @unique  // stable row identifier for re-import upserts
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([active])
+}
+
+// ─────────────────────────────────────────────
+// AGENT APPLICATIONS  (public "Become an Agent" lead form)
+// Status: NEW | REVIEWING | APPROVED | REJECTED
+// ─────────────────────────────────────────────
+model AgentApplication {
+  id                    String   @id @default(cuid())
+  applicantType         String   @default("BUSINESS") // INDIVIDUAL | BUSINESS
+  firstName             String
+  lastName              String
+  company               String?
+  businessStreet        String
+  businessCountry       String
+  businessState         String?
+  businessCity          String
+  businessZip           String
+  businessPhone         String
+  email                 String
+
+  howFound              String?
+  howFoundOther         String?
+  businessType          String?
+  businessTypeOther     String?
+  productsOffered       String?
+
+  currentlyProvides     Boolean  @default(false)
+  currentProvider       String?
+  currentProviderOther  String?
+  providedPast          Boolean  @default(false)
+  pastProvider          String?
+  pastProviderOther     String?
+  declinedBefore        Boolean  @default(false)
+  declinedExplain       String?
+
+  preferredLanguage     String?
+  preferredLanguageOther String?
+  monthlyVolume         String?
+  totalLocations        String?
+  comments              String?
+
+  signatureName         String?
+  signatureTitle        String?
+  signatureConsent      Boolean  @default(false)
+  signatureConsentText  String?
+  signatureClientTimestamp DateTime?
+  signatureAcceptedAt   DateTime?
+  signatureIp           String?
+  signatureUserAgent    String?
+
+  status                String   @default("NEW")
+  ip                    String?
+  userAgent             String?
+  createdAt             DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  ddFile               AgentDDFile?
+
+  @@index([status, createdAt])
+}
+
+// ─────────────────────────────────────────────
+// AGENT DUE DILIGENCE  (onboarding → ongoing DD)
+// One file per agent. Mirrors the "Agent Due Diligence File Checklist"
+// (BSA/AML & MSB Compliance Program). Files are stored in Dropbox; this
+// record tracks the register, statuses, risk rating, and review cycle.
+// ─────────────────────────────────────────────
+model AgentDDFile {
+  id              String    @id @default(cuid())
+
+  // Optional link back to the originating public application (lifecycle start).
+  application     AgentApplication? @relation(fields: [applicationId], references: [id])
+  applicationId   String?   @unique
+
+  agentName       String
+  entityType      String    @default("BUSINESS") // BUSINESS | INDIVIDUAL
+  states          String?
+  regionalOffice  String?
+
+  // APPLICATION | UNDER_REVIEW | DD_IN_PROGRESS | ACTIVE | SUSPENDED | TERMINATED | REJECTED
+  stage           String    @default("DD_IN_PROGRESS")
+  riskRating      String?   // LOW | MEDIUM | HIGH
+
+  onboardedAt     DateTime?
+  lastReviewedAt  DateTime?
+  reviewedBy      String?
+  nextReviewDueAt DateTime?
+
+  documents       AgentDocument[]
+
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([stage])
+  @@index([nextReviewDueAt])
+}
+
+model AgentDocument {
+  id          String      @id @default(cuid())
+  ddFile      AgentDDFile @relation(fields: [ddFileId], references: [id], onDelete: Cascade)
+  ddFileId    String
+
+  code        String      // stable catalog key r0..r18
+  section     String      // DOCUMENTATION | COMPLIANCE | ONGOING
+  label       String
+
+  present     Boolean     @default(false)
+  expiry      DateTime?
+  status      String      @default("MISSING") // OK | EXPIRING | EXPIRED | MISSING | NA
+  notes       String?
+  dropboxUrl  String?     // pointer to the file in Dropbox (file stays out-of-app)
+
+  updatedAt   DateTime    @updatedAt
+
+  @@unique([ddFileId, code])
+  @@index([status])
+}
+
+model SiteSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// PARTNERS  (CMS-managed correspondent / integration partners)
+// type: CORRESPONDENT | TECHNOLOGY | BANKING | OTHER
+// ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// NETWORK COUNTRIES  (CMS-managed payout destinations shown on the global map)
+// payoutTypes is a JSON array of strings, e.g. ["Cash Collection","Mobile Money"]
+// ─────────────────────────────────────────────
+model NetworkCountry {
+  id             String   @id @default(cuid())
+  name           String   @unique
+  payoutTypes    String   @default("[]")
+  // JSON: { mobileMoney?: string[], cashPartner?: string, bankName?: string }
+  payoutDetails  String   @default("{}")
+  flagUrl        String?
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([active])
+}
+
+model Partner {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   @default("CORRESPONDENT")
+  description String?
+  website     String?
+  logoUrl     String?
+  region      String?
+  featured    Boolean  @default(false)
+  active      Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([active, order])
+}
+
+model NewsPost {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  category    String    @default("NEWS") // NEWS | PRESS
+  summary     String?
+  body        String    @default("")
+  author      String?
+  imageUrl    String?
+  publishedAt DateTime?
+  status      String    @default("DRAFT") // DRAFT | PUBLISHED
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status, category])
+  @@index([publishedAt])
+}
+
+// ─────────────────────────────────────────────
+// FORM BUILDER  (CMS-managed forms + submissions)
+// `fields` is a JSON array of field definitions (see admin form builder).
+// status: DRAFT | PUBLISHED
+// ─────────────────────────────────────────────
+model Form {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  name           String
+  description    String?
+  fields         String   @default("[]")
+  status         String   @default("DRAFT")
+  submitLabel    String   @default("Submit")
+  successMessage String   @default("Thank you — your submission has been received.")
+  recaptcha      Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  submissions    FormSubmission[]
+
+  @@index([status])
+}
+
+model FormSubmission {
+  id        String   @id @default(cuid())
+  formId    String
+  form      Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  data      String   @default("{}")
+  status    String   @default("NEW")
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([formId, createdAt])
+}
+
+// ─────────────────────────────────────────────
+// SHARED AUDIT LOG  (append-only, never deleted)
+// actorType: "admin" | "agent"
+// ─────────────────────────────────────────────
+model AuditLog {
+  id          String    @id @default(cuid())
+  action      String
+  actorType   String?
+  entity      String?
+  entityId    String?
+  before      String?
+  after       String?
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+
+  admin       AdminUser? @relation(fields: [adminId], references: [id])
+  adminId     String?
+
+  agent       AgentUser? @relation(fields: [agentId], references: [id])
+  agentId     String?
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+}

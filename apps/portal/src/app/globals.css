@@ -1,0 +1,222 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Design tokens ───────────────────────────────────────────────────────── */
+:root {
+  --navy: #0b1f3a;
+  --navy-mid: #152d50;
+  --gold: #c8960c;
+  --gold-light: #e8b020;
+  --ivory: #fafaf7;
+  --cream: #f5f2eb;
+  --smoke: #e8e4dc;
+  --charcoal: #2c2c2c;
+  --muted: rgba(44, 44, 44, 0.58);
+  --display: "Cormorant Garamond", Georgia, serif;
+  --body: "DM Sans", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--ivory);
+  color: var(--navy);
+  font-family: var(--body);
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* ── Auth card layout ────────────────────────────────────────────────────── */
+.auth-wrap {
+  min-height: 100svh;
+  background: var(--navy);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--ivory);
+  padding: clamp(32px, 6vw, 56px);
+}
+.auth-brand {
+  margin-bottom: 40px;
+  text-align: center;
+}
+.auth-brand-name {
+  font-family: var(--display);
+  font-size: 1.8rem;
+  font-weight: 300;
+  color: var(--navy);
+  display: block;
+}
+.auth-brand-sub {
+  display: block;
+  margin-top: 6px;
+  color: var(--gold);
+  font-size: 0.52rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+.auth-title {
+  font-family: var(--display);
+  font-weight: 300;
+  font-size: 1.5rem;
+  color: var(--navy);
+  margin: 0 0 28px;
+}
+.auth-form { display: flex; flex-direction: column; gap: 20px; }
+.auth-field { display: flex; flex-direction: column; gap: 6px; }
+.auth-label {
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--charcoal);
+}
+.auth-input {
+  width: 100%;
+  padding: 12px 0;
+  border: 0;
+  border-bottom: 1px solid var(--smoke);
+  outline: 0;
+  background: transparent;
+  color: var(--navy);
+  font-family: var(--body);
+  font-size: 0.95rem;
+  transition: border-color 200ms ease;
+}
+.auth-input:focus { border-bottom-color: var(--gold); }
+.auth-input::placeholder { color: rgba(44, 44, 44, 0.3); }
+.auth-submit {
+  margin-top: 8px;
+  padding: 14px 24px;
+  background: var(--navy);
+  color: var(--ivory);
+  border: 0;
+  font-size: 0.62rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 240ms ease;
+  width: 100%;
+}
+.auth-submit:hover { background: var(--navy-mid); }
+.auth-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+.auth-link {
+  color: var(--gold);
+  transition: opacity 200ms ease;
+}
+.auth-link:hover { opacity: 0.7; }
+.auth-error {
+  padding: 12px 16px;
+  background: rgba(185, 28, 28, 0.08);
+  border-left: 2px solid #b91c1c;
+  color: #7f1d1d;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+.auth-success {
+  padding: 12px 16px;
+  background: rgba(200, 150, 12, 0.08);
+  border-left: 2px solid var(--gold);
+  color: var(--navy);
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+.auth-footer {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+/* ── Dashboard layout ────────────────────────────────────────────────────── */
+.portal-layout {
+  min-height: 100svh;
+  background: var(--cream);
+}
+.portal-topbar {
+  position: sticky; top: 0; z-index: 100;
+  height: 64px;
+  background: var(--navy);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 clamp(20px, 4vw, 48px);
+}
+.portal-topbar-brand {
+  font-family: var(--display);
+  font-size: 1.1rem;
+  font-weight: 300;
+  color: var(--ivory);
+}
+.portal-topbar-brand span { color: var(--gold); margin-left: 6px; font-size: 0.52rem; letter-spacing: 0.24em; text-transform: uppercase; vertical-align: middle; }
+.portal-topbar-nav { display: flex; align-items: center; gap: 20px; margin-left: auto; margin-right: 24px; }
+.portal-topbar-nav a { color: rgba(250, 250, 247, 0.7); font-size: 0.85rem; text-decoration: none; transition: color 0.15s; }
+.portal-topbar-nav a:hover { color: var(--gold); }
+.portal-topbar-right { display: flex; align-items: center; gap: 16px; }
+.portal-topbar-user { color: rgba(250, 250, 247, 0.55); font-size: 0.82rem; }
+.portal-logout-btn {
+  padding: 8px 16px;
+  border: 1px solid rgba(250, 250, 247, 0.18);
+  background: transparent;
+  color: rgba(250, 250, 247, 0.6);
+  font-size: 0.58rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color 200ms, color 200ms;
+}
+.portal-logout-btn:hover { border-color: rgba(250, 250, 247, 0.5); color: var(--ivory); }
+.portal-content {
+  width: min(100% - 48px, 860px);
+  margin-inline: auto;
+  padding-block: 48px;
+}
+
+/* ── Dashboard panels ────────────────────────────────────────────────────── */
+.dash-eyebrow {
+  color: var(--gold);
+  font-size: 0.58rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  display: flex; align-items: center; gap: 10px;
+}
+.dash-eyebrow::before { content: ''; display: block; width: 20px; height: 1px; background: var(--gold); }
+.dash-title {
+  font-family: var(--display);
+  font-weight: 300;
+  font-size: clamp(2rem, 4vw, 3rem);
+  color: var(--navy);
+  margin: 0 0 32px;
+  line-height: 1;
+}
+.dash-card {
+  background: white;
+  border: 1px solid var(--smoke);
+  padding: clamp(24px, 4vw, 36px);
+  margin-bottom: 20px;
+}
+.dash-card-title {
+  font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase;
+  color: var(--muted); margin: 0 0 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--smoke);
+}
+.dash-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--smoke);
+  font-size: 0.9rem;
+}
+.dash-row:last-child { border-bottom: 0; }
+.dash-row-label { color: var(--muted); font-size: 0.82rem; }
+.dash-row-value { color: var(--navy); font-weight: 500; }
+.status-active { color: #166534; background: rgba(22, 101, 52, 0.08); padding: 4px 10px; font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase; }
+.status-pending { color: #92400e; background: rgba(146, 64, 14, 0.08); padding: 4px 10px; font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase; }
+.status-suspended { color: #7f1d1d; background: rgba(127, 29, 29, 0.08); padding: 4px 10px; font-size: 0.58rem; letter-spacing: 0.16em; text-transform: uppercase; }

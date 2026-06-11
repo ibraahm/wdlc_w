@@ -1,0 +1,161 @@
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
+import { CreateFormDto, UpdateFormDto } from './dto/form.dto';
+
+@Injectable()
+export class FormService {
+  constructor(private prisma: PrismaService, private audit: AuditService) {}
+
+  // ── Public ────────────────────────────────────────────────────────────────
+  // Returns a published form by slug with its parsed field definitions.
+  async getPublic(slug: string) {
+    const form = await this.prisma.form.findUnique({ where: { slug } });
+    if (!form || form.status !== 'PUBLISHED') {
+      throw new NotFoundException(`Form "${slug}" not found`);
+    }
+    return this.serialize(form);
+  }
+
+  async submit(
+    slug: string,
+    data: Record<string, unknown>,
+    ctx?: { ip?: string; userAgent?: string },
+  ) {
+    const form = await this.prisma.form.findUnique({ where: { slug } });
+    if (!form || form.status !== 'PUBLISHED') {
+      throw new NotFoundException(`Form "${slug}" not found`);
+    }
+    // Validate required fields server-side.
+    const fields = this.parseFields(form.fields);
+    for (const f of fields) {
+      if (f.required && f.type !== 'heading') {
+        const v = data?.[f.name];
+        if (v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)) {
+          throw new BadRequestException(`Missing required field: ${f.label || f.name}`);
+        }
+      }
+    }
+    const submission = await this.prisma.formSubmission.create({
+      data: {
+        formId: form.id,
+        data: JSON.stringify(data ?? {}),
+        ip: ctx?.ip ?? null,
+        userAgent: ctx?.userAgent ?? null,
+      },
+    });
+    return { ok: true, id: submission.id };
+  }
+
+  // ── Admin ─────────────────────────────────────────────────────────────────
+  async listAll() {
+    const forms = await this.prisma.form.findMany({
+      orderBy: { updatedAt: 'desc' },
+      include: { _count: { select: { submissions: true } } },
+    });
+    return forms.map((f) => ({
+      ...this.serialize(f),
+      submissionCount: f._count.submissions,
+    }));
+  }
+
+  async getById(id: string) {
+    const form = await this.prisma.form.findUnique({ where: { id } });
+    if (!form) throw new NotFoundException(`Form ${id} not found`);
+    return this.serialize(form);
+  }
+
+  async create(dto: CreateFormDto, adminId: string) {
+    const exists = await this.prisma.form.findUnique({ where: { slug: dto.slug } });
+    if (exists) throw new BadRequestException(`A form with slug "${dto.slug}" already exists`);
+    const form = await this.prisma.form.create({
+      data: {
+        name: dto.name,
+        slug: dto.slug,
+        description: dto.description ?? null,
+        fields: JSON.stringify(dto.fields ?? []),
+        status: dto.status ?? 'DRAFT',
+        submitLabel: dto.submitLabel ?? 'Submit',
+        successMessage: dto.successMessage ?? 'Thank you — your submission has been received.',
+        recaptcha: dto.recaptcha ?? true,
+      },
+    });
+    await this.audit.log({ action: 'form.create', adminId, entity: 'Form', entityId: form.id, after: { name: dto.name, slug: dto.slug } });
+    return this.serialize(form);
+  }
+
+  async update(id: string, dto: UpdateFormDto, adminId: string) {
+    const existing = await this.prisma.form.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`Form ${id} not found`);
+    if (dto.slug && dto.slug !== existing.slug) {
+      const clash = await this.prisma.form.findUnique({ where: { slug: dto.slug } });
+      if (clash) throw new BadRequestException(`A form with slug "${dto.slug}" already exists`);
+    }
+    const form = await this.prisma.form.update({
+      where: { id },
+      data: {
+        ...(dto.name !== undefined ? { name: dto.name } : {}),
+        ...(dto.slug !== undefined ? { slug: dto.slug } : {}),
+        ...(dto.description !== undefined ? { description: dto.description } : {}),
+        ...(dto.fields !== undefined ? { fields: JSON.stringify(dto.fields) } : {}),
+        ...(dto.status !== undefined ? { status: dto.status } : {}),
+        ...(dto.submitLabel !== undefined ? { submitLabel: dto.submitLabel } : {}),
+        ...(dto.successMessage !== undefined ? { successMessage: dto.successMessage } : {}),
+        ...(dto.recaptcha !== undefined ? { recaptcha: dto.recaptcha } : {}),
+      },
+    });
+    await this.audit.log({ action: 'form.update', adminId, entity: 'Form', entityId: id, after: { status: form.status } });
+    return this.serialize(form);
+  }
+
+  async remove(id: string, adminId: string) {
+    const existing = await this.prisma.form.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`Form ${id} not found`);
+    await this.prisma.form.delete({ where: { id } });
+    await this.audit.log({ action: 'form.delete', adminId, entity: 'Form', entityId: id, before: { slug: existing.slug } });
+    return { ok: true };
+  }
+
+  async listSubmissions(id: string) {
+    const form = await this.prisma.form.findUnique({ where: { id } });
+    if (!form) throw new NotFoundException(`Form ${id} not found`);
+    const subs = await this.prisma.formSubmission.findMany({
+      where: { formId: id },
+      orderBy: { createdAt: 'desc' },
+    });
+    return subs.map((s) => ({
+      id: s.id,
+      status: s.status,
+      data: this.safeParse(s.data),
+      createdAt: s.createdAt,
+    }));
+  }
+
+  async deleteSubmission(submissionId: string, adminId: string) {
+    await this.prisma.formSubmission.delete({ where: { id: submissionId } });
+    await this.audit.log({ action: 'form.submission.delete', adminId, entity: 'FormSubmission', entityId: submissionId });
+    return { ok: true };
+  }
+
+  // ── helpers ─────────────────────────────────────────────────────────────
+  private serialize(form: { fields: string } & Record<string, unknown>) {
+    return { ...form, fields: this.safeParse(form.fields) };
+  }
+
+  private parseFields(raw: string): Array<{ name: string; label?: string; type?: string; required?: boolean }> {
+    const parsed = this.safeParse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  }
+
+  private safeParse(raw: string): unknown {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return [];
+    }
+  }
+}
