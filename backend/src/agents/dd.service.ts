@@ -11,6 +11,50 @@ import {
   RecordReviewDto,
 } from './dto/dd.dto';
 
+const APPLICATION_SELECT = {
+  id: true,
+  applicantType: true,
+  firstName: true,
+  lastName: true,
+  company: true,
+  businessStreet: true,
+  businessCountry: true,
+  businessState: true,
+  businessCity: true,
+  businessZip: true,
+  businessPhone: true,
+  email: true,
+  howFound: true,
+  howFoundOther: true,
+  businessType: true,
+  businessTypeOther: true,
+  productsOffered: true,
+  currentlyProvides: true,
+  currentProvider: true,
+  currentProviderOther: true,
+  providedPast: true,
+  pastProvider: true,
+  pastProviderOther: true,
+  declinedBefore: true,
+  declinedExplain: true,
+  preferredLanguage: true,
+  preferredLanguageOther: true,
+  monthlyVolume: true,
+  totalLocations: true,
+  comments: true,
+  signatureName: true,
+  signatureTitle: true,
+  signatureConsent: true,
+  signatureConsentText: true,
+  signatureClientTimestamp: true,
+  signatureAcceptedAt: true,
+  signatureIp: true,
+  signatureUserAgent: true,
+  status: true,
+  createdAt: true,
+  updatedAt: true,
+} as const;
+
 /**
  * Owns the agent due-diligence lifecycle: creating a DD file (optionally from an
  * approved application), seeding the 19-item catalog, tracking each document's
@@ -27,32 +71,67 @@ export class DDService {
   // ── Creation ────────────────────────────────────────────────────────────────
   /** Creates a DD file and seeds the catalog. Business-only docs become NA for individuals. */
   async createFile(dto: CreateDDFileDto, adminId: string) {
-    const entityType = dto.entityType ?? 'BUSINESS';
+    let entityType = dto.entityType ?? 'BUSINESS';
+    let agentName = dto.agentName;
+    let states = dto.states ?? null;
+    let sourceApplication: {
+      applicantType: string;
+      firstName: string;
+      lastName: string;
+      company: string | null;
+      businessState: string | null;
+      monthlyVolume: string | null;
+      totalLocations: string | null;
+    } | null = null;
 
     if (dto.applicationId) {
-      const app = await this.prisma.agentApplication.findUnique({ where: { id: dto.applicationId } });
+      const app = await this.prisma.agentApplication.findUnique({
+        where: { id: dto.applicationId },
+        select: {
+          applicantType: true,
+          firstName: true,
+          lastName: true,
+          company: true,
+          businessState: true,
+          monthlyVolume: true,
+          totalLocations: true,
+        },
+      });
       if (!app) throw new NotFoundException('Application not found');
+      sourceApplication = app;
+      entityType = app.applicantType === 'INDIVIDUAL' ? 'INDIVIDUAL' : 'BUSINESS';
+      agentName = app.company?.trim() || `${app.firstName} ${app.lastName}`.trim();
+      states = app.businessState ?? states;
       const existing = await this.prisma.agentDDFile.findUnique({ where: { applicationId: dto.applicationId } });
       if (existing) throw new BadRequestException('A DD file already exists for this application');
     }
 
+    const hasCapturedVolume = !!sourceApplication?.monthlyVolume || !!sourceApplication?.totalLocations;
+
     const file = await this.prisma.agentDDFile.create({
       data: {
         applicationId: dto.applicationId ?? null,
-        agentName: dto.agentName,
+        agentName,
         entityType,
-        states: dto.states ?? null,
+        states,
         regionalOffice: dto.regionalOffice ?? null,
         stage: 'DD_IN_PROGRESS',
         documents: {
           create: DD_CATALOG.map((item) => {
             const applicable = !(item.businessOnly && entityType === 'INDIVIDUAL');
+            const capturedFromApplication = dto.applicationId && item.code === 'r0';
+            const capturedVolume = dto.applicationId && item.code === 'r11' && hasCapturedVolume;
             return {
               code: item.code,
               section: item.section,
               label: item.label,
-              present: false,
-              status: applicable ? 'MISSING' : 'NA',
+              present: !!(applicable && (capturedFromApplication || capturedVolume)),
+              status: !applicable ? 'NA' : capturedFromApplication || capturedVolume ? 'OK' : 'MISSING',
+              notes: capturedFromApplication
+                ? 'Captured from public Become an Agent application.'
+                : capturedVolume
+                  ? 'Anticipated volume captured in public application.'
+                  : null,
             };
           }),
         },
@@ -98,7 +177,10 @@ export class DDService {
     const files = await this.prisma.agentDDFile.findMany({
       where: stage ? { stage } : undefined,
       orderBy: { updatedAt: 'desc' },
-      include: { documents: { select: { status: true } } },
+      include: {
+        documents: { select: { status: true } },
+        application: { select: APPLICATION_SELECT },
+      },
     });
     // Attach a compliance summary per file (counts by status).
     return files.map((f) => {
@@ -112,7 +194,10 @@ export class DDService {
   async get(id: string) {
     const file = await this.prisma.agentDDFile.findUnique({
       where: { id },
-      include: { documents: { orderBy: { code: 'asc' } } },
+      include: {
+        documents: { orderBy: { code: 'asc' } },
+        application: { select: APPLICATION_SELECT },
+      },
     });
     if (!file) throw new NotFoundException('DD file not found');
     return file;
@@ -208,8 +293,19 @@ export class DDService {
 
   // ── File-level mutations ────────────────────────────────────────────────────
   async setStage(id: string, dto: SetStageDto, adminId: string) {
-    const file = await this.prisma.agentDDFile.findUnique({ where: { id } });
+    const file = await this.prisma.agentDDFile.findUnique({
+      where: { id },
+      include: { documents: true },
+    });
     if (!file) throw new NotFoundException('DD file not found');
+
+    if (dto.stage === 'ACTIVE') {
+      const blockers = this.getActivationBlockers(file);
+      if (blockers.length > 0) {
+        throw new BadRequestException(`Cannot activate DD file: ${blockers.join('; ')}`);
+      }
+    }
+
     const data: { stage: string; onboardedAt?: Date } = { stage: dto.stage };
     // Stamp the onboarded date the first time the file goes ACTIVE.
     if (dto.stage === 'ACTIVE' && !file.onboardedAt) data.onboardedAt = new Date();
@@ -223,6 +319,45 @@ export class DDService {
       after: { stage: dto.stage },
     });
     return updated;
+  }
+
+  private getActivationBlockers(file: {
+    riskRating: string | null;
+    lastReviewedAt: Date | null;
+    reviewedBy: string | null;
+    documents: Array<{
+      code: string;
+      label: string;
+      present: boolean;
+      expiry: Date | null;
+      status: string;
+    }>;
+  }): string[] {
+    const blockers: string[] = [];
+
+    if (!file.riskRating) blockers.push('risk rating is required');
+    if (!file.lastReviewedAt || !file.reviewedBy) blockers.push('compliance review must be recorded');
+
+    const incompleteDocs = file.documents
+      .filter((doc) => {
+        if (doc.status === 'NA') return false;
+        const catalog = DD_CATALOG.find((item) => item.code === doc.code);
+        if (catalog?.section === 'ONGOING') return false;
+        const status = computeDocStatus({
+          present: doc.present,
+          applicable: true,
+          hasExpiry: catalog?.hasExpiry ?? true,
+          expiry: doc.expiry,
+        });
+        return status !== 'OK';
+      })
+      .map((doc) => doc.label);
+
+    if (incompleteDocs.length > 0) {
+      blockers.push(`required onboarding documents incomplete: ${incompleteDocs.join(', ')}`);
+    }
+
+    return blockers;
   }
 
   async setRisk(id: string, dto: SetRiskDto, adminId: string) {

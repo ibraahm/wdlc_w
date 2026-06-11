@@ -7,8 +7,8 @@ import BlockRenderer from '@/components/BlockRenderer';
 export async function generateMetadata() {
   const page = await getCmsPage('compliance/report');
   return cmsMetadata(page, {
-    title: 'Report Suspicious Activity | World Direct Link',
-    description: 'Report suspected fraud or suspicious activity involving a World Direct Link transaction, agent, or customer.',
+    title: 'Report Fraud or File a Complaint | World Direct Link',
+    description: 'Report fraud, suspicious activity, transaction concerns, refund issues, or agent complaints to World Direct Link.',
   });
 }
 
@@ -21,8 +21,8 @@ export default async function ReportPage() {
         <>
       <PageHero
         eyebrow="Compliance"
-        title="Report Suspicious Activity"
-        subtitle="Customers, agents, and the public can report directly to our compliance team."
+        title="Report Fraud or File a Complaint"
+        subtitle="One secure intake for fraud concerns, suspicious activity, transaction complaints, refund issues, and agent conduct."
       />
 
       <Section>
@@ -38,24 +38,38 @@ export default async function ReportPage() {
       </Section>
 
       <Section muted>
-        <SectionHeading title="Reporting form" />
+        <SectionHeading title="Report or complaint form" />
         <div className="max-w-2xl space-y-6">
           <ContactForm
             fields={[
-              { name: 'reporterName', label: 'Reporter name (optional)', type: 'text', optional: true },
-              { name: 'contactInfo', label: 'Contact info', type: 'text', optional: true },
-              { name: 'location', label: 'Location or agent involved', type: 'text', optional: true },
+              { name: 'issueType', label: 'What are you reporting?', type: 'select', required: true, options: ['Fraud or scam', 'Suspicious activity', 'Transaction issue', 'Refund or fee issue', 'Agent conduct', 'Other complaint'] },
+              { name: 'reporterName', label: 'Your name', type: 'text', optional: true },
+              { name: 'email', label: 'Email', type: 'email', optional: true },
+              { name: 'phone', label: 'Phone', type: 'tel', optional: true },
+              { name: 'location', label: 'Agent / location involved', type: 'text', optional: true },
               { name: 'dates', label: 'Date(s)', type: 'text', optional: true },
               { name: 'transactionIds', label: 'Transaction ID(s) if known', type: 'text', optional: true },
-              { name: 'description', label: 'Description of activity', type: 'textarea', required: true },
+              { name: 'description', label: 'What happened?', type: 'textarea', required: true },
             ]}
-            submitLabel="Submit Report" action="report_suspicious"
-            successMessage="Thank you. Your report has been received and will be reviewed confidentially by our BSA/AML Compliance Officer."
+            submitLabel="Submit Report or Complaint" action="report_or_complaint"
+            formSlug="suspicious-activity-report"
+            successMessage="Thank you. Your report or complaint has been received and will be reviewed by the appropriate World Direct Link team."
           />
           <Callout variant="gold">
-            Reports are reviewed confidentially by our BSA/AML Compliance Officer.
+            Fraud and suspicious activity reports are reviewed confidentially by Compliance. Customer complaints are routed for follow-up and response.
           </Callout>
         </div>
+      </Section>
+
+      <Section>
+        <SectionHeading
+          title="Licenses & regulatory disclosures"
+          subtitle="For state license details, regulator contacts, and required disclosures, use the central licenses page."
+        />
+        <Callout variant="gold">
+          View all license and regulatory information at{' '}
+          <a href="/licenses" className="font-semibold underline">worlddirectlink.com/licenses</a>.
+        </Callout>
       </Section>
         </>
       )}

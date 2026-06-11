@@ -4,7 +4,6 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import {
   apiLogin,
-  apiAdminLogin,
   apiSignup,
   apiLogout,
   apiForgotPassword,
@@ -29,27 +28,6 @@ export async function loginAction(
 
   try {
     const result = await apiLogin(email, password, recaptchaToken);
-    await setSessionCookies(result.accessToken, result.refreshToken, result.agent);
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : 'Login failed.' };
-  }
-
-  redirect('/dashboard');
-}
-
-export async function adminLoginAction(
-  _prevState: { error?: string } | null,
-  formData: FormData,
-): Promise<{ error: string }> {
-  const email = formData.get('email') as string;
-  const password = formData.get('password') as string;
-
-  if (!email || !password) {
-    return { error: 'Email and password are required.' };
-  }
-
-  try {
-    const result = await apiAdminLogin(email, password);
     await setSessionCookies(result.accessToken, result.refreshToken, result.agent);
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Login failed.' };

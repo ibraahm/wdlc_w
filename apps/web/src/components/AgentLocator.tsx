@@ -145,14 +145,14 @@ export default function AgentLocator({ agents }: { agents: AgentLocation[] }) {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by city, state, ZIP, or name"
           className="agent-locator-search"
-          aria-label="Search agent locations"
+          aria-label="Search network locations"
         />
         <p className="agent-locator-count">
           {filtered.length} {filtered.length === 1 ? 'location' : 'locations'}
         </p>
         <ul className="agent-locator-items">
           {filtered.length === 0 && (
-            <li className="agent-locator-empty">No agent locations match your search.</li>
+            <li className="agent-locator-empty">No network locations match your search.</li>
           )}
           {filtered.map((a) => (
             <li key={a.id}>

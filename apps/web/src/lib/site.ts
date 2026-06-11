@@ -4,7 +4,7 @@
 export const company = {
   legalName: 'World Direct Link, Corp.',
   shortName: 'World Direct Link',
-  tagline: 'A Quarter Century of Financial',
+  tagline: 'A Quarter Century of Financial Excellence',
   nmls: '1119263',
   foundedDisplay: 'November 2, 1999',
   foundedState: 'Georgia',
@@ -17,12 +17,12 @@ export const company = {
   tollFree: '800-939-7185',
   phone: '404-909-8197',
   fax: '404-297-4321',
-  email: 'wdlc@worlddirectlink.com',
+  email: 'info@worlddirectlink.com',
   emails: {
-    general: 'wdlc@worlddirectlink.com',
-    compliance: 'compliance@worlddirectlink.com',
-    claims: 'claims@worlddirectlink.com',
-    returns: 'returns@worlddirectlink.com',
+    general: 'info@worlddirectlink.com',
+    compliance: 'support@worlddirectlink.com',
+    claims: 'support@worlddirectlink.com',
+    returns: 'support@worlddirectlink.com',
   },
   complianceFax: '404-751-2809',
 } as const;
@@ -34,9 +34,9 @@ export type NavNode = { label: string; href: string; children?: { label: string;
 // Top utility bar (always visible, above the primary nav)
 export const utilityNav: { label: string; href: string }[] = [
   { label: 'Licenses', href: '/licenses' },
-  { label: 'Report Fraud', href: '/compliance/report' },
+  { label: 'Report / Complaint', href: '/compliance/report' },
   { label: 'Agent Application', href: '/agents/become-an-agent' },
-  { label: 'Contact Us', href: '/about/contact' },
+  { label: 'Contact Us', href: '/support/contact' },
 ];
 
 // Primary header navigation
@@ -77,7 +77,7 @@ export const headerNav: NavNode[] = [
     children: [
       { label: 'Compliance Overview', href: '/compliance' },
       { label: 'Fraud & Consumer Scams', href: '/compliance/fraud' },
-      { label: 'Report Suspicious Activity', href: '/compliance/report' },
+      { label: 'Report or File a Complaint', href: '/compliance/report' },
       { label: 'Agent Regulatory Notices', href: '/compliance/notices' },
       { label: 'Law Enforcement Requests', href: '/compliance/law-enforcement' },
       { label: 'Compliance Resources', href: '/compliance/resources' },
@@ -90,8 +90,8 @@ export const headerNav: NavNode[] = [
       { label: 'Newsroom', href: '/news' },
       { label: 'Press Releases', href: '/news/press' },
       { label: 'Help Center', href: '/support/help' },
-      { label: 'Contact Support', href: '/support/contact' },
-      { label: 'Complaint Form', href: '/support/complaint' },
+      { label: 'Contact Us', href: '/support/contact' },
+      { label: 'Report or File a Complaint', href: '/compliance/report' },
     ],
   },
 ];
@@ -103,7 +103,7 @@ export const footerNav: { title: string; links: { label: string; href: string }[
     links: [
       { label: 'About Us', href: '/about' },
       { label: 'Licenses & Regulatory Disclosures', href: '/licenses' },
-      { label: 'Contact Us', href: '/about/contact' },
+      { label: 'Contact Us', href: '/support/contact' },
     ],
   },
   {
@@ -130,7 +130,7 @@ export const footerNav: { title: string; links: { label: string; href: string }[
     links: [
       { label: 'Compliance Overview', href: '/compliance' },
       { label: 'Fraud & Consumer Scams', href: '/compliance/fraud' },
-      { label: 'Report Suspicious Activity', href: '/compliance/report' },
+      { label: 'Report or File a Complaint', href: '/compliance/report' },
       { label: 'Agent Regulatory Notices', href: '/compliance/notices' },
       { label: 'Law Enforcement Requests', href: '/compliance/law-enforcement' },
       { label: 'Compliance Resources', href: '/compliance/resources' },
@@ -140,8 +140,8 @@ export const footerNav: { title: string; links: { label: string; href: string }[
     title: 'Support',
     links: [
       { label: 'Help Center', href: '/support/help' },
-      { label: 'Contact Support', href: '/support/contact' },
-      { label: 'Complaint Form', href: '/support/complaint' },
+      { label: 'Contact Us', href: '/support/contact' },
+      { label: 'Report or File a Complaint', href: '/compliance/report' },
     ],
   },
 ];
@@ -197,7 +197,7 @@ export const stateDisclosures: Record<string, string> = {
 };
 
 
-// State regulator contacts (for complaint page)
+// State regulator contacts (for the canonical licenses page)
 export const regulators: { state: string; contact: string }[] = [
   { state: 'Alaska', contact: '(907) 269-8140 · commerce.alaska.gov/bsc' },
   { state: 'Arizona', contact: '(602) 771-2800 · azdfi.gov' },

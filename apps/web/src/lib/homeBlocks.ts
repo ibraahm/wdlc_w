@@ -26,7 +26,7 @@ export const defaultHomeBlocks = {
       props: {
         label: 'Our Story',
         headingHtml: 'Trusted by Families <em>Across the Globe</em>',
-        body: 'World Direct Link, Corp. has been connecting people with their loved ones since 1999. From our headquarters in Stone Mountain, Georgia, we operate a network of licensed agents across North America, Africa, Europe, the Middle East, and Asia.\nWe are a federally registered Money Services Business (MSB), licensed in all required states, and committed to the highest standards of compliance, security, and customer service.',
+        body: 'World Direct Link, Corp. has been connecting people with their loved ones since 1999. From our headquarters in Stone Mountain, Georgia, we operate from the United States in the states where we are licensed.\nFor international payouts, we work through trusted payout partners in receiving countries and continue to seek additional partners to expand reliable service for customers and families.',
         image: '',
         stats: [
           { title: 'Same-Day Transfers', desc: 'Our signature quick service, now even faster.' },
@@ -52,7 +52,7 @@ export const defaultHomeBlocks = {
         items: [
           { title: 'Speed', desc: 'Most transfers complete within minutes. Real-time tracking keeps senders and recipients informed every step of the way.' },
           { title: 'Security', desc: 'Bank-grade encryption and 24/7 monitoring protect every transaction. Every transfer is OFAC-screened regardless of amount.' },
-          { title: 'Compliance', desc: 'Fully licensed MSB, FinCEN registered, and state-licensed. We exceed regulatory requirements in every market we serve.' },
+          { title: 'Compliance', desc: 'World Direct Link is a FinCEN-registered MSB and state-licensed money transmitter in the states where we operate. Authorized delegates in our network are vetted, trained, and monitored under our compliance program.' },
           { title: 'Affordability', desc: 'Competitive exchange rates and low flat fees. We believe everyone deserves access to affordable international transfers.' },
         ],
         buttonText: 'View Coverage',

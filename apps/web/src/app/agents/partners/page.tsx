@@ -173,7 +173,7 @@ export default async function PartnersPage() {
       )}
 
       <CtaBand heading="Interested in partnering with World Direct Link?">
-        <ButtonOnDark href="/about/contact">Contact Us</ButtonOnDark>
+        <ButtonOnDark href="/support/contact">Contact Us</ButtonOnDark>
         <Link
           href="/agents/become-an-agent"
           className="inline-flex items-center justify-center px-6 py-3 rounded-md border border-white/40 text-white font-semibold hover:bg-white/10 transition-colors"

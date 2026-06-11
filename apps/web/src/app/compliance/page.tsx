@@ -59,11 +59,11 @@ export default async function CompliancePage() {
           <Card title="Fraud & Consumer Scams" href="/compliance/fraud">
             Learn how to spot and avoid common money-transfer scams.
           </Card>
-          <Card title="Report Suspicious Activity" href="/compliance/report">
-            Confidentially report fraud or suspicious transactions to our compliance team.
+          <Card title="Report or File a Complaint" href="/compliance/report">
+            One intake for fraud, suspicious activity, transaction issues, refunds, and agent conduct.
           </Card>
           <Card title="Agent Regulatory Notices" href="/compliance/notices">
-            Posting requirements and compliance updates for authorized agents.
+            Posting requirements and compliance updates for authorized delegates.
           </Card>
           <Card title="Law Enforcement Requests" href="/compliance/law-enforcement">
             How to submit records requests, subpoenas, and warrants.

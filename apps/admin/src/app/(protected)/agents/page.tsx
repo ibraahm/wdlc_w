@@ -2,6 +2,7 @@ import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { apiListLocations, type AdminLocation } from '@/lib/api';
 import AgentsManager from '@/components/AgentsManager';
+import OnboardingFlow from '@/components/OnboardingFlow';
 
 export default async function AgentsPage() {
   const session = await getSession();
@@ -19,14 +20,16 @@ export default async function AgentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Agent Locations</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          One list for the public map — add locations manually or import from Excel, then edit any entry.
+        <h1 className="admin-page-title">Agent Locations</h1>
+        <p className="admin-section-subtitle">
+          Manage the locations shown on the public map. Add entries manually, import a CSV or Excel file, then keep status and coordinates current.
         </p>
       </div>
 
+      <OnboardingFlow active="locations" />
+
       {error ? (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       ) : (

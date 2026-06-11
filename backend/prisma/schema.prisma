@@ -221,6 +221,15 @@ model AgentApplication {
   totalLocations        String?
   comments              String?
 
+  signatureName         String?
+  signatureTitle        String?
+  signatureConsent      Boolean  @default(false)
+  signatureConsentText  String?
+  signatureClientTimestamp DateTime?
+  signatureAcceptedAt   DateTime?
+  signatureIp           String?
+  signatureUserAgent    String?
+
   status                String   @default("NEW")
   ip                    String?
   userAgent             String?

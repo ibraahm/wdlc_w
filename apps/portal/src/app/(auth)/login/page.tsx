@@ -45,10 +45,6 @@ export default function LoginPage() {
         Don&apos;t have an account?{' '}
         <Link href="/signup" className="auth-link">Create account</Link>
       </p>
-      <p className="auth-footer" style={{ marginTop: '6px' }}>
-        WDL staff?{' '}
-        <Link href="/admin-login" className="auth-link">Admin sign-in</Link>
-      </p>
     </>
   );
 }

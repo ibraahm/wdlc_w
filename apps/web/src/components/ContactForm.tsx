@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
+import { HumanVerificationField, useHumanVerification } from './HumanVerification';
 
 export type Field =
   | { name: string; label: string; type: 'text' | 'email' | 'tel'; required?: boolean; optional?: boolean }
@@ -10,6 +11,7 @@ export type Field =
   | { name: string; label: string; type: 'file'; required?: boolean; optional?: boolean };
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+const RECAPTCHA_CONFIGURED = !!process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
 export default function ContactForm({
   fields,
@@ -29,6 +31,14 @@ export default function ContactForm({
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
+  const [showHumanVerification, setShowHumanVerification] = useState(false);
+  const humanVerification = useHumanVerification(action, showHumanVerification);
+
+  useEffect(() => {
+    if (formSlug && (!RECAPTCHA_CONFIGURED || !executeRecaptcha)) {
+      setShowHumanVerification(true);
+    }
+  }, [executeRecaptcha, formSlug]);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -36,17 +46,27 @@ export default function ContactForm({
     setPending(true);
 
     let recaptchaToken: string | undefined;
-    if (executeRecaptcha) {
+    if (formSlug && RECAPTCHA_CONFIGURED && executeRecaptcha && !showHumanVerification) {
       try {
         recaptchaToken = await executeRecaptcha(action);
       } catch {
-        setError('Security check failed. Please try again.');
+        setShowHumanVerification(true);
+        setError('Please complete the verification question and submit again.');
         setPending(false);
         return;
       }
     }
 
     if (formSlug) {
+      if (!recaptchaToken) {
+        setShowHumanVerification(true);
+        if (!humanVerification.challenge || !humanVerification.answer.trim()) {
+          setError('Please answer the verification question.');
+          setPending(false);
+          return;
+        }
+      }
+
       const form = e.currentTarget;
       const data: Record<string, string> = {};
       for (const field of fields) {
@@ -57,13 +77,26 @@ export default function ContactForm({
         const res = await fetch(`${API}/cms/forms/${formSlug}/submit`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ data, recaptchaToken }),
+          body: JSON.stringify({
+            data,
+            recaptchaAction: action,
+            recaptchaToken,
+            humanVerificationToken: !recaptchaToken ? humanVerification.challenge?.token : undefined,
+            humanVerificationAnswer: !recaptchaToken ? humanVerification.answer.trim() : undefined,
+          }),
         });
         if (!res.ok) {
           const j = await res.json().catch(() => null);
           throw new Error(j?.message || 'Submission failed. Please try again.');
         }
       } catch (err) {
+        if ((err instanceof Error ? err.message : '').toLowerCase().includes('security')) {
+          setShowHumanVerification(true);
+          void humanVerification.refresh();
+          setError('Please answer the refreshed verification question and submit again.');
+          setPending(false);
+          return;
+        }
         setError(err instanceof Error ? err.message : 'Submission failed. Please try again.');
         setPending(false);
         return;
@@ -137,6 +170,19 @@ export default function ContactForm({
         </div>
       ))}
 
+      {showHumanVerification && (
+        <HumanVerificationField
+          answer={humanVerification.answer}
+          challenge={humanVerification.challenge}
+          error={humanVerification.error}
+          loading={humanVerification.loading}
+          onAnswerChange={humanVerification.setAnswer}
+          onRefresh={() => {
+            void humanVerification.refresh();
+          }}
+        />
+      )}
+
       {error && (
         <p className="text-sm text-[#a73535] font-medium">{error}</p>
       )}
@@ -157,7 +203,7 @@ export default function ContactForm({
             </>
           ) : submitLabel}
         </button>
-        {executeRecaptcha && (
+        {RECAPTCHA_CONFIGURED && executeRecaptcha && (
           <p className="text-xs text-muted mt-3 leading-relaxed">
             Protected by reCAPTCHA.{' '}
             <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">Privacy</a>

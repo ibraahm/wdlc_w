@@ -17,10 +17,6 @@ import {
   apiDeleteLocation,
   apiSetApplicationStatus,
   apiDeleteApplication,
-  apiCreateForm,
-  apiUpdateForm,
-  apiDeleteForm,
-  apiDeleteSubmission,
   apiCreatePartner,
   apiUpdatePartner,
   apiDeletePartner,
@@ -33,7 +29,7 @@ import {
   apiSetDDRisk,
   apiRecordDDReview,
 } from './api';
-import type { BuilderForm, Partner, NetworkCountry } from './api';
+import type { Partner, NetworkCountry } from './api';
 import { getSession, setSessionCookies, clearSessionCookies } from './auth';
 
 // ---------------------------------------------------------------------------
@@ -238,6 +234,7 @@ export async function setApplicationStatusAction(
   try {
     await apiSetApplicationStatus(session.accessToken, id, status);
     revalidatePath('/applications');
+    revalidatePath('/agent-dd');
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
@@ -269,67 +266,6 @@ export async function setUserActiveAction(
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Form builder actions
-// ---------------------------------------------------------------------------
-
-export async function createFormAction(
-  data: Partial<BuilderForm>,
-): Promise<{ ok: boolean; id?: string; error?: string }> {
-  const session = await getSession();
-  if (!session) return { ok: false, error: 'Not authenticated' };
-  try {
-    const form = await apiCreateForm(session.accessToken, data);
-    revalidatePath('/forms');
-    return { ok: true, id: form.id };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Create failed' };
-  }
-}
-
-export async function saveFormAction(
-  id: string,
-  data: Partial<BuilderForm>,
-): Promise<{ ok: boolean; error?: string }> {
-  const session = await getSession();
-  if (!session) return { ok: false, error: 'Not authenticated' };
-  try {
-    await apiUpdateForm(session.accessToken, id, data);
-    revalidatePath('/forms');
-    revalidatePath(`/forms/${id}`);
-    return { ok: true };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Save failed' };
-  }
-}
-
-export async function deleteFormAction(id: string): Promise<{ ok: boolean; error?: string }> {
-  const session = await getSession();
-  if (!session) return { ok: false, error: 'Not authenticated' };
-  try {
-    await apiDeleteForm(session.accessToken, id);
-    revalidatePath('/forms');
-    return { ok: true };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };
-  }
-}
-
-export async function deleteSubmissionAction(
-  id: string,
-  submissionId: string,
-): Promise<{ ok: boolean; error?: string }> {
-  const session = await getSession();
-  if (!session) return { ok: false, error: 'Not authenticated' };
-  try {
-    await apiDeleteSubmission(session.accessToken, submissionId);
-    revalidatePath(`/forms/${id}`);
-    return { ok: true };
-  } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };
   }
 }
 
@@ -445,7 +381,7 @@ export async function createDDFileAction(data: {
 export async function updateDDDocumentAction(
   fileId: string,
   code: string,
-  data: { present?: boolean; expiry?: string | null; notes?: string; dropboxUrl?: string },
+  data: { present?: boolean; expiry?: string | null; notes?: string; dropboxUrl?: string | null },
 ): Promise<{ ok: boolean; error?: string }> {
   const session = await getSession();
   if (!session) return { ok: false, error: 'Not authenticated' };

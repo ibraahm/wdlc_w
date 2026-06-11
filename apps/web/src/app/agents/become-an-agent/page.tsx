@@ -7,7 +7,7 @@ export async function generateMetadata() {
   const page = await getCmsPage('agents/become-an-agent');
   return cmsMetadata(page, {
     title: 'Become a WDL Agent | World Direct Link',
-    description: 'Partner with World Direct Link to offer money transfer services. Earn commissions, serve your community, and get full compliance support and training.',
+    description: 'Partner with World Direct Link to offer money transfer services, earn commissions, and serve your community with ongoing support.',
   });
 }
 
@@ -56,7 +56,7 @@ export default async function BecomeAnAgentPage() {
                 {[
                   { icon: '💰', text: 'Earn commissions on every transfer — no upfront fees' },
                   { icon: '🏘️', text: 'Serve your community with a trusted brand since 1999' },
-                  { icon: '🎓', text: 'Full BSA/AML training and compliance support included' },
+                  { icon: '🎓', text: 'Setup, marketing, training, and ongoing support included' },
                   { icon: '⚙️', text: 'Simple system — no complex hardware required' },
                   { icon: '📞', text: 'Dedicated onboarding team and ongoing support' },
                 ].map(({ icon, text }) => (
@@ -69,13 +69,13 @@ export default async function BecomeAnAgentPage() {
             </div>
 
             <div className="rounded-xl border border-[#d9e0e8] bg-white p-6 space-y-3">
-              <h3 className="font-bold text-gray-900">What you'll need</h3>
+              <h3 className="font-bold text-gray-900">Built for local growth</h3>
               <ul className="space-y-2 text-sm text-gray-600">
                 {[
-                  'A physical business or commercial location',
-                  'Valid government-issued photo ID',
-                  'Business license (if applicable)',
-                  'Willingness to complete a background check',
+                  'Your trusted partner since 1999',
+                  'Local service with global payout reach',
+                  'Ongoing setup, marketing, and training support',
+                  'No upfront investment or fees',
                 ].map((item) => (
                   <li key={item} className="flex gap-2">
                     <span className="text-green-500 font-bold shrink-0">✓</span>
@@ -86,9 +86,9 @@ export default async function BecomeAnAgentPage() {
             </div>
 
             <div className="rounded-xl bg-[#1a3c6e] text-white p-6 space-y-3">
-              <h3 className="font-bold">How it works</h3>
+              <h3 className="font-bold">Simple next steps</h3>
               <ol className="space-y-2 text-sm text-white/85">
-                {['Submit your application', 'Background & OFAC screening', 'Compliance training', 'System setup & go live'].map((step, i) => (
+                {['Tell us about your business', 'We connect with you', 'We help you get ready', 'Start serving customers'].map((step, i) => (
                   <li key={step} className="flex gap-2">
                     <span className="shrink-0 font-semibold text-white/60">{i + 1}.</span>
                     <span>{step}</span>

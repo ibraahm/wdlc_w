@@ -93,17 +93,20 @@ export function ButtonOnDark({ href, children, external, className = '' }: BtnPr
 // ── Section heading ───────────────────────────────────────────────────────────
 export function SectionHeading({
   title,
+  children,
   subtitle,
   center = false,
   eyebrow,
   dark = false,
 }: {
-  title: string;
+  title?: string;
+  children?: ReactNode;
   subtitle?: string;
   center?: boolean;
   eyebrow?: string;
   dark?: boolean;
 }) {
+  const heading = title ?? children;
   return (
     <div style={{ textAlign: center ? 'center' : 'left', marginBottom: '48px' }}>
       {eyebrow && (
@@ -113,7 +116,7 @@ export function SectionHeading({
         </div>
       )}
       <h2 style={{ color: dark ? 'var(--ivory)' : 'var(--navy)', fontSize: 'clamp(1.8rem, 3.5vw, 3rem)', marginTop: eyebrow ? '16px' : 0 }}>
-        {title}
+        {heading}
       </h2>
       {subtitle && (
         <p style={{ color: dark ? 'var(--muted-dark)' : 'var(--muted)', maxWidth: '540px', margin: center ? '12px auto 0' : '12px 0 0', fontWeight: 300, lineHeight: 1.85 }}>
@@ -236,11 +239,24 @@ export function FactTable({ rows }: { rows: { label: string; value: ReactNode }[
 }
 
 // ── CTA band ──────────────────────────────────────────────────────────────────
-export function CtaBand({ heading, children }: { heading: string; children?: ReactNode }) {
+export function CtaBand({
+  heading,
+  subtext,
+  children,
+}: {
+  heading: string;
+  subtext?: string;
+  children?: ReactNode;
+}) {
   return (
     <section className="dark-section" style={{ textAlign: 'center' }}>
       <div className="shell">
         <h2 style={{ color: 'var(--ivory)', fontSize: 'clamp(2rem, 4vw, 3.6rem)' }}>{heading}</h2>
+        {subtext && (
+          <p style={{ color: 'var(--muted-dark)', maxWidth: '560px', margin: '16px auto 0', lineHeight: 1.8 }}>
+            {subtext}
+          </p>
+        )}
         {children && (
           <div style={{ marginTop: '40px', display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'center' }}>
             {children}

@@ -32,7 +32,7 @@ export class GeocodeService {
       const url = `${this.endpoint}?format=json&limit=1&q=${encodeURIComponent(query)}`;
       const res = await fetch(url, {
         headers: {
-          'User-Agent': 'WorldDirectLink-AgentLocator/1.0 (compliance@worlddirectlink.com)',
+          'User-Agent': 'WorldDirectLink-AgentLocator/1.0 (support@worlddirectlink.com)',
           Accept: 'application/json',
         },
       });

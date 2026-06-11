@@ -1,4 +1,15 @@
-import { IsString, IsOptional, IsBoolean, IsEmail, MaxLength, IsIn } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsEmail, MaxLength, IsIn, Matches, IsDateString } from 'class-validator';
+
+const US_STATES = [
+  'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut',
+  'Delaware', 'District of Columbia', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois',
+  'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts',
+  'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada',
+  'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota',
+  'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Puerto Rico', 'Rhode Island', 'South Carolina',
+  'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington',
+  'West Virginia', 'Wisconsin', 'Wyoming',
+] as const;
 
 export class CreateApplicationDto {
   @IsOptional() @IsIn(['INDIVIDUAL', 'BUSINESS']) applicantType?: string;
@@ -6,11 +17,11 @@ export class CreateApplicationDto {
   @IsString() @MaxLength(120) lastName: string;
   @IsOptional() @IsString() @MaxLength(200) company?: string;
   @IsString() @MaxLength(300) businessStreet: string;
-  @IsString() @MaxLength(120) businessCountry: string;
-  @IsOptional() @IsString() @MaxLength(120) businessState?: string;
+  @IsString() @IsIn(['United States']) businessCountry: string;
+  @IsString() @IsIn(US_STATES) businessState: string;
   @IsString() @MaxLength(120) businessCity: string;
-  @IsString() @MaxLength(20) businessZip: string;
-  @IsString() @MaxLength(60) businessPhone: string;
+  @IsString() @MaxLength(10) @Matches(/^\d{5}(?:-\d{4})?$/, { message: 'businessZip must be a valid U.S. ZIP code' }) businessZip: string;
+  @IsString() @MaxLength(12) @Matches(/^\+1[2-9]\d{2}[2-9]\d{6}$/, { message: 'businessPhone must be a valid U.S. phone number' }) businessPhone: string;
   @IsEmail() @MaxLength(200) email: string;
 
   @IsOptional() @IsString() @MaxLength(120) howFound?: string;
@@ -34,7 +45,15 @@ export class CreateApplicationDto {
   @IsOptional() @IsString() @MaxLength(60) totalLocations?: string;
   @IsOptional() @IsString() @MaxLength(2000) comments?: string;
 
+  @IsString() @MaxLength(200) signatureName: string;
+  @IsOptional() @IsString() @MaxLength(120) signatureTitle?: string;
+  @IsBoolean() signatureConsent: boolean;
+  @IsString() @MaxLength(1000) signatureConsentText: string;
+  @IsOptional() @IsDateString() signatureClientTimestamp?: string;
+
   @IsOptional() @IsString() @MaxLength(3000) recaptchaToken?: string;
+  @IsOptional() @IsString() @MaxLength(1000) humanVerificationToken?: string;
+  @IsOptional() @IsString() @MaxLength(20) humanVerificationAnswer?: string;
 }
 
 export class UpdateApplicationStatusDto {

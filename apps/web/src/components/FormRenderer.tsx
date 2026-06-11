@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import type { CmsForm, CmsFormField } from '@/lib/cms';
+import { HumanVerificationField, useHumanVerification } from './HumanVerification';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+const RECAPTCHA_CONFIGURED = !!process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
 const inputCls =
   'w-full rounded-lg border border-[#d9e0e8] bg-white px-3 py-2 text-ink focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none';
@@ -17,6 +19,14 @@ export default function FormRenderer({ form }: { form: CmsForm }) {
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
   const [done, setDone] = useState(false);
+  const [showHumanVerification, setShowHumanVerification] = useState(false);
+  const humanVerification = useHumanVerification('form_submit', showHumanVerification);
+
+  useEffect(() => {
+    if (form.recaptcha && (!RECAPTCHA_CONFIGURED || !executeRecaptcha)) {
+      setShowHumanVerification(true);
+    }
+  }, [executeRecaptcha, form.recaptcha]);
 
   function setValue(name: string, v: unknown) {
     setValues((prev) => ({ ...prev, [name]: v }));
@@ -42,11 +52,21 @@ export default function FormRenderer({ form }: { form: CmsForm }) {
     setPending(true);
 
     let recaptchaToken: string | undefined;
-    if (form.recaptcha && executeRecaptcha) {
+    if (form.recaptcha && RECAPTCHA_CONFIGURED && executeRecaptcha && !showHumanVerification) {
       try {
         recaptchaToken = await executeRecaptcha('form_submit');
       } catch {
-        setError('Security check failed. Please try again.');
+        setShowHumanVerification(true);
+        setError('Please complete the verification question and submit again.');
+        setPending(false);
+        return;
+      }
+    }
+
+    if (form.recaptcha && !recaptchaToken) {
+      setShowHumanVerification(true);
+      if (!humanVerification.challenge || !humanVerification.answer.trim()) {
+        setError('Please answer the verification question.');
         setPending(false);
         return;
       }
@@ -59,7 +79,10 @@ export default function FormRenderer({ form }: { form: CmsForm }) {
         // Record the consent acknowledgement alongside the submission as evidence.
         body: JSON.stringify({
           data: { ...values, _consentAcknowledged: true, _consentAt: new Date().toISOString() },
+          recaptchaAction: 'form_submit',
           recaptchaToken,
+          humanVerificationToken: !recaptchaToken ? humanVerification.challenge?.token : undefined,
+          humanVerificationAnswer: !recaptchaToken ? humanVerification.answer.trim() : undefined,
         }),
       });
       if (!res.ok) {
@@ -68,6 +91,10 @@ export default function FormRenderer({ form }: { form: CmsForm }) {
       }
       setDone(true);
     } catch (err) {
+      if ((err instanceof Error ? err.message : '').toLowerCase().includes('security')) {
+        setShowHumanVerification(true);
+        void humanVerification.refresh();
+      }
       setError(err instanceof Error ? err.message : 'Submission failed');
     } finally {
       setPending(false);
@@ -112,6 +139,19 @@ export default function FormRenderer({ form }: { form: CmsForm }) {
           terms. I consent to World Direct Link processing the information I provide to respond to my request. *
         </span>
       </label>
+
+      {showHumanVerification && (
+        <HumanVerificationField
+          answer={humanVerification.answer}
+          challenge={humanVerification.challenge}
+          error={humanVerification.error}
+          loading={humanVerification.loading}
+          onAnswerChange={humanVerification.setAnswer}
+          onRefresh={() => {
+            void humanVerification.refresh();
+          }}
+        />
+      )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 

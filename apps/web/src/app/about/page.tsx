@@ -67,7 +67,7 @@ export default async function AboutPage() {
             We are a principal money transmitter and a registered Money Services
             Business (MSB) with the U.S. Department of the Treasury&apos;s Financial
             Crimes Enforcement Network (FinCEN). Our services are offered exclusively
-            in U.S. dollars through a network of authorized agents, with payouts
+            in U.S. dollars through our authorized delegate network, with payouts
             delivered through our trusted foreign correspondent network.
           </p>
         </div>

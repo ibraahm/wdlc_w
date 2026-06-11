@@ -53,16 +53,19 @@ export class DDAdminController {
     return this.dd.recomputeStatuses(id);
   }
 
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER')
   @Patch(':id/stage')
   setStage(@Param('id') id: string, @Body() dto: SetStageDto, @CurrentUser('id') adminId: string) {
     return this.dd.setStage(id, dto, adminId);
   }
 
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER')
   @Patch(':id/risk')
   setRisk(@Param('id') id: string, @Body() dto: SetRiskDto, @CurrentUser('id') adminId: string) {
     return this.dd.setRisk(id, dto, adminId);
   }
 
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER')
   @Patch(':id/review')
   recordReview(@Param('id') id: string, @Body() dto: RecordReviewDto, @CurrentUser('id') adminId: string) {
     return this.dd.recordReview(id, dto, adminId);

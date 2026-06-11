@@ -46,8 +46,8 @@ const BUSINESS_TYPES = [
 ];
 
 const PRODUCTS = [
-  'Money Transfer - Sends Only', 'Money Transfer - Sends and Receives',
-  'Bill Payment', 'All WDL products',
+  'Money Transfer - Sends Only',
+  'Money Transfer - Sends and Receives',
 ];
 
 const HOW_FOUND = [
@@ -90,7 +90,7 @@ export const builderForms: BuilderForm[] = [
   {
     slug: 'contact-us',
     name: 'Contact Us',
-    description: 'General contact form.',
+    description: 'Single public contact form for general questions, tracking, refunds, claims, and agent support.',
     status: 'PUBLISHED',
     submitLabel: 'Send message',
     successMessage: 'Thanks for reaching out — we will get back to you shortly.',
@@ -99,25 +99,30 @@ export const builderForms: BuilderForm[] = [
       { id: 'c_name', type: 'text', name: 'name', label: 'Full Name', required: true, width: 'half' },
       { id: 'c_email', type: 'email', name: 'email', label: 'Email Address', required: true, width: 'half' },
       { id: 'c_phone', type: 'tel', name: 'phone', label: 'Phone', width: 'half' },
-      { id: 'c_subject', type: 'text', name: 'subject', label: 'Subject', required: true, width: 'half' },
+      { id: 'c_topic', type: 'select', name: 'topic', label: 'Topic', required: true, width: 'half', options: ['General', 'Tracking', 'Refund', 'Claims', 'Agent support', 'Other'] },
+      { id: 'c_transaction', type: 'text', name: 'transactionId', label: 'Transaction ID', width: 'half' },
+      { id: 'c_subject', type: 'text', name: 'subject', label: 'Subject', width: 'full' },
       { id: 'c_message', type: 'textarea', name: 'message', label: 'Message', required: true, width: 'full' },
     ],
   },
   {
-    slug: 'complaint',
-    name: 'File a Complaint',
-    description: 'Consumer complaint form.',
+    slug: 'suspicious-activity-report',
+    name: 'Report or Complaint',
+    description: 'Single public intake for fraud, suspicious activity, transaction complaints, refund issues, and agent conduct.',
     status: 'PUBLISHED',
-    submitLabel: 'Submit complaint',
-    successMessage: 'Your complaint has been received. Our compliance team will review it promptly.',
+    submitLabel: 'Submit report or complaint',
+    successMessage:
+      'Thank you. Your report or complaint has been received and will be reviewed by the appropriate World Direct Link team.',
     recaptcha: true,
     fields: [
-      { id: 'cmp_name', type: 'text', name: 'name', label: 'Full Name', required: true, width: 'half' },
-      { id: 'cmp_email', type: 'email', name: 'email', label: 'Email Address', required: true, width: 'half' },
-      { id: 'cmp_phone', type: 'tel', name: 'phone', label: 'Phone', width: 'half' },
-      { id: 'cmp_txn', type: 'text', name: 'transactionId', label: 'Transaction ID (if any)', width: 'half' },
-      { id: 'cmp_state', type: 'select', name: 'state', label: 'State', required: true, width: 'half', options: US_STATES },
-      { id: 'cmp_details', type: 'textarea', name: 'details', label: 'Describe your complaint', required: true, width: 'full' },
+      { id: 'sar_type', type: 'select', name: 'issueType', label: 'What are you reporting?', required: true, width: 'full', options: ['Fraud or scam', 'Suspicious activity', 'Transaction issue', 'Refund or fee issue', 'Agent conduct', 'Other complaint'] },
+      { id: 'sar_reporter', type: 'text', name: 'reporterName', label: 'Your name', width: 'full' },
+      { id: 'sar_email', type: 'email', name: 'email', label: 'Email', width: 'half' },
+      { id: 'sar_phone', type: 'tel', name: 'phone', label: 'Phone', width: 'half' },
+      { id: 'sar_location', type: 'text', name: 'location', label: 'Agent / location involved', width: 'full' },
+      { id: 'sar_dates', type: 'text', name: 'dates', label: 'Date(s)', width: 'full' },
+      { id: 'sar_txn', type: 'text', name: 'transactionIds', label: 'Transaction ID(s) if known', width: 'full' },
+      { id: 'sar_description', type: 'textarea', name: 'description', label: 'What happened?', required: true, width: 'full' },
     ],
   },
 ];

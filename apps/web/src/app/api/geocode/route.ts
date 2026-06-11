@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
   url.searchParams.set('format', 'jsonv2');
   url.searchParams.set('addressdetails', '1');
   url.searchParams.set('limit', '6');
-  url.searchParams.set('countrycodes', 'us,ca');
+  url.searchParams.set('countrycodes', 'us');
   url.searchParams.set('q', q);
 
   try {
@@ -49,7 +49,15 @@ export async function GET(req: NextRequest) {
     });
     if (!res.ok) return NextResponse.json([]);
     const data = await res.json();
-    return NextResponse.json(data);
+    const usOnly = Array.isArray(data)
+      ? data.filter((result) => {
+          const address = result?.address as { country?: string; country_code?: string } | undefined;
+          const countryCode = address?.country_code?.toLowerCase();
+          const country = address?.country?.toLowerCase() ?? '';
+          return countryCode === 'us' || country.includes('united states');
+        })
+      : [];
+    return NextResponse.json(usOnly);
   } catch {
     return NextResponse.json([]);
   }

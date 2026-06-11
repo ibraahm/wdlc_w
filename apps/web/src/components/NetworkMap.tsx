@@ -2,7 +2,7 @@
 
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Map as LeafletMap, GeoJSON as LeafletGeoJSON } from 'leaflet';
+import type { Map as LeafletMap, GeoJSON as LeafletGeoJSON, LayerGroup as LeafletLayerGroup } from 'leaflet';
 import type * as D3 from 'd3';
 
 export type PayoutDetails = {
@@ -24,6 +24,59 @@ const PAYOUT_COLORS: Record<string, string> = {
   'Cash Collection': 'bg-amber-100 text-amber-700',
 };
 
+const COUNTRY_CODES: Record<string, string> = {
+  Angola: 'AO',
+  Australia: 'AU',
+  Austria: 'AT',
+  Belgium: 'BE',
+  Benin: 'BJ',
+  Canada: 'CA',
+  Chad: 'TD',
+  China: 'CN',
+  'Congo, the Democratic Republic of the': 'CD',
+  "Cote d'Ivoire": 'CI',
+  Denmark: 'DK',
+  Djibouti: 'DJ',
+  Egypt: 'EG',
+  Finland: 'FI',
+  France: 'FR',
+  Germany: 'DE',
+  Ghana: 'GH',
+  Greece: 'GR',
+  India: 'IN',
+  Indonesia: 'ID',
+  Ireland: 'IE',
+  Italy: 'IT',
+  Kenya: 'KE',
+  Kuwait: 'KW',
+  Malaysia: 'MY',
+  Malta: 'MT',
+  Mozambique: 'MZ',
+  Netherlands: 'NL',
+  Nigeria: 'NG',
+  Norway: 'NO',
+  Oman: 'OM',
+  'Saudi Arabia': 'SA',
+  Senegal: 'SN',
+  Somalia: 'SO',
+  'South Africa': 'ZA',
+  'South Sudan': 'SS',
+  Sudan: 'SD',
+  Sweden: 'SE',
+  Switzerland: 'CH',
+  Tanzania: 'TZ',
+  Thailand: 'TH',
+  Togo: 'TG',
+  Turkey: 'TR',
+  Uganda: 'UG',
+  'United Arab Emirates': 'AE',
+  'United Kingdom': 'GB',
+  'United States': 'US',
+  'United States of America': 'US',
+  Yemen: 'YE',
+  Zambia: 'ZM',
+};
+
 const GEO_TO_DB: Record<string, string> = {
   'United States': 'United States of America',
   'United States of America': 'United States of America',
@@ -41,11 +94,82 @@ function normalizeName(name: string): string {
   return GEO_TO_DB[name] ?? name;
 }
 
+function flagImageUrl(country: string): string {
+  const code = COUNTRY_CODES[normalizeName(country)]?.toLowerCase();
+  return code ? `https://flagcdn.com/w80/${code}.png` : '';
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function safeFlagUrl(flagUrl?: string): string {
+  if (!flagUrl) return '';
+  try {
+    const url = new URL(flagUrl, window.location.origin);
+    if (url.protocol === 'http:' || url.protocol === 'https:' || flagUrl.startsWith('/')) {
+      return flagUrl;
+    }
+  } catch {
+    return '';
+  }
+  return '';
+}
+
+function flagMarkerHtml(country: string, flagUrl?: string): string {
+  const safeUrl = safeFlagUrl(flagUrl) || flagImageUrl(country);
+  const label = escapeHtml(`${country} flag`);
+
+  if (safeUrl) {
+    return `<span class="wdl-map-flag-marker" title="${escapeHtml(country)}"><img src="${escapeHtml(safeUrl)}" alt="${label}" /></span>`;
+  }
+
+  return `<span class="wdl-map-flag-marker wdl-map-flag-marker--fallback" aria-label="${label}" title="${escapeHtml(country)}">${escapeHtml(country.slice(0, 2).toUpperCase())}</span>`;
+}
+
+function FlagMark({
+  country,
+  flagUrl,
+}: {
+  country: string;
+  flagUrl?: string;
+}) {
+  const safeUrl = flagUrl || flagImageUrl(country);
+  const sizeClass = 'h-10 w-14 text-3xl';
+
+  if (safeUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={safeUrl}
+        alt={`${country} flag`}
+        className={`${sizeClass} flex-shrink-0 rounded-md border border-gray-200 object-cover shadow-sm`}
+      />
+    );
+  }
+
+  return (
+    <span
+      className={`${sizeClass} inline-flex flex-shrink-0 items-center justify-center rounded-md border border-gray-200 bg-white shadow-sm`}
+      aria-label={`${country} flag`}
+      title={country}
+    >
+      {country.slice(0, 2).toUpperCase()}
+    </span>
+  );
+}
+
 export default function NetworkMap({ countries }: { countries: NetworkCountryData[] }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const mapInstance = useRef<LeafletMap | null>(null);
   const geoLayer = useRef<LeafletGeoJSON | null>(null);
+  const flagLayer = useRef<LeafletLayerGroup | null>(null);
   const currentLayer = useRef<unknown>(null);
   const [panel, setPanel] = useState<NetworkCountryData | null>(null);
   const [ready, setReady] = useState(false);
@@ -81,6 +205,56 @@ export default function NetworkMap({ countries }: { countries: NetworkCountryDat
         'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
         { attribution: '&copy;OpenStreetMap, &copy;CartoDB', subdomains: 'abcd', maxZoom: 19, opacity: 0.8 },
       ).addTo(map);
+      flagLayer.current = L.layerGroup().addTo(map);
+
+      function selectCountry(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        layer: any,
+        data: NetworkCountryData | undefined,
+      ) {
+        if (currentLayer.current) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const prev = currentLayer.current as any;
+          const prevName = normalizeName(prev.feature.properties.name as string);
+          const prevUSA = prevName === 'United States of America';
+          prev.setStyle({ fillOpacity: prevUSA ? 0.85 : 0.7, weight: 1 });
+        }
+
+        layer.setStyle({ fillOpacity: 0.9, weight: 2.5 });
+        currentLayer.current = layer;
+        map.fitBounds(layer.getBounds(), { padding: [50, 50], maxZoom: 6 });
+        setPanel(data ? { ...data } : { name: 'United States', payoutTypes: ['Origin country'], flagUrl: undefined });
+      }
+
+      function drawFlagMarkers() {
+        if (!geoLayer.current || !flagLayer.current) return;
+        flagLayer.current.clearLayers();
+
+        geoLayer.current.eachLayer((layer) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const l = layer as any;
+          const feat = l.feature as { properties: { name: string } };
+          const name = normalizeName(feat.properties.name);
+          const isUSA = name === 'United States of America';
+          const data = countryMapRef.current.get(name);
+          if (!data && !isUSA) return;
+
+          const bounds = l.getBounds();
+          const markerCountry = data?.name ?? 'United States';
+          const marker = L.marker(bounds.getCenter(), {
+            icon: L.divIcon({
+              className: 'wdl-map-flag-icon',
+              html: flagMarkerHtml(markerCountry, data?.flagUrl),
+              iconSize: [36, 28],
+              iconAnchor: [18, 14],
+            }),
+            keyboard: true,
+            title: markerCountry,
+          });
+          marker.on('click', () => selectCountry(l, data));
+          marker.addTo(flagLayer.current!);
+        });
+      }
 
       function drawConnections() {
         const svgEl = svgRef.current;
@@ -149,23 +323,14 @@ export default function NetworkMap({ countries }: { countries: NetworkCountryDat
               l.setStyle({ fillOpacity: isUSA ? 0.85 : 0.7, weight: 1 });
             },
             click() {
-              if (currentLayer.current) {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const prev = currentLayer.current as any;
-                const prevName = normalizeName(prev.feature.properties.name as string);
-                const prevUSA = prevName === 'United States of America';
-                prev.setStyle({ fillOpacity: prevUSA ? 0.85 : 0.7, weight: 1 });
-              }
-              l.setStyle({ fillOpacity: 0.9, weight: 2.5 });
-              currentLayer.current = layer;
-              map.fitBounds(l.getBounds(), { padding: [50, 50], maxZoom: 6 });
-              setPanel(data ? { ...data } : { name: 'United States', payoutTypes: ['Origin country'], flagUrl: undefined });
+              selectCountry(l, data);
             },
           });
         },
       }).addTo(map);
 
       drawConnections();
+      drawFlagMarkers();
       setReady(true);
     }
 
@@ -176,13 +341,14 @@ export default function NetworkMap({ countries }: { countries: NetworkCountryDat
         mapInstance.current.remove();
         mapInstance.current = null;
         geoLayer.current = null;
+        flagLayer.current = null;
         currentLayer.current = null;
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const activeCount = countries.filter((c) => c.name !== 'United States of America').length;
+  const activeCount = countries.length;
   const mobileMoneyCount = countries.filter((c) => c.payoutTypes.includes('Mobile Money')).length;
   const bankCount = countries.filter((c) => c.payoutTypes.includes('Bank Transfer')).length;
 
@@ -193,11 +359,41 @@ export default function NetworkMap({ countries }: { countries: NetworkCountryDat
           from { stroke-dashoffset: 100; }
           to { stroke-dashoffset: -100; }
         }
+        .wdl-map-flag-icon {
+          background: transparent;
+          border: 0;
+        }
+        .wdl-map-flag-marker {
+          align-items: center;
+          background: rgba(255,255,255,0.94);
+          border: 1px solid rgba(11,31,58,0.18);
+          border-radius: 8px;
+          box-shadow: 0 4px 14px rgba(11,31,58,0.18);
+          color: #0B1F3A;
+          cursor: pointer;
+          display: inline-flex;
+          font-size: 21px;
+          height: 28px;
+          justify-content: center;
+          line-height: 1;
+          overflow: hidden;
+          transition: transform 160ms ease, box-shadow 160ms ease;
+          width: 36px;
+        }
+        .wdl-map-flag-marker:hover {
+          box-shadow: 0 7px 20px rgba(11,31,58,0.25);
+          transform: translateY(-1px) scale(1.06);
+        }
+        .wdl-map-flag-marker img {
+          height: 100%;
+          object-fit: cover;
+          width: 100%;
+        }
       `}</style>
 
       <div className="relative" style={{ height: '70vh', minHeight: 400 }}>
         <div ref={mapRef} className="absolute inset-0" />
-        <svg ref={svgRef} className="absolute inset-0 pointer-events-none" style={{ width: '100%', height: '100%', zIndex: 999 }} />
+        <svg ref={svgRef} className="absolute inset-0 pointer-events-none" style={{ width: '100%', height: '100%', zIndex: 500 }} />
 
         <div className="absolute top-4 left-4 z-[1000] bg-white rounded-xl shadow-md border-l-4 border-[#C9A84C] p-5 max-w-xs">
           <h2 className="text-xl font-bold text-[#0B1F3A] mb-1">Global Payout Network</h2>
@@ -241,10 +437,7 @@ export default function NetworkMap({ countries }: { countries: NetworkCountryDat
         <div className="border-t border-[#d9e0e8] bg-gray-50 p-5">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center gap-4">
-              {panel.flagUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={panel.flagUrl} alt={panel.name} className="h-10 w-16 object-cover rounded shadow-sm border border-gray-200" />
-              )}
+              <FlagMark country={panel.name} flagUrl={panel.flagUrl} />
               <div>
                 <h3 className="font-bold text-gray-900 text-lg">{panel.name}</h3>
                 <div className="flex flex-wrap gap-2 mt-2">

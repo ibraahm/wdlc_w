@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useTransition, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useMemo, useRef, useState, useTransition } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { AdminLocation, LocationInput } from '@/lib/api';
 import { apiImportLocations, apiCreateLocation, apiUpdateLocation } from '@/lib/api';
 import { toggleLocationActiveAction, deleteLocationAction } from '@/lib/actions';
+import { EmptyState } from './ui-admin';
 
 const EMPTY_FORM: LocationInput = {
   businessName: '',
@@ -15,6 +16,8 @@ const EMPTY_FORM: LocationInput = {
   country: 'USA',
   publicPhone: '',
 };
+
+const inputClass = 'w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900';
 
 function LocationForm({
   initial,
@@ -32,87 +35,120 @@ function LocationForm({
   const [form, setForm] = useState<LocationInput>(initial);
 
   function set<K extends keyof LocationInput>(key: K, value: LocationInput[K]) {
-    setForm((f) => ({ ...f, [key]: value }));
+    setForm((current) => ({ ...current, [key]: value }));
   }
 
-  function submit(e: React.FormEvent) {
-    e.preventDefault();
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
     if (!form.businessName.trim() || !form.city.trim() || !form.state.trim()) return;
     onSubmit(form);
   }
 
   return (
-    <form onSubmit={submit} className="space-y-3 bg-gray-50 border border-gray-200 rounded-lg p-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <input
-          value={form.businessName}
-          onChange={(e) => set('businessName', e.target.value)}
-          placeholder="Business name *"
-          required
-          className="px-3 py-2 border border-gray-300 rounded text-sm text-gray-900 bg-white"
-        />
-        <input
-          value={form.publicPhone ?? ''}
-          onChange={(e) => set('publicPhone', e.target.value)}
-          placeholder="Phone"
-          className="px-3 py-2 border border-gray-300 rounded text-sm text-gray-900 bg-white"
-        />
-        <input
-          value={form.addressLine ?? ''}
-          onChange={(e) => set('addressLine', e.target.value)}
-          placeholder="Street address"
-          className="px-3 py-2 border border-gray-300 rounded text-sm md:col-span-2"
-        />
-        <input
-          value={form.city}
-          onChange={(e) => set('city', e.target.value)}
-          placeholder="City *"
-          required
-          className="px-3 py-2 border border-gray-300 rounded text-sm text-gray-900 bg-white"
-        />
-        <div className="grid grid-cols-2 gap-3">
+    <form onSubmit={submit} className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <label className="block">
+          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Business name</span>
           <input
-            value={form.state}
-            onChange={(e) => set('state', e.target.value)}
-            placeholder="State *"
+            value={form.businessName}
+            onChange={(event) => set('businessName', event.target.value)}
             required
-            className="px-3 py-2 border border-gray-300 rounded text-sm text-gray-900 bg-white"
+            className={inputClass}
           />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Public phone</span>
           <input
-            value={form.zip ?? ''}
-            onChange={(e) => set('zip', e.target.value)}
-            placeholder="ZIP"
-            className="px-3 py-2 border border-gray-300 rounded text-sm text-gray-900 bg-white"
+            value={form.publicPhone ?? ''}
+            onChange={(event) => set('publicPhone', event.target.value)}
+            className={inputClass}
           />
+        </label>
+        <label className="block md:col-span-2">
+          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Street address</span>
+          <input
+            value={form.addressLine ?? ''}
+            onChange={(event) => set('addressLine', event.target.value)}
+            className={inputClass}
+          />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">City</span>
+          <input
+            value={form.city}
+            onChange={(event) => set('city', event.target.value)}
+            required
+            className={inputClass}
+          />
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">State</span>
+            <input
+              value={form.state}
+              onChange={(event) => set('state', event.target.value)}
+              required
+              className={inputClass}
+            />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">ZIP</span>
+            <input
+              value={form.zip ?? ''}
+              onChange={(event) => set('zip', event.target.value)}
+              className={inputClass}
+            />
+          </label>
         </div>
-        <input
-          value={form.country ?? ''}
-          onChange={(e) => set('country', e.target.value)}
-          placeholder="Country"
-          className="px-3 py-2 border border-gray-300 rounded text-sm text-gray-900 bg-white"
-        />
+        <label className="block">
+          <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500">Country</span>
+          <input
+            value={form.country ?? ''}
+            onChange={(event) => set('country', event.target.value)}
+            className={inputClass}
+          />
+        </label>
       </div>
-      <p className="text-xs text-gray-400">
-        The address is geocoded automatically so the pin appears on the public map.
-      </p>
-      <div className="flex gap-2">
+      <p className="text-xs text-gray-400">The address is geocoded automatically so the pin can appear on the public map.</p>
+      <div className="flex flex-wrap gap-2">
         <button
           type="submit"
           disabled={busy}
-          className="px-4 py-1.5 bg-navy text-white text-xs font-medium rounded disabled:opacity-60"
+          className="rounded-lg bg-navy px-4 py-2 text-xs font-semibold text-white disabled:opacity-60"
         >
-          {busy ? 'Saving…' : submitLabel}
+          {busy ? 'Saving...' : submitLabel}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-1.5 border border-gray-300 text-gray-700 text-xs rounded"
+          className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-white"
         >
           Cancel
         </button>
       </div>
     </form>
   );
+}
+
+function LocationStat({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm">
+      <div className="text-2xl font-bold text-gray-900">{value}</div>
+      <div className="mt-1 text-xs font-medium text-gray-500">{label}</div>
+    </div>
+  );
+}
+
+function locationText(location: AdminLocation) {
+  return [
+    location.businessName,
+    location.publicPhone,
+    location.addressLine,
+    location.city,
+    location.state,
+    location.zip,
+    location.country,
+  ].filter(Boolean).join(' ').toLowerCase();
 }
 
 function LocationsList({
@@ -123,16 +159,46 @@ function LocationsList({
   accessToken: string;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const hasPrefill = searchParams.has('businessName');
+  const initialPrefill: LocationInput = {
+    businessName: searchParams.get('businessName') ?? '',
+    addressLine: searchParams.get('addressLine') ?? '',
+    city: searchParams.get('city') ?? '',
+    state: searchParams.get('state') ?? '',
+    zip: searchParams.get('zip') ?? '',
+    country: searchParams.get('country') || 'USA',
+    publicPhone: searchParams.get('phone') ?? '',
+  };
   const [isPending, startTransition] = useTransition();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState(hasPrefill);
+  const [newLocationInitial, setNewLocationInitial] = useState<LocationInput>(
+    hasPrefill ? initialPrefill : EMPTY_FORM,
+  );
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [visibilityFilter, setVisibilityFilter] = useState<'ALL' | 'ACTIVE' | 'HIDDEN' | 'UNPINNED'>('ALL');
   const [importResult, setImportResult] = useState<{ created: number; updated: number; geocoded: number } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  const activeCount = useMemo(() => locations.filter((location) => location.active).length, [locations]);
+  const geocodedCount = useMemo(() => locations.filter((location) => location.latitude != null && location.longitude != null).length, [locations]);
+  const hiddenCount = locations.length - activeCount;
+
+  const visibleLocations = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return locations.filter((location) => {
+      if (visibilityFilter === 'ACTIVE' && !location.active) return false;
+      if (visibilityFilter === 'HIDDEN' && location.active) return false;
+      if (visibilityFilter === 'UNPINNED' && location.latitude != null && location.longitude != null) return false;
+      return !q || locationText(location).includes(q);
+    });
+  }, [locations, query, visibilityFilter]);
+
+  async function handleImport(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
     if (!file) return;
     setError('');
     setImportResult(null);
@@ -197,148 +263,205 @@ function LocationsList({
   }
 
   return (
-    <div className="space-y-4">
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          onClick={() => { setAdding((v) => !v); setEditingId(null); }}
-          className="px-4 py-2 bg-navy text-white text-sm font-medium rounded-lg hover:bg-navy-mid transition-colors"
-        >
-          {adding ? 'Cancel' : '+ Add location'}
-        </button>
-        <label className="cursor-pointer px-4 py-2 border border-blue-300 text-blue-700 text-sm font-medium rounded-lg hover:bg-blue-50 transition-colors">
-          {busy ? 'Working…' : 'Import from Excel / CSV'}
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            className="hidden"
-            disabled={busy}
-            onChange={handleImport}
-          />
-        </label>
-        <span className="text-xs text-gray-400">
-          Excel columns: Business Name, City, State (required); Address, ZIP, Phone, Country, ID (optional)
-        </span>
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        <LocationStat label="Total locations" value={locations.length} />
+        <LocationStat label="Active on map" value={activeCount} />
+        <LocationStat label="Hidden" value={hiddenCount} />
+        <LocationStat label="Geocoded" value={geocodedCount} />
+      </div>
+
+      <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900">Location publishing</h2>
+            <p className="text-xs text-gray-400">
+              {visibleLocations.length} shown of {locations.length}. Active, geocoded rows appear on the public map.
+            </p>
+          </div>
+          <div className="flex flex-col gap-2 md:flex-row">
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search business, city, state, phone"
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm md:w-72"
+            />
+            <select
+              value={visibilityFilter}
+              onChange={(event) => setVisibilityFilter(event.target.value as typeof visibilityFilter)}
+              className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+            >
+              <option value="ALL">All rows</option>
+              <option value="ACTIVE">Active only</option>
+              <option value="HIDDEN">Hidden only</option>
+              <option value="UNPINNED">Missing coords</option>
+            </select>
+            <button
+              type="button"
+              onClick={() => {
+                setAdding((value) => {
+                  const next = !value;
+                  if (next && !hasPrefill) setNewLocationInitial(EMPTY_FORM);
+                  return next;
+                });
+                setEditingId(null);
+              }}
+              className="rounded-lg bg-navy px-4 py-2 text-sm font-semibold text-white hover:bg-navy-mid"
+            >
+              {adding ? 'Cancel' : 'Add location'}
+            </button>
+            <label className="cursor-pointer rounded-lg border border-blue-300 px-4 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-50">
+              {busy ? 'Working...' : 'Import CSV/XLSX'}
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                className="hidden"
+                disabled={busy}
+                onChange={handleImport}
+              />
+            </label>
+          </div>
+        </div>
+        <p className="mt-3 text-xs text-gray-400">
+          Import columns: Business Name, City, State are required; Address, ZIP, Phone, Country, and ID are optional.
+        </p>
       </div>
 
       {importResult && (
-        <div className="rounded-lg bg-green-50 border border-green-200 px-4 py-2 text-sm text-green-800">
-          Import complete — {importResult.created} created, {importResult.updated} updated, {importResult.geocoded} geocoded.
+        <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-2 text-sm text-green-800">
+          Import complete: {importResult.created} created, {importResult.updated} updated, {importResult.geocoded} geocoded.
         </div>
       )}
       {error && (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
       )}
 
       {adding && (
-        <LocationForm
-          initial={EMPTY_FORM}
-          submitLabel="Add location"
-          busy={busy}
-          onSubmit={handleCreate}
-          onCancel={() => setAdding(false)}
-        />
-      )}
-
-      {/* Table */}
-      {locations.length === 0 ? (
-        <p className="text-sm text-gray-500 py-4">
-          No locations yet. Add one manually or import an Excel file above.
-        </p>
-      ) : (
-        <div className="overflow-x-auto bg-white border border-gray-200 rounded-xl">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 text-left text-gray-500">
-                <th className="px-4 py-3 font-medium">Business</th>
-                <th className="px-4 py-3 font-medium">Location</th>
-                <th className="px-4 py-3 font-medium">Coords</th>
-                <th className="px-4 py-3 font-medium">Active</th>
-                <th className="px-4 py-3 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {locations.map((loc) =>
-                editingId === loc.id ? (
-                  <tr key={loc.id} className="bg-blue-50">
-                    <td colSpan={5} className="px-4 py-3">
-                      <LocationForm
-                        initial={{
-                          businessName: loc.businessName,
-                          addressLine: loc.addressLine ?? '',
-                          city: loc.city,
-                          state: loc.state,
-                          zip: loc.zip ?? '',
-                          country: loc.country ?? 'USA',
-                          publicPhone: loc.publicPhone ?? '',
-                          active: loc.active,
-                        }}
-                        submitLabel="Save changes"
-                        busy={busy}
-                        onSubmit={(data) => handleUpdate(loc.id, data)}
-                        onCancel={() => setEditingId(null)}
-                      />
-                    </td>
-                  </tr>
-                ) : (
-                  <tr key={loc.id} className="border-b border-gray-100 last:border-0">
-                    <td className="px-4 py-3 align-top">
-                      <div className="font-medium text-gray-900">{loc.businessName}</div>
-                      {loc.publicPhone && <div className="text-gray-400 text-xs">{loc.publicPhone}</div>}
-                    </td>
-                    <td className="px-4 py-3 align-top text-gray-700">
-                      <div>{loc.addressLine || '—'}</div>
-                      <div className="text-gray-400 text-xs">
-                        {[loc.city, loc.state, loc.zip].filter(Boolean).join(', ')}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 align-top text-xs">
-                      {loc.latitude != null ? (
-                        <span className="text-green-700">{loc.latitude.toFixed(4)}, {loc.longitude!.toFixed(4)}</span>
-                      ) : (
-                        <span className="text-orange-500">No coords</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 align-top">
-                      <label className="inline-flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={loc.active}
-                          disabled={isPending}
-                          onChange={(e) => toggleActive(loc.id, e.target.checked)}
-                          className="w-4 h-4 accent-navy"
-                        />
-                        <span className="text-xs text-gray-600">{loc.active ? 'Active' : 'Hidden'}</span>
-                      </label>
-                    </td>
-                    <td className="px-4 py-3 align-top text-right">
-                      <div className="flex items-center justify-end gap-3">
-                        <button
-                          onClick={() => { setEditingId(loc.id); setAdding(false); }}
-                          className="text-xs text-navy hover:underline"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => remove(loc.id)}
-                          disabled={isPending}
-                          className="text-xs text-red-500 hover:text-red-700 transition-colors"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ),
-              )}
-            </tbody>
-          </table>
+        <div className="space-y-2">
+          {hasPrefill && (
+            <p className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-xs text-blue-700">
+              Prefilled from the onboarding file. Review the address, then save to publish this location when active.
+            </p>
+          )}
+          <LocationForm
+            initial={newLocationInitial}
+            submitLabel="Add location"
+            busy={busy}
+            onSubmit={handleCreate}
+            onCancel={() => setAdding(false)}
+          />
         </div>
       )}
-      <p className="text-xs text-gray-400">
-        Active locations with resolved coordinates appear on the public <strong>Find an Agent</strong> map.
-      </p>
+
+      {locations.length === 0 ? (
+        <EmptyState
+          icon="LO"
+          title="No locations yet"
+          description="Add one manually or import an Excel/CSV file. Active locations with coordinates appear on the public map."
+        />
+      ) : (
+        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <caption className="sr-only">Agent locations</caption>
+              <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+                <tr className="border-b border-gray-200">
+                  <th className="px-4 py-3 font-semibold">Business</th>
+                  <th className="px-4 py-3 font-semibold">Location</th>
+                  <th className="px-4 py-3 font-semibold">Coords</th>
+                  <th className="px-4 py-3 font-semibold">Map status</th>
+                  <th className="px-4 py-3 text-right font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleLocations.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-400">
+                      No locations match the current filters.
+                    </td>
+                  </tr>
+                )}
+                {visibleLocations.map((location) =>
+                  editingId === location.id ? (
+                    <tr key={location.id} className="bg-blue-50">
+                      <td colSpan={5} className="px-4 py-3">
+                        <LocationForm
+                          initial={{
+                            businessName: location.businessName,
+                            addressLine: location.addressLine ?? '',
+                            city: location.city,
+                            state: location.state,
+                            zip: location.zip ?? '',
+                            country: location.country ?? 'USA',
+                            publicPhone: location.publicPhone ?? '',
+                            active: location.active,
+                          }}
+                          submitLabel="Save changes"
+                          busy={busy}
+                          onSubmit={(data) => handleUpdate(location.id, data)}
+                          onCancel={() => setEditingId(null)}
+                        />
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr key={location.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                      <td className="px-4 py-3 align-top">
+                        <div className="font-semibold text-gray-900">{location.businessName}</div>
+                        {location.publicPhone && <div className="mt-1 text-xs text-gray-400">{location.publicPhone}</div>}
+                      </td>
+                      <td className="px-4 py-3 align-top text-gray-700">
+                        <div>{location.addressLine || 'Not set'}</div>
+                        <div className="mt-1 text-xs text-gray-400">
+                          {[location.city, location.state, location.zip].filter(Boolean).join(', ')}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 align-top text-xs">
+                        {location.latitude != null && location.longitude != null ? (
+                          <span className="font-medium text-green-700">{location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}</span>
+                        ) : (
+                          <span className="font-medium text-orange-600">Needs geocode</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 align-top">
+                        <label className="inline-flex cursor-pointer items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={location.active}
+                            disabled={isPending}
+                            onChange={(event) => toggleActive(location.id, event.target.checked)}
+                            className="h-4 w-4 accent-navy"
+                          />
+                          <span className="text-xs font-medium text-gray-600">{location.active ? 'Active' : 'Hidden'}</span>
+                        </label>
+                      </td>
+                      <td className="px-4 py-3 align-top text-right">
+                        <div className="flex items-center justify-end gap-3">
+                          <button
+                            type="button"
+                            onClick={() => { setEditingId(location.id); setAdding(false); }}
+                            className="text-xs font-semibold text-navy hover:underline"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => remove(location.id)}
+                            disabled={isPending}
+                            className="text-xs font-semibold text-red-500 transition-colors hover:text-red-700 disabled:opacity-50"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ),
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

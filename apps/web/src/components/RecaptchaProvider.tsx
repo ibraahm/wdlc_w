@@ -8,7 +8,16 @@ export default function RecaptchaProvider({ children }: { children: ReactNode })
 
   // If no key is configured (e.g. local dev without .env.local), render without
   // the provider so forms still work — reCAPTCHA will be silently skipped.
-  if (!siteKey) return <>{children}</>;
+  if (!siteKey) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.info('[recaptcha] provider disabled: NEXT_PUBLIC_RECAPTCHA_SITE_KEY is empty');
+    }
+    return <>{children}</>;
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.info('[recaptcha] provider enabled');
+  }
 
   return (
     <GoogleReCaptchaProvider

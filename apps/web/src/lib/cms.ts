@@ -1,4 +1,5 @@
 import { cache } from 'react';
+import { defaultNetworkCountries } from './networkDefaults';
 
 const API = process.env.API_URL || 'http://localhost:4000/api';
 
@@ -116,6 +117,11 @@ export type CmsNetworkCountry = {
   id: string;
   name: string;
   payoutTypes: string[];
+  payoutDetails?: {
+    mobileMoney?: string[];
+    cashPartner?: string;
+    bankName?: string;
+  };
   flagUrl?: string;
   active: boolean;
 };
@@ -123,10 +129,11 @@ export type CmsNetworkCountry = {
 export const getCmsNetworkCountries = cache(async (): Promise<CmsNetworkCountry[]> => {
   try {
     const res = await fetch(`${API}/cms/network`, { next: { revalidate: 60 } });
-    if (!res.ok) return [];
-    return await res.json();
+    if (!res.ok) return defaultNetworkCountries;
+    const countries: CmsNetworkCountry[] = await res.json();
+    return countries.length > 0 ? countries : defaultNetworkCountries;
   } catch {
-    return [];
+    return defaultNetworkCountries;
   }
 });
 

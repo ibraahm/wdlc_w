@@ -212,33 +212,6 @@ export class PortalAuthService {
     return { ok: true };
   }
 
-  // ── Admin login into portal ───────────────────────────────────────────────
-  async adminLogin(email: string, password: string, ip?: string, ua?: string) {
-    const admin = await this.prisma.adminUser.findUnique({ where: { email } });
-    const passwordValid = await verifyPassword(password, admin?.passwordHash);
-
-    if (!admin || !passwordValid || !admin.active) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-    if (admin.lockedUntil && admin.lockedUntil > new Date()) {
-      throw new UnauthorizedException('Account temporarily locked — try again later');
-    }
-
-    await this.prisma.adminUser.update({ where: { id: admin.id }, data: { lastLoginAt: new Date() } });
-    await this.audit.log({ action: 'admin.portal_login', adminId: admin.id, ip, userAgent: ua });
-
-    const accessToken = await this.jwt.signAsync(
-      { sub: admin.id, email: admin.email, portal: 'admin', role: admin.role },
-      { expiresIn: AGENT_AT_EXPIRES, secret: agentSecret() },
-    );
-    const refreshToken = await this.tokens.issue(this.rtDelegate, OWNER_KEY, admin.id, AGENT_RT_DAYS, ip, ua);
-    return {
-      accessToken,
-      refreshToken,
-      agent: { id: admin.id, email: admin.email, firstName: admin.name, lastName: '', role: admin.role, portal: 'admin' },
-    };
-  }
-
   async changePassword(agentId: string, dto: AgentChangePasswordDto) {
     const agent = await this.prisma.agentUser.findUnique({ where: { id: agentId } });
     if (!agent || !(await bcrypt.compare(dto.currentPassword, agent.passwordHash))) {

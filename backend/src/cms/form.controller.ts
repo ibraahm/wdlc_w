@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  Logger,
   Param,
   Patch,
   Post,
@@ -16,6 +17,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { FormService } from './form.service';
 import { CreateFormDto, UpdateFormDto, SubmitFormDto } from './dto/form.dto';
 import { RecaptchaService } from '../common/recaptcha.service';
+import { HumanVerificationService } from '../common/human-verification.service';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser, AuthUser } from '../auth/decorators/current-user.decorator';
@@ -23,7 +25,13 @@ import { CurrentUser, AuthUser } from '../auth/decorators/current-user.decorator
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
 @Controller('cms/forms')
 export class FormController {
-  constructor(private forms: FormService, private recaptcha: RecaptchaService) {}
+  private readonly logger = new Logger(FormController.name);
+
+  constructor(
+    private forms: FormService,
+    private recaptcha: RecaptchaService,
+    private humanVerification: HumanVerificationService,
+  ) {}
 
   // ── Admin: list / read ────────────────────────────────────────────────────
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR')
@@ -78,8 +86,27 @@ export class FormController {
   @Public()
   @Post(':slug/submit')
   async submit(@Param('slug') slug: string, @Body() dto: SubmitFormDto, @Req() req: Request) {
-    const ok = await this.recaptcha.verify(dto.recaptchaToken, 'form_submit');
-    if (!ok) throw new BadRequestException('reCAPTCHA verification failed. Please try again.');
+    const form = await this.forms.getPublic(slug) as { recaptcha?: boolean };
+    const action = dto.recaptchaAction || 'form_submit';
+    if (process.env.NODE_ENV !== 'production') {
+      this.logger.log(
+        `form submit received: slug=${slug} action=${action} recaptchaTokenPresent=${!!dto.recaptchaToken} humanTokenPresent=${!!dto.humanVerificationToken}`,
+      );
+    }
+
+    if (form.recaptcha !== false) {
+      const recaptchaOk = dto.recaptchaToken
+        ? await this.recaptcha.verify(dto.recaptchaToken, action)
+        : false;
+      const fallbackOk = recaptchaOk
+        ? false
+        : this.humanVerification.verify(dto.humanVerificationToken, dto.humanVerificationAnswer, action);
+
+      if (!recaptchaOk && !fallbackOk) {
+        throw new BadRequestException('Security check failed. Please try again.');
+      }
+    }
+
     return this.forms.submit(slug, dto.data, {
       ip: req.ip,
       userAgent: req.headers['user-agent'],

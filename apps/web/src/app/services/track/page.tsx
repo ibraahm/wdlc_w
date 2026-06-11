@@ -31,7 +31,7 @@ export default async function TrackPage() {
         <Container>
           <p className="max-w-3xl text-lg text-gray-700">
             Check the status of a transfer using your transaction ID. For help, contact the
-            agent location where you sent your transfer or call us toll-free.
+            authorized delegate location where you sent your transfer or call us toll-free.
           </p>
 
           <div className="mt-10 max-w-xl rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
@@ -61,7 +61,7 @@ export default async function TrackPage() {
       </Section>
 
       <CtaBand heading="Need help?">
-        <ButtonOnDark href="/support/contact">Contact Support</ButtonOnDark>
+        <ButtonOnDark href="/support/contact">Contact Us</ButtonOnDark>
       </CtaBand>
         </>
       )}

@@ -5,9 +5,12 @@ function apiOrigin() {
   try { return new URL(raw).origin; } catch { return 'http://localhost:4000'; }
 }
 
+const isDev = process.env.NODE_ENV !== 'production';
+const scriptSrc = ["'self'", "'unsafe-inline'", ...(isDev ? ["'unsafe-eval'"] : [])].join(' ');
+
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",   // unsafe-inline needed for Next.js inline scripts; tighten with nonces in future
+  `script-src ${scriptSrc}`,   // unsafe-inline needed for Next.js inline scripts; tighten with nonces in future
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com",
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: blob: https:",
@@ -32,23 +35,6 @@ const config = {
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
         ],
       },
-    ];
-  },
-  async redirects() {
-    return [
-      { source: '/company-overview',          destination: '/about/company',              permanent: true },
-      { source: '/our-network',               destination: '/about/network',              permanent: true },
-      { source: '/licenses-registrations',    destination: '/about/licenses',             permanent: true },
-      { source: '/contact',                   destination: '/about/contact',              permanent: true },
-      { source: '/become-agent',              destination: '/agents/become-an-agent',     permanent: true },
-      { source: '/agent-resources',           destination: '/agents/resources',           permanent: true },
-      { source: '/partners',                  destination: '/agents/partners',            permanent: true },
-      { source: '/compliance-overview',       destination: '/compliance',                 permanent: true },
-      { source: '/fraud-consumer-scams',      destination: '/compliance/fraud',           permanent: true },
-      { source: '/report-suspicious-activity',destination: '/compliance/report',          permanent: true },
-      { source: '/agent-regulatory-notices',  destination: '/compliance/notices',         permanent: true },
-      { source: '/law-enforcement-requests',  destination: '/compliance/law-enforcement', permanent: true },
-      { source: '/compliance-resources',      destination: '/compliance/resources',       permanent: true },
     ];
   },
 };

@@ -3,7 +3,20 @@ import { PageHero, Section } from '@/components/ui';
 import { getCmsForm } from '@/lib/cms';
 import FormRenderer from '@/components/FormRenderer';
 
+const CANONICAL_PAGE_FORMS = new Set([
+  'agent-application',
+  'contact-us',
+  'complaint',
+  'suspicious-activity-report',
+]);
+
 export async function generateMetadata({ params }: { params: { slug: string } }) {
+  if (CANONICAL_PAGE_FORMS.has(params.slug)) {
+    return {
+      title: 'Not Found | World Direct Link',
+    };
+  }
+
   const form = await getCmsForm(params.slug);
   return {
     title: form ? `${form.name} | World Direct Link` : 'Form | World Direct Link',
@@ -12,6 +25,8 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 }
 
 export default async function DynamicFormPage({ params }: { params: { slug: string } }) {
+  if (CANONICAL_PAGE_FORMS.has(params.slug)) notFound();
+
   const form = await getCmsForm(params.slug);
   if (!form) notFound();
 

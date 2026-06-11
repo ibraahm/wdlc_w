@@ -17,17 +17,21 @@ interface NominatimResult {
     state?: string;
     postcode?: string;
     country?: string;
+    country_code?: string;
   };
 }
 
-// Maps a Nominatim country name to one of our COUNTRIES options.
+const US_COUNTRY = 'United States';
+const US_PHONE_PATTERN = /^[2-9]\d{2}[2-9]\d{6}$/;
+const US_ZIP_PATTERN = /^\d{5}(?:-\d{4})?$/;
+
+// Maps a Nominatim country name/code to the single intake country we support.
 function normalizeCountry(name?: string): string {
   if (!name) return '';
   const n = name.toLowerCase();
-  if (n.includes('united states')) return 'United States';
-  if (n === 'usa' || n === 'us') return 'United States';
-  const match = COUNTRIES.find((c) => c.toLowerCase() === n);
-  return match ?? 'Other';
+  if (n.includes('united states')) return US_COUNTRY;
+  if (n === 'usa' || n === 'us') return US_COUNTRY;
+  return '';
 }
 
 const US_STATES = [
@@ -39,19 +43,6 @@ const US_STATES = [
   'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Puerto Rico', 'Rhode Island', 'South Carolina',
   'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington',
   'West Virginia', 'Wisconsin', 'Wyoming',
-];
-
-const CA_PROVINCES = [
-  'Alberta', 'British Columbia', 'Manitoba', 'New Brunswick', 'Newfoundland and Labrador',
-  'Northwest Territories', 'Nova Scotia', 'Nunavut', 'Ontario', 'Prince Edward Island',
-  'Quebec', 'Saskatchewan', 'Yukon',
-];
-
-// Common countries first, then a representative list. Kept concise vs the Salesforce example.
-const COUNTRIES = [
-  'United States', 'Canada', 'Mexico', 'United Kingdom', 'India', 'Philippines', 'Nigeria',
-  'Kenya', 'Ethiopia', 'Somalia', 'Ghana', 'Pakistan', 'Bangladesh', 'China', 'Brazil',
-  'Colombia', 'Guatemala', 'Honduras', 'El Salvador', 'Dominican Republic', 'Haiti', 'Other',
 ];
 
 const HOW_FOUND = [
@@ -66,12 +57,6 @@ const BUSINESS_TYPES = [
 
 const PRODUCTS = [
   'Money Transfer - Sends Only', 'Money Transfer - Sends and Receives',
-  'Bill Payment', 'All WDL products',
-];
-
-const PROVIDERS = [
-  'Western Union', 'Ria', 'Vigo', 'MoneyGram', 'Intermex', 'Sigue', 'Order Express',
-  'Uniteller', 'Dahabshiil', 'Other',
 ];
 
 const LANGUAGES = ['English', 'Spanish', 'French', 'Arabic', 'Somali', 'Amharic', 'Other'];
@@ -80,6 +65,42 @@ const VOLUMES = ['1 - 50 items', '51 - 250 items', '251 - 1,000 items', 'Over 1,
 
 const inputCls =
   'w-full rounded-lg border border-[#d9e0e8] bg-white px-3 py-2 text-ink focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none';
+
+const ESIGN_CONSENT_TEXT =
+  'I certify that the information in this application is true and complete, and I agree that typing my name below is my electronic signature.';
+
+function getUsPhoneDigits(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  if (digits.length === 11 && digits.startsWith('1')) return digits.slice(1);
+  if (digits.length === 10) return digits;
+  return '';
+}
+
+function formatUsPhoneInput(value: string): string {
+  const raw = value.replace(/\D/g, '');
+  const digits = (raw.length > 10 && raw.startsWith('1') ? raw.slice(1) : raw).slice(0, 10);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
+function isValidUsPhone(value: string): boolean {
+  return US_PHONE_PATTERN.test(getUsPhoneDigits(value));
+}
+
+function toE164UsPhone(value: string): string {
+  return `+1${getUsPhoneDigits(value)}`;
+}
+
+function formatUsZip(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 9);
+  if (digits.length <= 5) return digits;
+  return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+}
+
+function isValidUsZip(value: string): boolean {
+  return US_ZIP_PATTERN.test(value.trim());
+}
 
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
@@ -160,9 +181,13 @@ function AddressAutocomplete({
         const res = await fetch('/api/geocode?q=' + encodeURIComponent(q), { signal: ctrl.signal });
         if (res.ok) {
           const data: NominatimResult[] = await res.json();
-          setResults(data);
+          const usResults = data.filter((r) => {
+            const countryCode = r.address.country_code?.toLowerCase();
+            return countryCode === 'us' || normalizeCountry(r.address.country) === US_COUNTRY;
+          });
+          setResults(usResults);
           setHighlight(-1);
-          setOpen(data.length > 0);
+          setOpen(usResults.length > 0);
         }
       } catch {
         /* aborted or network error — manual entry still works */
@@ -192,14 +217,16 @@ function AddressAutocomplete({
     const typedNumber = value.trim().match(/^\d+[a-zA-Z]?/)?.[0];
     const houseNumber = a.house_number || typedNumber;
     const street = [houseNumber, a.road].filter(Boolean).join(' ');
+    const country = normalizeCountry(a.country_code || a.country);
+    if (country !== US_COUNTRY) return;
     skipNextRef.current = true;
     onChange(street || r.display_name.split(',')[0]);
     onSelect({
       street: street || r.display_name.split(',')[0],
       city: a.city || a.town || a.village || a.hamlet || '',
       state: a.state || '',
-      zip: a.postcode || '',
-      country: normalizeCountry(a.country),
+      zip: formatUsZip(a.postcode || ''),
+      country,
     });
     setOpen(false);
     setResults([]);
@@ -225,14 +252,14 @@ function AddressAutocomplete({
   return (
     <div ref={boxRef} className="relative">
       <input
-        name="businessStreet"
-        autoComplete="off"
+        name="wdlc-street-entry"
+        autoComplete="new-password"
         required
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => results.length > 0 && setOpen(true)}
         onKeyDown={onKeyDown}
-        placeholder="Start typing an address…"
+        placeholder="Start typing a U.S. street address..."
         className={inputCls}
       />
       {loading && (
@@ -302,17 +329,28 @@ interface AgentApplicationFormProps {
   howFoundOptions?: string[];
 }
 
+interface HumanVerificationChallenge {
+  question: string;
+  token: string;
+  expiresAt: string;
+}
+
+interface ZipLookupResult {
+  city: string;
+  state: string;
+  zip: string;
+}
+
 const DRAFT_KEY = 'wdlc.agentApplication.draft';
 
 export default function AgentApplicationForm({
   draftTimeoutMinutes = 30,
   businessTypeOptions,
-  productOptions,
   howFoundOptions,
 }: AgentApplicationFormProps = {}) {
   // CMS options with built-in fallbacks.
   const businessTypeList = businessTypeOptions?.length ? businessTypeOptions : BUSINESS_TYPES;
-  const productList = productOptions?.length ? productOptions : PRODUCTS;
+  const productList = PRODUCTS;
   const howFoundList = howFoundOptions?.length ? howFoundOptions : HOW_FOUND;
 
   // Wizard state
@@ -330,7 +368,7 @@ export default function AgentApplicationForm({
   const [businessTypeOther, setBusinessTypeOther] = useState('');
 
   // Location
-  const [country, setCountry] = useState('United States');
+  const [country, setCountry] = useState(US_COUNTRY);
   const [street, setStreet] = useState('');
   const [city, setCity] = useState('');
   const [stateField, setStateField] = useState('');
@@ -340,10 +378,8 @@ export default function AgentApplicationForm({
   const [productsOffered, setProductsOffered] = useState('');
   const [currentlyProvides, setCurrentlyProvides] = useState<boolean | null>(null);
   const [currentProvider, setCurrentProvider] = useState('');
-  const [currentProviderOther, setCurrentProviderOther] = useState('');
   const [providedPast, setProvidedPast] = useState<boolean | null>(null);
   const [pastProvider, setPastProvider] = useState('');
-  const [pastProviderOther, setPastProviderOther] = useState('');
   const [declinedBefore, setDeclinedBefore] = useState<boolean | null>(null);
   const [declinedExplain, setDeclinedExplain] = useState('');
   const [preferredLanguage, setPreferredLanguage] = useState('');
@@ -355,15 +391,56 @@ export default function AgentApplicationForm({
   const [howFound, setHowFound] = useState('');
   const [howFoundOther, setHowFoundOther] = useState('');
   const [comments, setComments] = useState('');
+  const [signatureName, setSignatureName] = useState('');
+  const [signatureTitle, setSignatureTitle] = useState('');
+  const [signatureConsent, setSignatureConsent] = useState(false);
 
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
+  const [zipLookupLoading, setZipLookupLoading] = useState(false);
+  const [zipLookupMessage, setZipLookupMessage] = useState('');
   const { executeRecaptcha } = useGoogleReCaptcha();
+  const publicSiteKeyConfigured = !!process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
+  const needsHumanVerification = !publicSiteKeyConfigured || !executeRecaptcha;
+  const [humanChallenge, setHumanChallenge] = useState<HumanVerificationChallenge | null>(null);
+  const [humanAnswer, setHumanAnswer] = useState('');
+  const [humanLoading, setHumanLoading] = useState(false);
+  const [humanError, setHumanError] = useState('');
+  const showHumanVerification = needsHumanVerification || !!humanChallenge;
 
   const isBusiness = applicantType === 'BUSINESS';
-  const showState = country === 'United States';
-  const showProvince = country === 'Canada';
+
+  async function loadHumanChallenge() {
+    setHumanLoading(true);
+    setHumanError('');
+    try {
+      const res = await fetch('/api/human-verification/challenge?context=agent_application', {
+        cache: 'no-store',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.question || !data.token) {
+        throw new Error(data.error || 'Verification question unavailable');
+      }
+      setHumanChallenge(data as HumanVerificationChallenge);
+      setHumanAnswer('');
+      if (process.env.NODE_ENV !== 'production') {
+        console.info('[agent-application] human-verification:challenge loaded', {
+          expiresAt: data.expiresAt,
+        });
+      }
+    } catch (err) {
+      const message = 'Verification question unavailable. Please try again.';
+      setHumanError(message);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[agent-application] human-verification:challenge failed', {
+          message: err instanceof Error ? err.message : String(err),
+        });
+      }
+    } finally {
+      setHumanLoading(false);
+    }
+  }
 
   // ── Draft auto-save (localStorage) with a CMS-configured expiry ────────────
   // Restore a saved draft on mount if it hasn't expired.
@@ -384,21 +461,27 @@ export default function AgentApplicationForm({
       setFirstName((d.firstName as string) ?? '');
       setLastName((d.lastName as string) ?? '');
       setEmail((d.email as string) ?? '');
-      setPhone((d.phone as string) ?? '');
+      setPhone(formatUsPhoneInput((d.phone as string) ?? ''));
       setCompany((d.company as string) ?? '');
       setBusinessType((d.businessType as string) ?? '');
       setBusinessTypeOther((d.businessTypeOther as string) ?? '');
-      setCountry((d.country as string) ?? 'United States');
+      setCountry(US_COUNTRY);
       setStreet((d.street as string) ?? '');
       setCity((d.city as string) ?? '');
-      setStateField((d.stateField as string) ?? '');
-      setZip((d.zip as string) ?? '');
+      const savedState = (d.stateField as string) ?? '';
+      setStateField(US_STATES.includes(savedState) ? savedState : '');
+      setZip(formatUsZip((d.zip as string) ?? ''));
       setProductsOffered((d.productsOffered as string) ?? '');
+      setCurrentProvider((d.currentProvider as string) ?? '');
+      setPastProvider((d.pastProvider as string) ?? '');
       setMonthlyVolume((d.monthlyVolume as string) ?? '');
       setTotalLocations((d.totalLocations as string) ?? '');
       setHowFound((d.howFound as string) ?? '');
       setHowFoundOther((d.howFoundOther as string) ?? '');
       setComments((d.comments as string) ?? '');
+      setSignatureName((d.signatureName as string) ?? '');
+      setSignatureTitle((d.signatureTitle as string) ?? '');
+      setSignatureConsent((d.signatureConsent as boolean) ?? false);
     } catch {
       /* ignore corrupt draft */
     }
@@ -413,7 +496,8 @@ export default function AgentApplicationForm({
     const data = {
       applicantType, step, firstName, lastName, email, phone, company, businessType,
       businessTypeOther, country, street, city, stateField, zip, productsOffered,
-      monthlyVolume, totalLocations, howFound, howFoundOther, comments,
+      currentProvider, pastProvider, monthlyVolume, totalLocations, howFound,
+      howFoundOther, comments, signatureName, signatureTitle, signatureConsent,
     };
     try {
       localStorage.setItem(DRAFT_KEY, JSON.stringify({ savedAt: Date.now(), data }));
@@ -423,7 +507,58 @@ export default function AgentApplicationForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applicantType, step, firstName, lastName, email, phone, company, businessType,
       businessTypeOther, country, street, city, stateField, zip, productsOffered,
-      monthlyVolume, totalLocations, howFound, howFoundOther, comments]);
+      currentProvider, pastProvider, monthlyVolume, totalLocations, howFound,
+      howFoundOther, comments, signatureName, signatureTitle, signatureConsent]);
+
+  useEffect(() => {
+    if (step !== 4 || !needsHumanVerification || humanChallenge || humanLoading) return;
+    void loadHumanChallenge();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, needsHumanVerification, humanChallenge, humanLoading]);
+
+  useEffect(() => {
+    if (currentlyProvides !== false) return;
+    setCurrentProvider('');
+  }, [currentlyProvides]);
+
+  useEffect(() => {
+    if (providedPast !== false) return;
+    setPastProvider('');
+  }, [providedPast]);
+
+  useEffect(() => {
+    const zip5 = zip.replace(/\D/g, '').slice(0, 5);
+    if (zip5.length !== 5) {
+      setZipLookupMessage('');
+      return;
+    }
+
+    const ctrl = new AbortController();
+    setZipLookupLoading(true);
+    setZipLookupMessage('');
+
+    fetch(`/api/zip-lookup?zip=${zip5}`, { signal: ctrl.signal, cache: 'no-store' })
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.city || !data.state) {
+          throw new Error(data.error || 'ZIP lookup unavailable');
+        }
+        const result = data as ZipLookupResult;
+        setCity(result.city);
+        const match = US_STATES.find((s) => s.toLowerCase() === result.state.toLowerCase());
+        if (match) setStateField(match);
+        setZipLookupMessage('City and state filled from ZIP.');
+      })
+      .catch((err) => {
+        if ((err as Error).name === 'AbortError') return;
+        setZipLookupMessage('ZIP lookup unavailable. Please enter city and state.');
+      })
+      .finally(() => {
+        if (!ctrl.signal.aborted) setZipLookupLoading(false);
+      });
+
+    return () => ctrl.abort();
+  }, [zip]);
 
   const stepLabels = isBusiness
     ? ['Type', 'Business', 'Location', 'Experience', 'Review']
@@ -441,6 +576,7 @@ export default function AgentApplicationForm({
       if (!firstName.trim() || !lastName.trim()) return 'Please enter your first and last name.';
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())) return 'Please enter a valid email address.';
       if (!phone.trim()) return 'Please enter a phone number.';
+      if (!isValidUsPhone(phone)) return 'Please enter a valid U.S. phone number.';
       if (isBusiness) {
         if (!company.trim()) return 'Please enter your company / business name.';
         if (!businessType) return 'Please select your type of business.';
@@ -449,23 +585,18 @@ export default function AgentApplicationForm({
     }
     if (s === 2) {
       if (!street.trim()) return 'Please enter your street address.';
-      if (!country) return 'Please select a country.';
-      if (!stateField.trim()) return 'Please select / enter your state or region.';
+      if (country !== US_COUNTRY) return 'Agent applications are currently available for U.S. locations only.';
+      if (!US_STATES.includes(stateField)) return 'Please select a U.S. state.';
       if (!city.trim()) return 'Please enter your city.';
-      if (!zip.trim()) return 'Please enter your ZIP / postal code.';
+      if (!zip.trim()) return 'Please enter your ZIP code.';
+      if (!isValidUsZip(zip)) return 'Please enter a valid U.S. ZIP code.';
     }
     if (s === 3) {
-      if (!productsOffered) return 'Please choose which products you plan to offer.';
-      if (currentlyProvides === null) return 'Please indicate whether you currently provide money transfer services.';
-      if (currentlyProvides) {
-        if (!currentProvider) return 'Please select your current service provider.';
-        if (currentProvider === 'Other' && !currentProviderOther.trim()) return 'Please name your current provider.';
-      }
-      if (providedPast === null) return 'Please indicate whether you have provided money transfer services in the past.';
-      if (providedPast) {
-        if (!pastProvider) return 'Please select your past service provider.';
-        if (pastProvider === 'Other' && !pastProviderOther.trim()) return 'Please name your past provider.';
-      }
+      if (!productsOffered || !PRODUCTS.includes(productsOffered)) return 'Please choose which products you plan to offer.';
+      if (currentlyProvides === null) return 'Please indicate whether you currently offer money transfer services.';
+      if (currentlyProvides && !currentProvider.trim()) return 'Please enter the company name for current money transfer services.';
+      if (providedPast === null) return 'Please indicate whether you have offered money transfer services in the past.';
+      if (providedPast && !pastProvider.trim()) return 'Please enter the company name for past money transfer services.';
       if (declinedBefore === null) return 'Please indicate whether you have been declined or had services cancelled.';
       if (declinedBefore && !declinedExplain.trim()) return 'Please briefly explain.';
       if (preferredLanguage === 'Other' && !preferredLanguageOther.trim()) return 'Please name the preferred language.';
@@ -477,8 +608,23 @@ export default function AgentApplicationForm({
     if (s === 4) {
       if (!howFound) return 'Please tell us how you found out about us.';
       if (howFound === 'Other' && !howFoundOther.trim()) return 'Please specify how you found us.';
+      if (!signatureName.trim()) return 'Please type your full legal name as your electronic signature.';
+      if (!signatureConsent) return 'Please accept the electronic signature certification.';
+      if (showHumanVerification) {
+        if (humanError) return humanError;
+        if (!humanChallenge) return 'Verification question is loading. Please try again.';
+        if (!humanAnswer.trim()) return 'Please answer the verification question.';
+      }
     }
     return '';
+  }
+
+  function validateApplication(): { step: number; error: string } {
+    for (const s of [1, 2, 3, 4]) {
+      const err = validateStep(s);
+      if (err) return { step: s, error: err };
+    }
+    return { step: 4, error: '' };
   }
 
   function next() {
@@ -494,20 +640,53 @@ export default function AgentApplicationForm({
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const err = validateStep(4);
-    if (err) { setError(err); return; }
+    const validation = validateApplication();
+    if (validation.error) {
+      setStep(validation.step);
+      setError(validation.error);
+      return;
+    }
     setError('');
     setPending(true);
 
     let recaptchaToken: string | undefined;
-    if (executeRecaptcha) {
+    const humanFallbackReady = !!humanChallenge && !!humanAnswer.trim();
+    if (process.env.NODE_ENV !== 'production') {
+      console.info('[agent-application] submit:start', {
+        applicantType,
+        hasExecuteRecaptcha: !!executeRecaptcha,
+        publicSiteKeyConfigured,
+        humanFallbackReady,
+      });
+    }
+    if (executeRecaptcha && publicSiteKeyConfigured && !humanFallbackReady) {
       try {
         recaptchaToken = await executeRecaptcha('agent_application');
-      } catch {
-        setError('Security check failed. Please try again.');
+        if (process.env.NODE_ENV !== 'production') {
+          console.info('[agent-application] recaptcha:ok', {
+            tokenPresent: !!recaptchaToken,
+            tokenLength: recaptchaToken?.length ?? 0,
+          });
+        }
+      } catch (err) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.error('[agent-application] recaptcha:execute failed', {
+            message: err instanceof Error ? err.message : String(err),
+          });
+        }
+        if (!humanChallenge) {
+          await loadHumanChallenge();
+        }
+        setError('Please answer the verification question and submit again.');
         setPending(false);
         return;
       }
+    }
+
+    if (!recaptchaToken && showHumanVerification && !humanFallbackReady) {
+      setError('Please answer the verification question.');
+      setPending(false);
+      return;
     }
 
     const payload = {
@@ -516,11 +695,11 @@ export default function AgentApplicationForm({
       lastName: lastName.trim(),
       company: isBusiness ? company.trim() : undefined,
       businessStreet: street.trim(),
-      businessCountry: country,
+      businessCountry: US_COUNTRY,
       businessState: stateField.trim() || undefined,
       businessCity: city.trim(),
       businessZip: zip.trim(),
-      businessPhone: phone.trim(),
+      businessPhone: toE164UsPhone(phone),
       email: email.trim(),
       howFound: howFound || undefined,
       howFoundOther: howFound === 'Other' ? howFoundOther.trim() : undefined,
@@ -528,11 +707,9 @@ export default function AgentApplicationForm({
       businessTypeOther: isBusiness && businessType === 'Other' ? businessTypeOther.trim() : undefined,
       productsOffered: productsOffered || undefined,
       currentlyProvides: currentlyProvides ?? false,
-      currentProvider: currentlyProvides ? currentProvider || undefined : undefined,
-      currentProviderOther: currentlyProvides && currentProvider === 'Other' ? currentProviderOther.trim() : undefined,
+      currentProvider: currentlyProvides ? currentProvider.trim() : undefined,
       providedPast: providedPast ?? false,
-      pastProvider: providedPast ? pastProvider || undefined : undefined,
-      pastProviderOther: providedPast && pastProvider === 'Other' ? pastProviderOther.trim() : undefined,
+      pastProvider: providedPast ? pastProvider.trim() : undefined,
       declinedBefore: declinedBefore ?? false,
       declinedExplain: declinedBefore ? declinedExplain.trim() : undefined,
       preferredLanguage: preferredLanguage || undefined,
@@ -540,16 +717,37 @@ export default function AgentApplicationForm({
       monthlyVolume: isBusiness ? monthlyVolume || undefined : undefined,
       totalLocations: isBusiness ? totalLocations.trim() || undefined : undefined,
       comments: comments.trim(),
+      signatureName: signatureName.trim(),
+      signatureTitle: signatureTitle.trim() || undefined,
+      signatureConsent,
+      signatureConsentText: ESIGN_CONSENT_TEXT,
+      signatureClientTimestamp: new Date().toISOString(),
       recaptchaToken,
+      humanVerificationToken: !recaptchaToken ? humanChallenge?.token : undefined,
+      humanVerificationAnswer: !recaptchaToken ? humanAnswer.trim() : undefined,
     };
 
     try {
+      if (process.env.NODE_ENV !== 'production') {
+        console.info('[agent-application] api:request', {
+          tokenPresent: !!payload.recaptchaToken,
+          humanFallbackPresent: !!payload.humanVerificationToken,
+          product: payload.productsOffered,
+        });
+      }
       const res = await fetch('/api/agent-application', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
+      if (process.env.NODE_ENV !== 'production') {
+        console.info('[agent-application] api:response', {
+          ok: res.ok,
+          status: res.status,
+          error: data.error ?? data.message,
+        });
+      }
       if (!res.ok) {
         setError(data.error || 'Submission failed. Please review the form and try again.');
         setPending(false);
@@ -557,7 +755,12 @@ export default function AgentApplicationForm({
       }
       setSubmitted(true);
       try { localStorage.removeItem(DRAFT_KEY); } catch { /* noop */ }
-    } catch {
+    } catch (err) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[agent-application] api:request failed', {
+          message: err instanceof Error ? err.message : String(err),
+        });
+      }
       setError('Service temporarily unavailable. Please try again later.');
     }
     setPending(false);
@@ -663,7 +866,23 @@ export default function AgentApplicationForm({
             )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <Field label="Phone" required>
-                <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required className={inputCls} />
+                <div className="flex overflow-hidden rounded-lg border border-[#d9e0e8] bg-white focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20">
+                  <span className="inline-flex items-center gap-2 border-r border-[#d9e0e8] bg-gray-50 px-3 text-sm font-bold text-primary-strong">
+                    <span aria-hidden="true">🇺🇸</span>
+                    <span>+1</span>
+                  </span>
+                  <input
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(formatUsPhoneInput(e.target.value))}
+                    required
+                    inputMode="tel"
+                    autoComplete="tel-national"
+                    placeholder="(404) 555-0123"
+                    className="min-w-0 flex-1 border-0 bg-white px-3 py-2 text-ink focus:outline-none"
+                  />
+                </div>
+                <p className="mt-1 text-xs text-ink/50">U.S. numbers only. Area code and prefix cannot start with 0 or 1.</p>
               </Field>
               <Field label="Email Address" required>
                 <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputCls} />
@@ -677,59 +896,73 @@ export default function AgentApplicationForm({
           <div className="space-y-5">
             <h2 className="text-lg font-bold text-primary-strong">{isBusiness ? 'Business location' : 'Your address'}</h2>
             <Field label="Street Address" required>
-              <AddressAutocomplete
+              <input
+                name="wdlc-street-entry"
+                autoComplete="new-password"
+                required
                 value={street}
-                onChange={setStreet}
-                onSelect={(a) => {
-                  setCity(a.city);
-                  setZip(a.zip);
-                  if (a.country) setCountry(a.country);
-                  if (a.country === 'United States') {
-                    const match = US_STATES.find((s) => s.toLowerCase() === a.state.toLowerCase());
-                    if (match) setStateField(match);
-                  } else if (a.country === 'Canada') {
-                    const match = CA_PROVINCES.find((s) => s.toLowerCase() === a.state.toLowerCase());
-                    if (match) setStateField(match);
-                  } else {
-                    setStateField(a.state);
-                  }
-                }}
+                onChange={(e) => setStreet(e.target.value)}
+                placeholder="Street address"
+                className={inputCls}
               />
-              <p className="mt-1 text-xs text-ink/50">Start typing to search — selecting a result auto-fills city, state and ZIP.</p>
+              <p className="mt-1 text-xs text-ink/50">U.S. locations only. City and state fill from ZIP.</p>
             </Field>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <Field label="Country" required>
-                <select required value={country} onChange={(e) => setCountry(e.target.value)} className={inputCls}>
-                  <option value="" disabled>Select…</option>
-                  {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                <div className="flex items-center justify-between rounded-lg border border-[#d9e0e8] bg-gray-50 px-3 py-2 text-ink">
+                  <span className="inline-flex items-center gap-2 font-semibold">
+                    <span aria-hidden="true">🇺🇸</span>
+                    <span>{US_COUNTRY}</span>
+                  </span>
+                  <span className="text-xs font-semibold uppercase tracking-wide text-ink/45">Locked</span>
+                </div>
+              </Field>
+              <Field label="State" required>
+                <select
+                  required
+                  name="wdlc-state-entry"
+                  autoComplete="new-password"
+                  className={inputCls}
+                  value={stateField}
+                  onChange={(e) => setStateField(e.target.value)}
+                >
+                  <option value="" disabled>Select...</option>
+                  {US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
               </Field>
-              {showState ? (
-                <Field label="State" required>
-                  <select required className={inputCls} value={stateField} onChange={(e) => setStateField(e.target.value)}>
-                    <option value="" disabled>Select…</option>
-                    {US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </Field>
-              ) : showProvince ? (
-                <Field label="Province" required>
-                  <select required className={inputCls} value={stateField} onChange={(e) => setStateField(e.target.value)}>
-                    <option value="" disabled>Select…</option>
-                    {CA_PROVINCES.map((s) => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </Field>
-              ) : (
-                <Field label="State / Region" required>
-                  <input required className={inputCls} value={stateField} onChange={(e) => setStateField(e.target.value)} />
-                </Field>
-              )}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <Field label="City" required>
-                <input required className={inputCls} value={city} onChange={(e) => setCity(e.target.value)} />
+                <input
+                  required
+                  name="wdlc-city-entry"
+                  autoComplete="new-password"
+                  className={inputCls}
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                />
               </Field>
-              <Field label="ZIP / Postal Code" required>
-                <input required className={inputCls} value={zip} onChange={(e) => setZip(e.target.value)} />
+              <Field label="ZIP Code" required>
+                <div className="relative">
+                  <input
+                    required
+                    name="wdlc-zip-entry"
+                    className={inputCls}
+                    value={zip}
+                    onChange={(e) => setZip(formatUsZip(e.target.value))}
+                    inputMode="numeric"
+                    autoComplete="new-password"
+                    placeholder="30303"
+                  />
+                  {zipLookupLoading && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-primary animate-pulse">checking...</span>
+                  )}
+                </div>
+                {zipLookupMessage && (
+                  <p className={`mt-1 text-xs ${zipLookupMessage.includes('filled') ? 'text-emerald-700' : 'text-[#a73535]'}`}>
+                    {zipLookupMessage}
+                  </p>
+                )}
               </Field>
             </div>
           </div>
@@ -746,42 +979,22 @@ export default function AgentApplicationForm({
               </select>
             </Field>
 
-            <Field label="Do you currently provide money transfer services?" required>
+            <Field label="Do you currently offer money transfer services?" required>
               <YesNo name="currentlyProvides" value={currentlyProvides} onChange={setCurrentlyProvides} />
             </Field>
             {currentlyProvides && (
-              <>
-                <Field label="Current Service Provider" required>
-                  <select value={currentProvider} onChange={(e) => setCurrentProvider(e.target.value)} className={inputCls}>
-                    <option value="" disabled>Select…</option>
-                    {PROVIDERS.map((p) => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                </Field>
-                {currentProvider === 'Other' && (
-                  <Field label="Enter Other Service" required>
-                    <input value={currentProviderOther} onChange={(e) => setCurrentProviderOther(e.target.value)} className={inputCls} />
-                  </Field>
-                )}
-              </>
+              <Field label="Current company name" required>
+                <input value={currentProvider} onChange={(e) => setCurrentProvider(e.target.value)} className={inputCls} />
+              </Field>
             )}
 
-            <Field label="Have you provided money transfer services in the past?" required>
+            <Field label="Have you offered money transfer services in the past?" required>
               <YesNo name="providedPast" value={providedPast} onChange={setProvidedPast} />
             </Field>
             {providedPast && (
-              <>
-                <Field label="Past Service Provider" required>
-                  <select value={pastProvider} onChange={(e) => setPastProvider(e.target.value)} className={inputCls}>
-                    <option value="" disabled>Select…</option>
-                    {PROVIDERS.map((p) => <option key={p} value={p}>{p}</option>)}
-                  </select>
-                </Field>
-                {pastProvider === 'Other' && (
-                  <Field label="Enter Other Service" required>
-                    <input value={pastProviderOther} onChange={(e) => setPastProviderOther(e.target.value)} className={inputCls} />
-                  </Field>
-                )}
-              </>
+              <Field label="Previous company name" required>
+                <input value={pastProvider} onChange={(e) => setPastProvider(e.target.value)} className={inputCls} />
+              </Field>
             )}
 
             <Field label="Have you been declined as an agent in the past or had services cancelled?" required>
@@ -840,6 +1053,51 @@ export default function AgentApplicationForm({
               <textarea value={comments} onChange={(e) => setComments(e.target.value)} rows={3} placeholder="Questions, notes, or context for our team…" className={inputCls} />
             </Field>
 
+            <div className="rounded-lg border border-[#d9e0e8] bg-white p-4">
+              <p className="text-sm font-bold text-primary-strong mb-3">Electronic signature</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field label="Full legal name" required>
+                  <input value={signatureName} onChange={(e) => setSignatureName(e.target.value)} className={inputCls} />
+                </Field>
+                <Field label="Title / role">
+                  <input value={signatureTitle} onChange={(e) => setSignatureTitle(e.target.value)} className={inputCls} />
+                </Field>
+              </div>
+              <label className="mt-4 flex items-start gap-3 text-sm text-ink/75">
+                <input
+                  type="checkbox"
+                  checked={signatureConsent}
+                  onChange={(e) => setSignatureConsent(e.target.checked)}
+                  className="mt-1"
+                />
+                <span>{ESIGN_CONSENT_TEXT}</span>
+              </label>
+            </div>
+
+            {showHumanVerification && (
+              <Field label={humanChallenge?.question ?? 'Human verification'} required>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    value={humanAnswer}
+                    onChange={(e) => setHumanAnswer(e.target.value)}
+                    inputMode="numeric"
+                    pattern="-?[0-9]*"
+                    disabled={!humanChallenge || humanLoading}
+                    className={inputCls}
+                  />
+                  <button
+                    type="button"
+                    onClick={loadHumanChallenge}
+                    disabled={humanLoading}
+                    className="inline-flex items-center justify-center px-4 py-2.5 rounded-lg border border-[#d9e0e8] text-ink/70 font-semibold hover:bg-gray-50 transition-colors disabled:opacity-60"
+                  >
+                    {humanLoading ? 'Loading...' : 'Refresh'}
+                  </button>
+                </div>
+                {humanError && <p className="mt-1 text-xs text-[#a73535] font-medium">{humanError}</p>}
+              </Field>
+            )}
+
             <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 text-sm">
               <p className="font-semibold text-primary-strong mb-2">Review summary</p>
               <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1 text-ink/70">
@@ -849,6 +1107,9 @@ export default function AgentApplicationForm({
                 <div><dt className="inline text-ink/45">Email: </dt><dd className="inline">{email}</dd></div>
                 <div><dt className="inline text-ink/45">Phone: </dt><dd className="inline">{phone}</dd></div>
                 <div><dt className="inline text-ink/45">Location: </dt><dd className="inline">{[city, stateField, country].filter(Boolean).join(', ')}</dd></div>
+                {currentlyProvides && <div><dt className="inline text-ink/45">Current company: </dt><dd className="inline">{currentProvider}</dd></div>}
+                {providedPast && <div><dt className="inline text-ink/45">Previous company: </dt><dd className="inline">{pastProvider}</dd></div>}
+                {signatureName && <div><dt className="inline text-ink/45">Signed by: </dt><dd className="inline">{signatureName}</dd></div>}
               </dl>
             </div>
           </div>

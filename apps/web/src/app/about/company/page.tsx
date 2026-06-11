@@ -14,7 +14,7 @@ import { company, licenses } from '@/lib/site';
 export const metadata = {
   title: 'Our Company | World Direct Link',
   description:
-    'World Direct Link, Corp. is a privately held, family-founded money transmitter licensed across the United States, connecting diaspora communities with their families since 1999.',
+    'World Direct Link, Corp. is a privately held, family-founded money transmitter licensed in the states where it operates, connecting diaspora communities with their families since 1999.',
 };
 
 export default function CompanyPage() {
@@ -48,7 +48,7 @@ export default function CompanyPage() {
       <Section>
         <div className="grid md:grid-cols-2 gap-12 items-start">
           <div className="space-y-5 text-lg text-gray-700 leading-relaxed">
-            <SectionHeading>Who We Are</SectionHeading>
+            <SectionHeading title="Who We Are" />
             <p>
               World Direct Link, Corp. is a privately held, family-founded money transmission business
               incorporated in Georgia on <strong>{company.foundedDisplay}</strong>. We have never taken
@@ -60,8 +60,8 @@ export default function CompanyPage() {
               the Caribbean, and beyond.
             </p>
             <p>
-              Our network of independent agents — located in communities across more than twenty licensed
-              states — forms the backbone of our service. Each agent is vetted, trained, and held to our
+              Our authorized delegate network in states where World Direct Link is licensed forms the
+              backbone of our service. Each delegate is vetted, trained, and held to our
               compliance standards to protect every sender and receiver.
             </p>
           </div>
@@ -82,7 +82,7 @@ export default function CompanyPage() {
       </Section>
 
       <Section muted>
-        <SectionHeading center>What Being Private Means for You</SectionHeading>
+        <SectionHeading title="What Being Private Means for You" center />
         <div className="grid md:grid-cols-3 gap-6 mt-8">
           {[
             {
@@ -129,7 +129,7 @@ export default function CompanyPage() {
       >
         <ButtonOnDark href="/find-an-agent">Find an Agent</ButtonOnDark>
         <Link
-          href="/about/contact"
+          href="/support/contact"
           className="inline-flex items-center justify-center px-6 py-3 rounded-md border border-white/40 text-white font-semibold hover:bg-white/10 transition-colors"
         >
           Contact Us

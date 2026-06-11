@@ -30,7 +30,7 @@ export default async function PrivacyPage() {
             <ul>
               <li><strong>When you contact us or submit a website form</strong> — your name, email address, phone number, and the contents of your message (for example, support requests, complaints, or fraud reports). Our complaint form may also accept a file you choose to upload.</li>
               <li><strong>When you apply to become an agent</strong> — business and principal contact details, business type and history, and related information you provide on the application.</li>
-              <li><strong>When you use a money transfer service at an authorized agent</strong> — your name, address, government-issued ID details, contact information, recipient information, and transaction details. This information is collected and held by the agent and through our regulated transaction records, not through this website.</li>
+              <li><strong>When you use a money transfer service at an authorized delegate</strong> — your name, address, government-issued ID details, contact information, recipient information, and transaction details. This information is collected by the delegate and maintained through our regulated transaction records, not through this website.</li>
               <li><strong>Automatically</strong> — limited technical data and security cookies as described in our <a href="/legal/cookies">Cookie Policy</a>, including information processed by Google reCAPTCHA to protect our forms.</li>
             </ul>
 
@@ -38,7 +38,7 @@ export default async function PrivacyPage() {
             <p>We use your information to respond to your inquiries and process website-form submissions; to evaluate agent applications; to operate and secure our website and portals; to prevent fraud and abuse; and, for money transfer transactions conducted at our agents, to comply with applicable law — including identity verification, recordkeeping, and reporting requirements under the Bank Secrecy Act and USA PATRIOT Act.</p>
 
             <h2>Sharing and disclosure</h2>
-            <p>We may share your information with service providers who support our operations; with our authorized agents and, for money transfers, the foreign correspondent partners necessary to complete a transfer; and with regulatory or law enforcement authorities as required by law. We do <strong>not</strong> sell personal information to third parties for marketing purposes.</p>
+            <p>We may share your information with service providers who support our operations; with authorized delegates in our network and, for money transfers, the foreign correspondent partners necessary to complete a transfer; and with regulatory or law enforcement authorities as required by law. We do <strong>not</strong> sell personal information to third parties for marketing purposes.</p>
 
             <h2>Data security</h2>
             <p>We maintain administrative, technical, and physical safeguards designed to protect personal information against unauthorized access, disclosure, or misuse. No method of transmission or storage is completely secure, and we cannot guarantee absolute security.</p>

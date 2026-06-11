@@ -17,6 +17,7 @@ export class ApplicationsAdminController {
     return this.applications.listAll(status);
   }
 
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER')
   @Patch(':id/status')
   setStatus(
     @Param('id') id: string,
@@ -26,8 +27,9 @@ export class ApplicationsAdminController {
     return this.applications.setStatus(id, dto.status, adminId);
   }
 
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER')
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.applications.remove(id);
+  remove(@Param('id') id: string, @CurrentUser('id') adminId: string) {
+    return this.applications.remove(id, adminId);
   }
 }

@@ -44,6 +44,8 @@ import { HealthModule } from './health/health.module';
             'req.body.currentPassword',
             'req.body.refreshToken',
             'req.body.recaptchaToken',
+            'req.body.humanVerificationToken',
+            'req.body.humanVerificationAnswer',
             'res.headers["set-cookie"]',
           ],
           remove: true,

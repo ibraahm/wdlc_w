@@ -7,7 +7,7 @@ export async function generateMetadata() {
   const page = await getCmsPage('agents/resources');
   return cmsMetadata(page, {
     title: 'Agent Resources | World Direct Link',
-    description: 'Tools and documents authorized World Direct Link agents need to stay compliant and serve customers well.',
+    description: 'Tools and documents World Direct Link authorized delegates need to stay compliant and serve customers well.',
   });
 }
 

@@ -49,7 +49,7 @@ const faqs = [
   },
   {
     q: 'How do I cancel or get a refund?',
-    a: 'You may cancel within 30 minutes of payment for a full refund, as long as the funds have not already been picked up. Contact the agent location where you sent the transfer or call 800-939-7185.',
+    a: 'You may cancel within 30 minutes of payment for a full refund, as long as the funds have not already been picked up. Contact the authorized delegate location where you sent the transfer or call 800-939-7185.',
   },
 ];
 
@@ -105,12 +105,12 @@ export default async function HelpPage() {
       </Section>
 
       <CtaBand heading="Still need help?">
-        <ButtonOnDark href="/support/contact">Contact Support</ButtonOnDark>
+        <ButtonOnDark href="/support/contact">Contact Us</ButtonOnDark>
         <Link
-          href="/support/complaint"
+          href="/compliance/report"
           className="inline-flex items-center justify-center px-6 py-3 rounded-lg border border-white/50 text-white font-bold hover:bg-white/10 transition-colors"
         >
-          File a Complaint
+          Report or File a Complaint
         </Link>
       </CtaBand>
         </>

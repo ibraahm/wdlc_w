@@ -1,32 +1,92 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as sgMail from '@sendgrid/mail';
+import nodemailer, { type Transporter } from 'nodemailer';
 
-const isDev = () => !process.env.SENDGRID_API_KEY || process.env.NODE_ENV === 'development';
+type MailAttachment = {
+  filename: string;
+  content: Buffer;
+  contentType: string;
+};
+
+function hasSmtpConfig() {
+  return !!process.env.SMTP_HOST;
+}
+
+function hasSendGridConfig() {
+  return !!process.env.SENDGRID_API_KEY;
+}
+
+function boolEnv(value: string | undefined, fallback: boolean) {
+  if (value === undefined || value === '') return fallback;
+  return ['1', 'true', 'yes'].includes(value.toLowerCase());
+}
 
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
+  private readonly smtpTransport: Transporter | null;
 
   constructor() {
-    if (!isDev()) {
+    this.smtpTransport = hasSmtpConfig()
+      ? nodemailer.createTransport({
+          host: process.env.SMTP_HOST,
+          port: parseInt(process.env.SMTP_PORT || '587', 10),
+          secure: boolEnv(process.env.SMTP_SECURE, false),
+          auth: process.env.SMTP_USER
+            ? {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS || '',
+              }
+            : undefined,
+        })
+      : null;
+
+    if (!this.smtpTransport && hasSendGridConfig()) {
       sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
     }
   }
 
-  private async sendRaw(to: string, subject: string, html: string) {
-    if (isDev()) {
+  private fromAddress() {
+    return {
+      email: process.env.SMTP_FROM_EMAIL || process.env.SENDGRID_FROM_EMAIL || 'info@worlddirectlink.com',
+      name: process.env.SMTP_FROM_NAME || 'World Direct Link',
+    };
+  }
+
+  private async sendRaw(to: string, subject: string, html: string, attachments: MailAttachment[] = []) {
+    const from = this.fromAddress();
+
+    if (!this.smtpTransport && !hasSendGridConfig()) {
       const linkMatch = html.match(/href="(https?:\/\/[^"]+)"/);
       const link = linkMatch ? linkMatch[1] : '(no link found)';
       this.logger.log(
-        `\n${'─'.repeat(60)}\n📧  DEV MAIL\n    To:      ${to}\n    Subject: ${subject}\n    Link:    ${link}\n${'─'.repeat(60)}`,
+        `DEV MAIL | To: ${to} | Subject: ${subject} | Link: ${link} | Attachments: ${attachments.length}`,
       );
       return;
     }
+
+    if (this.smtpTransport) {
+      await this.smtpTransport.sendMail({
+        to,
+        from: `"${from.name}" <${from.email}>`,
+        subject,
+        html,
+        attachments,
+      });
+      return;
+    }
+
     await sgMail.send({
       to,
-      from: { email: process.env.SENDGRID_FROM_EMAIL || 'noreply@worlddirectlink.com', name: 'World Direct Link' },
+      from,
       subject,
       html,
+      attachments: attachments.map((attachment) => ({
+        filename: attachment.filename,
+        content: attachment.content.toString('base64'),
+        type: attachment.contentType,
+        disposition: 'attachment',
+      })),
     });
   }
 
@@ -63,10 +123,58 @@ export class MailService {
           <a href="${link}" style="background:#1a56db;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600">Reset Password</a>
         </p>
         <p style="font-size:13px;color:#6b7280">Or copy this link: <a href="${link}">${link}</a></p>
-        <p style="font-size:13px;color:#6b7280">If you did not request a password reset, ignore this email — your password will not change.</p>
+        <p style="font-size:13px;color:#6b7280">If you did not request a password reset, ignore this email. Your password will not change.</p>
       `),
     );
   }
+
+  sendAgentApplicationNotification(params: {
+    to?: string;
+    applicationId: string;
+    applicantName: string;
+    businessName?: string | null;
+    email: string;
+    phone: string;
+    pdf: Buffer;
+  }) {
+    const to =
+      params.to ||
+      process.env.AGENT_APPLICATION_NOTIFY_EMAIL ||
+      process.env.APPLICATION_NOTIFY_EMAIL ||
+      'info@worlddirectlink.com';
+    const subject = `Agent application received: ${params.businessName || params.applicantName}`;
+    return this.sendRaw(
+      to,
+      subject,
+      emailLayout('Agent application received', `
+        <p>A new Become an Agent application was submitted.</p>
+        <table cellpadding="0" cellspacing="0" style="width:100%;font-size:14px;border-collapse:collapse">
+          <tr><td style="padding:6px 0;color:#6b7280">Application ID</td><td style="padding:6px 0;font-weight:600">${escapeHtml(params.applicationId)}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280">Applicant</td><td style="padding:6px 0;font-weight:600">${escapeHtml(params.applicantName)}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280">Business</td><td style="padding:6px 0;font-weight:600">${escapeHtml(params.businessName || 'Not provided')}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280">Email</td><td style="padding:6px 0;font-weight:600">${escapeHtml(params.email)}</td></tr>
+          <tr><td style="padding:6px 0;color:#6b7280">Phone</td><td style="padding:6px 0;font-weight:600">${escapeHtml(params.phone)}</td></tr>
+        </table>
+        <p>The signed application PDF is attached.</p>
+      `),
+      [
+        {
+          filename: `agent-application-${params.applicationId}.pdf`,
+          content: params.pdf,
+          contentType: 'application/pdf',
+        },
+      ],
+    );
+  }
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function emailLayout(heading: string, body: string): string {

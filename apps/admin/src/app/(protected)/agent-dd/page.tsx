@@ -2,6 +2,7 @@ import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { apiListDDFiles, apiDDDashboard, type DDFile, type DDDashboard } from '@/lib/api';
 import DDFilesManager from '@/components/DDFilesManager';
+import OnboardingFlow from '@/components/OnboardingFlow';
 
 export default async function AgentDDPage() {
   const session = await getSession();
@@ -23,15 +24,16 @@ export default async function AgentDDPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Agent Due Diligence</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Onboarding and ongoing DD per the Agent Due Diligence File Checklist. Documents are stored in
-          Dropbox; this register tracks presence, expiry, status, risk, and the review cycle.
+        <h1 className="admin-page-title">Due Diligence</h1>
+        <p className="admin-section-subtitle">
+          Track each agent file from onboarding through ongoing review, including checklist status, risk, expiries, and next review dates.
         </p>
       </div>
 
+      <OnboardingFlow active="dd" />
+
       {error ? (
-        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       ) : (

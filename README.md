@@ -92,7 +92,7 @@ npm run dev:web & npm run dev:portal & npm run dev:admin
 | `SEED_ADMIN_PASSWORD` | Yes | Password for the initial SUPER_ADMIN account |
 | `NODE_ENV` | No | Set to `production` to enable real email sending |
 | `SENDGRID_API_KEY` | No | SendGrid API key — omit to log emails to console |
-| `SENDGRID_FROM_EMAIL` | No | From address, default `noreply@worlddirectlink.com` |
+| `SENDGRID_FROM_EMAIL` | No | From address, default `info@worlddirectlink.com` |
 
 ### `apps/*/env.local`
 

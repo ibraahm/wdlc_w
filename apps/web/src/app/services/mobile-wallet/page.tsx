@@ -36,7 +36,7 @@ export default async function MobileWalletPage() {
 
           <div className="mt-8 max-w-3xl">
             <Callout variant="info">
-              Sending is always completed in person at an authorized agent. Mobile wallet refers
+              Sending is always completed in person at an authorized delegate. Mobile wallet refers
               to the recipient&apos;s payout option only.
             </Callout>
           </div>

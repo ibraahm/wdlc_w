@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import {
   apiGetAuditLog,
@@ -6,7 +7,6 @@ import {
   apiDDDashboard,
   type DDDashboard,
 } from '@/lib/api';
-import { redirect } from 'next/navigation';
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -61,7 +61,6 @@ export default async function DashboardPage() {
     }),
   ]);
 
-  // Surfaced first when non-zero: the things an operator must act on.
   const attention = [
     { label: 'Applications to review', value: pendingApps, href: '/applications', tone: 'blue' as const },
     { label: 'DD documents expired', value: dd.expired, href: '/agent-dd', tone: 'red' as const },
@@ -85,7 +84,9 @@ export default async function DashboardPage() {
 
   const quickLinks = [
     { href: '/applications', label: 'Applications', desc: 'Review agent leads' },
-    { href: '/agent-dd', label: 'Due Diligence', desc: 'Onboarding & ongoing DD' },
+    { href: '/agent-dd', label: 'Due Diligence', desc: 'Onboarding and ongoing DD' },
+    { href: '/submissions', label: 'Submissions', desc: 'Review website form messages' },
+    { href: '/network', label: 'Network Map', desc: 'Maintain payout coverage' },
     { href: '/settings', label: 'Settings', desc: 'Configure site settings' },
   ];
 
@@ -93,14 +94,15 @@ export default async function DashboardPage() {
     <div className="space-y-8">
       <div>
         <h1 className="admin-page-title">Dashboard</h1>
-        <p className="admin-page-sub">Welcome back, {session.user.name}.</p>
+        <p className="admin-page-sub">
+          Welcome back, {session.user.name}. Start with items that need a decision, then jump into the workflow.
+        </p>
       </div>
 
-      {/* Needs attention — only when there's something to act on */}
-      <div>
-        <h2 className="admin-section-title">Needs attention</h2>
+      <section aria-labelledby="attention-heading">
+        <h2 id="attention-heading" className="admin-section-title">Needs attention</h2>
         {hasAttention ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {attention
               .filter((a) => a.value > 0)
               .map((a) => (
@@ -110,68 +112,69 @@ export default async function DashboardPage() {
                   className={`rounded-xl border p-4 transition-shadow hover:shadow-sm ${toneClasses[a.tone]}`}
                 >
                   <div className="text-2xl font-bold">{a.value}</div>
-                  <div className="text-xs font-medium mt-1">{a.label}</div>
+                  <div className="mt-1 text-xs font-medium">{a.label}</div>
                 </Link>
               ))}
           </div>
         ) : (
           <div className="rounded-xl border border-green-200 bg-green-50 px-5 py-4 text-sm text-green-800">
-            All clear — no pending applications, expiring documents, or reviews due.
+            All clear. No pending applications, expiring documents, or reviews due.
           </div>
         )}
-      </div>
+      </section>
 
-      <div>
-        <h2 className="admin-section-title">Agents</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <section aria-labelledby="agents-heading">
+        <h2 id="agents-heading" className="admin-section-title">Agents</h2>
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {stats.map((stat) => (
             <div key={stat.label} className={`rounded-xl border p-6 ${stat.color}`}>
               <div className="text-3xl font-bold">{stat.value}</div>
-              <div className="text-sm font-medium mt-1 opacity-75">{stat.label}</div>
+              <div className="mt-1 text-sm font-medium opacity-75">{stat.label}</div>
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      <div>
-        <h2 className="admin-section-title">Quick actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <section aria-labelledby="quick-actions-heading">
+        <h2 id="quick-actions-heading" className="admin-section-title">Quick actions</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
           {quickLinks.map((link) => (
-            <Link key={link.href} href={link.href}
-              className="block bg-white rounded-xl border border-smoke p-5 hover:border-gold hover:shadow-sm transition-all group">
-              <div className="font-semibold text-navy group-hover:text-gold text-sm mb-1">{link.label}</div>
+            <Link
+              key={link.href}
+              href={link.href}
+              className="block rounded-xl border border-smoke bg-white p-5 transition-all hover:border-gold hover:shadow-sm group"
+            >
+              <div className="mb-1 text-sm font-semibold text-navy group-hover:text-gold">{link.label}</div>
               <div className="text-xs text-charcoal/60">{link.desc}</div>
             </Link>
           ))}
         </div>
-      </div>
+      </section>
 
-      <div>
-        <h2 className="admin-section-title">Recent activity</h2>
-        <div className="bg-white rounded-xl border border-smoke overflow-hidden">
+      <section aria-labelledby="recent-activity-heading">
+        <h2 id="recent-activity-heading" className="admin-section-title">Recent activity</h2>
+        <div className="overflow-hidden rounded-xl border border-smoke bg-white">
           {auditItems.length === 0 ? (
-            <p className="text-sm text-charcoal/50 text-center py-8">No activity yet.</p>
+            <p className="py-8 text-center text-sm text-charcoal/50">No activity yet.</p>
           ) : (
             <table className="min-w-full divide-y divide-smoke">
               <thead>
                 <tr className="bg-ivory">
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-charcoal/50 uppercase">Action</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-charcoal/50 uppercase">Entity</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-charcoal/50 uppercase hidden md:table-cell">By</th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold text-charcoal/50 uppercase">When</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-charcoal/50">Action</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase text-charcoal/50">Entity</th>
+                  <th className="hidden px-6 py-3 text-left text-xs font-semibold uppercase text-charcoal/50 md:table-cell">By</th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold uppercase text-charcoal/50">When</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-smoke">
                 {auditItems.map((entry) => (
-                  <tr key={entry.id} className="hover:bg-ivory/60 transition-colors">
-                    <td className="px-6 py-3 text-sm text-navy font-medium">{actionLabel(entry.action)}</td>
-                    <td className="px-6 py-3 text-sm text-charcoal/60 font-mono">
-                      {entry.entityId ?? '—'}
+                  <tr key={entry.id} className="transition-colors hover:bg-ivory/60">
+                    <td className="px-6 py-3 text-sm font-medium text-navy">{actionLabel(entry.action)}</td>
+                    <td className="px-6 py-3 font-mono text-sm text-charcoal/60">{entry.entityId ?? '-'}</td>
+                    <td className="hidden px-6 py-3 text-sm text-charcoal/60 md:table-cell">
+                      {entry.admin?.name ?? entry.admin?.email ?? entry.agent?.email ?? '-'}
                     </td>
-                    <td className="px-6 py-3 text-sm text-charcoal/60 hidden md:table-cell">
-                      {entry.admin?.name ?? entry.admin?.email ?? entry.agent?.email ?? '—'}
-                    </td>
-                    <td className="px-6 py-3 text-sm text-charcoal/50 text-right whitespace-nowrap">
+                    <td className="whitespace-nowrap px-6 py-3 text-right text-sm text-charcoal/50">
                       {timeAgo(entry.createdAt)}
                     </td>
                   </tr>
@@ -180,7 +183,7 @@ export default async function DashboardPage() {
             </table>
           )}
         </div>
-      </div>
+      </section>
     </div>
   );
 }

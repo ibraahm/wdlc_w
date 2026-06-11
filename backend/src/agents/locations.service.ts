@@ -20,21 +20,46 @@ export class LocationsService {
   constructor(private prisma: PrismaService, private geocode: GeocodeService) {}
 
   async listPublic() {
-    return this.prisma.agentLocation.findMany({
-      where: { active: true, latitude: { not: null }, longitude: { not: null } },
-      select: {
-        id: true,
-        businessName: true,
-        addressLine: true,
-        city: true,
-        state: true,
-        zip: true,
-        country: true,
-        publicPhone: true,
-        latitude: true,
-        longitude: true,
-      },
-    });
+    const select = {
+      id: true,
+      businessName: true,
+      addressLine: true,
+      city: true,
+      state: true,
+      zip: true,
+      country: true,
+      publicPhone: true,
+      latitude: true,
+      longitude: true,
+    } as const;
+
+    const [adminLocations, portalLocations] = await Promise.all([
+      this.prisma.agentLocation.findMany({
+        where: { active: true, latitude: { not: null }, longitude: { not: null } },
+        select,
+      }),
+      this.prisma.agentUser.findMany({
+        where: {
+          status: 'ACTIVE',
+          showOnMap: true,
+          latitude: { not: null },
+          longitude: { not: null },
+        },
+        select,
+      }),
+    ]);
+
+    return [...adminLocations, ...portalLocations]
+      .map((location) => ({
+        ...location,
+        latitude: location.latitude!,
+        longitude: location.longitude!,
+      }))
+      .sort((a, b) =>
+        `${a.state ?? ''}${a.city ?? ''}${a.businessName ?? ''}`.localeCompare(
+          `${b.state ?? ''}${b.city ?? ''}${b.businessName ?? ''}`,
+        ),
+      );
   }
 
   async listAll() {

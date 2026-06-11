@@ -10,8 +10,8 @@ interface VerifyResponse {
 /**
  * Verifies Google reCAPTCHA v3 tokens.
  *
- * If RECAPTCHA_SECRET is not configured the check is skipped (returns true) so
- * the app keeps working in local/dev environments without keys. The minimum
+ * If RECAPTCHA_SECRET is not configured the check is skipped only outside
+ * production so local/dev environments can work without keys. The minimum
  * passing score defaults to 0.5 and can be tuned via RECAPTCHA_MIN_SCORE.
  */
 @Injectable()
@@ -19,6 +19,7 @@ export class RecaptchaService {
   private readonly logger = new Logger(RecaptchaService.name);
   private readonly secret = process.env.RECAPTCHA_SECRET;
   private readonly minScore = Number(process.env.RECAPTCHA_MIN_SCORE ?? '0.5');
+  private readonly enforce = process.env.NODE_ENV === 'production';
 
   get enabled(): boolean {
     return !!this.secret;
@@ -30,13 +31,28 @@ export class RecaptchaService {
    * @param expectedAction  Optional action name to match (v3 only).
    */
   async verify(token?: string, expectedAction?: string): Promise<boolean> {
+    if (!this.enforce) {
+      this.logger.log(
+        `reCAPTCHA verify start: enabled=${this.enabled} enforce=${this.enforce} tokenPresent=${!!token} expectedAction=${expectedAction ?? 'none'}`,
+      );
+    }
     if (!this.enabled) {
       // reCAPTCHA is intentionally not configured — skip silently in all environments.
       // The feature is opt-in; "fail-closed" only applies when a key IS set.
-      return true;
+      if (this.enforce) {
+        this.logger.warn('reCAPTCHA blocked: RECAPTCHA_SECRET is not configured');
+      } else {
+        this.logger.log('reCAPTCHA skipped: RECAPTCHA_SECRET is not configured');
+      }
+      return !this.enforce;
     }
 
-    if (!token) return false;
+    if (!token) {
+      this.logger.warn(
+        `reCAPTCHA token missing: enforce=${this.enforce} expectedAction=${expectedAction ?? 'none'}`,
+      );
+      return !this.enforce;
+    }
 
     const MAX_ATTEMPTS = 2;
     let lastErr: unknown;
@@ -51,16 +67,27 @@ export class RecaptchaService {
         const data = (await res.json()) as VerifyResponse;
 
         if (!data.success) {
-          this.logger.warn(`reCAPTCHA failed: ${(data['error-codes'] ?? []).join(', ')}`);
-          return false;
+          this.logger.warn(
+            `reCAPTCHA failed: enforce=${this.enforce} errors=${(data['error-codes'] ?? []).join(', ')}`,
+          );
+          return !this.enforce;
         }
         if (expectedAction && data.action && data.action !== expectedAction) {
-          this.logger.warn(`reCAPTCHA action mismatch: got ${data.action}, expected ${expectedAction}`);
-          return false;
+          this.logger.warn(
+            `reCAPTCHA action mismatch: enforce=${this.enforce} got=${data.action} expected=${expectedAction}`,
+          );
+          return !this.enforce;
         }
         if (typeof data.score === 'number' && data.score < this.minScore) {
-          this.logger.warn(`reCAPTCHA score too low: ${data.score} < ${this.minScore}`);
-          return false;
+          this.logger.warn(
+            `reCAPTCHA score too low: enforce=${this.enforce} score=${data.score} minScore=${this.minScore}`,
+          );
+          return !this.enforce;
+        }
+        if (!this.enforce) {
+          this.logger.log(
+            `reCAPTCHA passed: action=${data.action ?? 'none'} score=${data.score ?? 'none'}`,
+          );
         }
         return true;
       } catch (err) {
@@ -71,6 +98,6 @@ export class RecaptchaService {
 
     this.logger.error('reCAPTCHA verification request failed after retries', lastErr as Error);
     // Fail closed in production; fail open in dev so a network outage doesn't block local work.
-    return process.env.NODE_ENV !== 'production';
+    return !this.enforce;
   }
 }

@@ -75,12 +75,12 @@ export default async function FraudPage() {
       </Section>
 
       <CtaBand heading="See something suspicious?">
-        <ButtonOnDark href="/compliance/report">Report Suspicious Activity</ButtonOnDark>
+        <ButtonOnDark href="/compliance/report">Report or File a Complaint</ButtonOnDark>
         <a
           href="/support/contact"
           className="inline-flex items-center justify-center px-6 py-3 rounded-md border border-white text-white font-semibold hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-primary"
         >
-          Contact Support
+          Contact Us
         </a>
       </CtaBand>
         </>
