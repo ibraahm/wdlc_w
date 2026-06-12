@@ -109,7 +109,8 @@ if curl -fsS --max-time 3 "$HEALTH" >/dev/null 2>&1; then
   ok "The backend is already running and talking to the database"
 else
   note "Starting the backend briefly to verify it boots and reaches the database…"
-  ( cd backend && NODE_ENV=production node dist/main.js >/tmp/wdlc-smoke.log 2>&1 & echo $! >/tmp/wdlc-smoke.pid )
+  ENTRY="dist/main.js"; [[ -f backend/dist/main.js ]] || ENTRY="dist/src/main.js"
+  ( cd backend && NODE_ENV=production node "$ENTRY" >/tmp/wdlc-smoke.log 2>&1 & echo $! >/tmp/wdlc-smoke.pid )
   SMOKE_PID="$(cat /tmp/wdlc-smoke.pid)"
   READY=0
   for _ in $(seq 1 20); do

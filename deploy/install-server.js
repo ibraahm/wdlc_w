@@ -99,7 +99,13 @@ async function smokeTest(res) {
   const health = 'http://127.0.0.1:4000/api/health/ready';
   if (await httpOk(health, 2000)) { res.write('\nBackend already running and healthy.\n'); return; }
   res.write('\nTest-starting the backend to verify the database connection…\n');
-  const child = spawn('node', ['dist/main.js'], {
+  // start:prod runs `node dist/main.js`; tolerate either compiled layout.
+  const candidates = ['dist/main.js', 'dist/src/main.js'];
+  const entry = candidates.find((c) => fs.existsSync(path.join(ROOT, 'backend', c)));
+  if (!entry) {
+    throw new Error('Backend build produced no main.js under dist/ — the build step failed; scroll up for the compiler error.');
+  }
+  const child = spawn('node', [entry], {
     cwd: path.join(ROOT, 'backend'),
     env: { ...process.env, NODE_ENV: 'production' },
   });
@@ -115,7 +121,7 @@ async function smokeTest(res) {
   child.kill();
   if (!ready) {
     res.write('\nBackend failed to start. Its output was:\n' + log.slice(-3000) + '\n');
-    throw new Error('Backend smoke test failed (usually wrong database credentials).');
+    throw new Error('Backend smoke test failed — see the output above (often the database password/host, or a missing build).');
   }
   res.write('Backend boots and reaches the database. ✔\n');
 }
