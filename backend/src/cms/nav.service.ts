@@ -15,6 +15,15 @@ export class NavService {
     });
   }
 
+  /** Admin view: every item including hidden ones, for the navigation manager. */
+  async treeAll(location?: string) {
+    return this.prisma.navItem.findMany({
+      where: { parentId: null, ...(location ? { location } : {}) },
+      include: { children: { orderBy: { order: 'asc' } } },
+      orderBy: [{ location: 'asc' }, { order: 'asc' }],
+    });
+  }
+
   async create(dto: CreateNavItemDto, adminId: string) {
     const item = await this.prisma.navItem.create({
       data: { label: dto.label, href: dto.href, location: dto.location ?? 'HEADER', column: dto.column, order: dto.order ?? 0, parentId: dto.parentId, visible: dto.visible ?? true },

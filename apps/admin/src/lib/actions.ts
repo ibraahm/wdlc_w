@@ -28,8 +28,12 @@ import {
   apiSetDDStage,
   apiSetDDRisk,
   apiRecordDDReview,
+  apiCreateNavItem,
+  apiUpdateNavItem,
+  apiDeleteNavItem,
+  apiReorderNav,
 } from './api';
-import type { Partner, NetworkCountry } from './api';
+import type { Partner, NetworkCountry, NavItemInput } from './api';
 import { getSession, setSessionCookies, clearSessionCookies } from './auth';
 
 // ---------------------------------------------------------------------------
@@ -474,5 +478,64 @@ export async function deleteNewsPostAction(id: string): Promise<{ ok: boolean; e
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Navigation menu actions
+// ---------------------------------------------------------------------------
+
+export async function createNavItemAction(
+  data: NavItemInput,
+): Promise<{ ok: boolean; id?: string; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    const item = await apiCreateNavItem(session.accessToken, data);
+    revalidatePath('/navigation');
+    return { ok: true, id: item.id };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Create failed' };
+  }
+}
+
+export async function updateNavItemAction(
+  id: string,
+  data: Partial<NavItemInput>,
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiUpdateNavItem(session.accessToken, id, data);
+    revalidatePath('/navigation');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
+  }
+}
+
+export async function deleteNavItemAction(id: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiDeleteNavItem(session.accessToken, id);
+    revalidatePath('/navigation');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };
+  }
+}
+
+export async function reorderNavAction(
+  items: { id: string; order: number }[],
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiReorderNav(session.accessToken, items);
+    revalidatePath('/navigation');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Reorder failed' };
   }
 }

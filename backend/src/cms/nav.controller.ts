@@ -29,6 +29,12 @@ export class NavController {
     return this.nav.tree(location);
   }
 
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR')
+  @Get('admin')
+  treeAdmin(@Query('location') location?: string) {
+    return this.nav.treeAll(location);
+  }
+
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')
   @Post()
   create(@Body() dto: CreateNavItemDto, @CurrentUser() user: AuthUser) {

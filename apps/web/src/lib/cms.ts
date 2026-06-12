@@ -8,10 +8,13 @@ export type CmsNavItem = {
   label: string;
   href: string;
   location: string;
+  column?: string | null;
   order: number;
   visible: boolean;
   children?: CmsNavItem[];
 };
+
+export type CmsFooterColumn = { title: string; links: { label: string; href: string }[] };
 
 export type CmsPage = {
   slug: string;
@@ -60,6 +63,32 @@ export const getCmsUtilityNav = cache(async (): Promise<CmsNavItem[] | null> => 
     if (!res.ok) return null;
     const items: CmsNavItem[] = await res.json();
     return items.filter((i) => i.location === 'UTILITY' && i.visible);
+  } catch {
+    return null;
+  }
+});
+
+// Footer link columns, grouped by each item's `column`. Returns null when no
+// CMS footer items exist so the caller can fall back to its static defaults.
+export const getCmsFooterNav = cache(async (): Promise<CmsFooterColumn[] | null> => {
+  try {
+    const res = await fetch(`${API}/cms/nav?location=FOOTER`, { next: { revalidate: 60 } });
+    if (!res.ok) return null;
+    const items: CmsNavItem[] = await res.json();
+    const footer = items.filter((i) => i.location === 'FOOTER' && i.visible);
+    if (footer.length === 0) return null;
+
+    const cols: CmsFooterColumn[] = [];
+    for (const item of footer.sort((a, b) => a.order - b.order)) {
+      const title = item.column?.trim() || 'More';
+      let col = cols.find((c) => c.title === title);
+      if (!col) {
+        col = { title, links: [] };
+        cols.push(col);
+      }
+      col.links.push({ label: item.label, href: item.href });
+    }
+    return cols;
   } catch {
     return null;
   }
