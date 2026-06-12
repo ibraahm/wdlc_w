@@ -86,7 +86,7 @@ export default function PartnersManager({ partners }: { partners: Partner[] }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Name *</label>
-              <input value={form.name ?? ''} onChange={(e) => set('name', e.target.value)} className={inputCls} placeholder="e.g. Taaj Financial Services" />
+              <input value={form.name ?? ''} onChange={(e) => set('name', e.target.value)} className={inputCls} placeholder="Partner name" />
             </div>
             <div>
               <label className={labelCls}>Type</label>
