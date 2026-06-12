@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const API = process.env.API_URL || 'http://localhost:4000/api';
+const IS_PROD = process.env.NODE_ENV === 'production';
 
 const PROTECTED_PATHS = ['/dashboard'];
 const AUTH_PATHS = ['/login', '/signup'];
@@ -54,18 +55,21 @@ export async function middleware(req: NextRequest) {
 
           response.cookies.set('pat', data.accessToken, {
             httpOnly: true,
+            secure: IS_PROD,
             sameSite: 'lax',
             path: '/',
             maxAge: 900,
           });
           response.cookies.set('prt', data.refreshToken, {
             httpOnly: true,
+            secure: IS_PROD,
             sameSite: 'lax',
             path: '/',
             maxAge: 604800,
           });
           response.cookies.set('pagent', JSON.stringify(data.agent), {
-            httpOnly: false,
+            httpOnly: true,
+            secure: IS_PROD,
             sameSite: 'lax',
             path: '/',
             maxAge: 900,

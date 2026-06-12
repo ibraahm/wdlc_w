@@ -65,10 +65,10 @@ npm --workspace=apps/portal run dev     # http://localhost:3001
 npm --workspace=apps/admin run dev      # http://localhost:3002
 ```
 
-Or from the root, all at once (requires a process manager like `concurrently`):
+Or from the root (each in its own terminal, or backgrounded):
 
 ```bash
-npm run dev:web & npm run dev:portal & npm run dev:admin
+npm run dev:backend & npm run dev:web & npm run dev:portal & npm run dev:admin
 ```
 
 ---
@@ -79,11 +79,10 @@ npm run dev:web & npm run dev:portal & npm run dev:admin
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `DATABASE_URL` | Yes | `file:./dev.db` for SQLite, or a PostgreSQL connection string |
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
 | `JWT_SECRET` | Yes | Shared JWT fallback secret — generate with `openssl rand -hex 32` |
 | `ADMIN_JWT_SECRET` | No | Override JWT secret for admin tokens |
 | `AGENT_JWT_SECRET` | No | Override JWT secret for agent tokens |
-| `JWT_EXPIRES_IN` | No | Access token lifetime, default `15m` |
 | `PORT` | No | API port, default `4000` |
 | `CORS_ORIGIN` | Yes | Allowed CORS origin(s), e.g. `http://localhost:3000` |
 | `PORTAL_BASE_URL` | Yes | Used in email verification links, e.g. `http://localhost:3001` |
@@ -258,5 +257,5 @@ All endpoints are prefixed with the backend base URL (`http://localhost:4000`).
 - [ ] Set `PORTAL_BASE_URL` and `ADMIN_BASE_URL` to production URLs
 - [ ] Run `npm run db:seed` once to create the initial SUPER_ADMIN, then change the password immediately
 - [ ] Deploy behind HTTPS (the httpOnly cookies require a secure context in production)
-- [ ] Set `secure: true` on cookies in `apps/portal/src/lib/auth.ts` and `apps/admin/src/lib/auth.ts`
+- [ ] Set `NODE_ENV=production` for the portal and admin apps — auth cookies are only marked `secure` when it is set
 
