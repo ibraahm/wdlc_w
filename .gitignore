@@ -2,5 +2,19 @@ node_modules
 *.tsbuildinfo
 .next/
 dist/
+build/
 .env
-.env.local
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
