@@ -1,6 +1,23 @@
 # WDLC Server Deployment Guide
 
-## TL;DR — one command
+## TL;DR — two ways to install
+
+**Option A — from the browser (easiest):**
+
+```bash
+node deploy/install-server.js          # then open the printed link
+```
+
+It serves a one-page form at `/installation` (protected by a one-time key
+printed in the terminal). Fill in your domain, database, and admin account;
+it streams the whole install live in the browser, and on success it starts
+the apps with pm2 (if installed), **deletes the installer and setup scripts**,
+and frees the port for the real website. It refuses to ever run twice
+(`deploy/.installed` marker), so the `/installation` URL is gone for good.
+A later `git pull` may restore the deleted script files — harmless, the
+marker still blocks re-runs.
+
+**Option B — in the terminal:**
 
 ```bash
 deploy/setup.sh
