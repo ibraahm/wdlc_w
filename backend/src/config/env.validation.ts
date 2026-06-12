@@ -46,7 +46,6 @@ export const envValidationSchema = Joi.object({
   SEED_ADMIN_EMAIL: Joi.string().email().allow('').optional(),
   SEED_ADMIN_PASSWORD: Joi.string().allow('').optional(),
 
-  RECAPTCHA_SECRET: Joi.string().allow('').optional(),
   HUMAN_VERIFICATION_SECRET: secretField.allow('').optional(),
   HUMAN_VERIFICATION_TTL_SECONDS: Joi.number().integer().min(60).max(3600).optional(),
   SENDGRID_API_KEY: Joi.string().allow('').optional(),

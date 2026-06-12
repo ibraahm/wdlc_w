@@ -15,7 +15,7 @@ import {
 import { Public } from '../auth/decorators/public.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { PortalJwtAuthGuard } from './portal-jwt-auth.guard';
-import { RecaptchaService } from '../common/recaptcha.service';
+import { HumanVerificationService } from '../common/human-verification.service';
 import { ForbiddenException } from '@nestjs/common';
 
 @UseGuards(PortalJwtAuthGuard)
@@ -23,7 +23,7 @@ import { ForbiddenException } from '@nestjs/common';
 export class PortalAuthController {
   constructor(
     private auth: PortalAuthService,
-    private recaptcha: RecaptchaService,
+    private humanVerification: HumanVerificationService,
   ) {}
 
   // ── Public ────────────────────────────────────────────────────────────────
@@ -32,8 +32,8 @@ export class PortalAuthController {
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @Post('signup')
   async signup(@Body() dto: AgentSignupDto, @Req() req: Request) {
-    if (!(await this.recaptcha.verify(dto.recaptchaToken, 'portal_signup')))
-      throw new ForbiddenException('Security check failed. Please try again.');
+    if (!this.humanVerification.verify(dto.humanVerificationToken, dto.humanVerificationAnswer, 'portal_signup'))
+      throw new ForbiddenException('Security check failed. Please answer the verification question.');
     return this.auth.signup(dto, req.ip, req.headers['user-agent']);
   }
 
@@ -41,8 +41,8 @@ export class PortalAuthController {
   @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @Post('login')
   async login(@Body() dto: AgentLoginDto, @Req() req: Request) {
-    if (!(await this.recaptcha.verify(dto.recaptchaToken, 'portal_login')))
-      throw new ForbiddenException('Security check failed. Please try again.');
+    if (!this.humanVerification.verify(dto.humanVerificationToken, dto.humanVerificationAnswer, 'portal_login'))
+      throw new ForbiddenException('Security check failed. Please answer the verification question.');
     return this.auth.login(dto.email, dto.password, req.ip, req.headers['user-agent']);
   }
 
@@ -70,8 +70,8 @@ export class PortalAuthController {
   @Throttle({ default: { ttl: 300_000, limit: 3 } })
   @Post('forgot-password')
   async forgotPassword(@Body() dto: AgentForgotPasswordDto) {
-    if (!(await this.recaptcha.verify(dto.recaptchaToken, 'portal_forgot_password')))
-      throw new ForbiddenException('Security check failed. Please try again.');
+    if (!this.humanVerification.verify(dto.humanVerificationToken, dto.humanVerificationAnswer, 'portal_forgot_password'))
+      throw new ForbiddenException('Security check failed. Please answer the verification question.');
     return this.auth.forgotPassword(dto.email);
   }
 

@@ -39,10 +39,11 @@ import { getSession, setSessionCookies, clearSessionCookies } from './auth';
 export async function loginAction(formData: FormData): Promise<{ error?: string }> {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
-  const recaptchaToken = (formData.get('recaptchaToken') as string) || undefined;
+  const humanVerificationToken = (formData.get('humanVerificationToken') as string) || undefined;
+  const humanVerificationAnswer = (formData.get('humanVerificationAnswer') as string) || undefined;
 
   try {
-    const result = await apiLogin(email, password, recaptchaToken);
+    const result = await apiLogin(email, password, { humanVerificationToken, humanVerificationAnswer });
     await setSessionCookies(result.accessToken, result.refreshToken, result.user);
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Login failed' };
@@ -68,9 +69,10 @@ export async function logoutAction(): Promise<void> {
 
 export async function forgotPasswordAction(formData: FormData): Promise<{ ok: boolean; error?: string }> {
   const email = formData.get('email') as string;
-  const recaptchaToken = (formData.get('recaptchaToken') as string) || undefined;
+  const humanVerificationToken = (formData.get('humanVerificationToken') as string) || undefined;
+  const humanVerificationAnswer = (formData.get('humanVerificationAnswer') as string) || undefined;
   try {
-    await apiForgotPassword(email, recaptchaToken);
+    await apiForgotPassword(email, { humanVerificationToken, humanVerificationAnswer });
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Request failed' };

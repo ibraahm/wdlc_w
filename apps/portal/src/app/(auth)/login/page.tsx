@@ -3,7 +3,7 @@
 import { useFormState, useFormStatus } from 'react-dom';
 import Link from 'next/link';
 import { loginAction } from '@/lib/actions';
-import RecaptchaField from '@/components/RecaptchaField';
+import MathChallengeField from '@/components/MathChallengeField';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -37,7 +37,7 @@ export default function LoginPage() {
           <input id="password" name="password" type="password" autoComplete="current-password" required className="auth-input" placeholder="••••••••••" />
         </div>
 
-        <RecaptchaField action="portal_login" />
+        <MathChallengeField context="portal_login" />
         <SubmitButton />
       </form>
 

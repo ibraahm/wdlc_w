@@ -51,7 +51,6 @@ export class CreateApplicationDto {
   @IsString() @MaxLength(1000) signatureConsentText: string;
   @IsOptional() @IsDateString() signatureClientTimestamp?: string;
 
-  @IsOptional() @IsString() @MaxLength(3000) recaptchaToken?: string;
   @IsOptional() @IsString() @MaxLength(1000) humanVerificationToken?: string;
   @IsOptional() @IsString() @MaxLength(20) humanVerificationAnswer?: string;
 }

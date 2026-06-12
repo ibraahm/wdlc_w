@@ -12,13 +12,11 @@ export async function POST(req: NextRequest) {
 
   try {
     if (process.env.NODE_ENV !== 'production') {
-      const maybeBody = body as { recaptchaToken?: unknown; productsOffered?: unknown };
+      const maybeBody = body as { humanVerificationToken?: unknown; productsOffered?: unknown };
       console.info('[agent-application api] forwarding submit', {
         apiBase: API,
-        tokenPresent: typeof maybeBody.recaptchaToken === 'string' && maybeBody.recaptchaToken.length > 0,
-        humanFallbackPresent:
-          typeof (maybeBody as { humanVerificationToken?: unknown }).humanVerificationToken === 'string' &&
-          ((maybeBody as { humanVerificationToken?: string }).humanVerificationToken?.length ?? 0) > 0,
+        humanTokenPresent:
+          typeof maybeBody.humanVerificationToken === 'string' && maybeBody.humanVerificationToken.length > 0,
         product: maybeBody.productsOffered,
       });
     }

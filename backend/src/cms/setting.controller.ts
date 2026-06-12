@@ -15,7 +15,6 @@ const PUBLIC_SETTING_KEYS = new Set([
   'contactEmail',
   'contactPhone',
   'application.draftTimeoutMinutes',
-  'recaptchaSiteKey',
   'maintenanceMode',
   'footerText',
 ]);

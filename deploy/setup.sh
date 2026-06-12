@@ -137,3 +137,11 @@ cat <<'NEXT'
   Full reference: deploy/DEPLOYMENT.md (proxy examples, hardening checklist,
   troubleshooting map).
 NEXT
+
+# ── 8. Self-removal ──────────────────────────────────────────────────────────
+# Setup succeeded — mark the server installed and remove the setup scripts so
+# they can't be re-run by accident. A future `git pull` restores the files,
+# but the marker keeps the browser installer locked out too.
+date -u +"%Y-%m-%dT%H:%M:%SZ" > "$ROOT/deploy/.installed"
+rm -f "$ROOT/deploy/setup.sh" "$ROOT/deploy/generate-env.sh"
+ok "Setup scripts removed from this server (deploy/.installed marker written)."

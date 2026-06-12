@@ -19,7 +19,6 @@
 #   DATABASE_URL  postgresql://user:pass@host:5432/wdlc?schema=public
 #   PUBLIC_WEB_URL / PUBLIC_PORTAL_URL / PUBLIC_ADMIN_URL / PUBLIC_API_URL
 #   INTERNAL_API_URL   (default http://127.0.0.1:4000/api)
-#   RECAPTCHA_SITE_KEY / RECAPTCHA_SECRET
 #   SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD
 #
 set -euo pipefail
@@ -93,11 +92,6 @@ ask DATABASE_URL "PostgreSQL DATABASE_URL" ""
 [[ -n "$DATABASE_URL" ]] || die "DATABASE_URL is required."
 
 echo
-say "reCAPTCHA v3 (optional but recommended for admin/portal logins)"
-ask RECAPTCHA_SITE_KEY "  Public site key (blank = disabled)" "${RECAPTCHA_SITE_KEY:-}"
-ask RECAPTCHA_SECRET   "  Backend secret  (blank = disabled)" "${RECAPTCHA_SECRET:-}"
-
-echo
 ask SEED_ADMIN_EMAIL "Seed admin email" "info@worlddirectlink.com"
 : "${SEED_ADMIN_PASSWORD:=$(gen | cut -c1-20)!Aa1}"  # strong default if unset
 
@@ -127,8 +121,6 @@ render() { # render TEMPLATE DEST
     -e "s|@@PUBLIC_WEB_URL@@|${PUBLIC_WEB_URL//|/\\|}|g" \
     -e "s|@@PUBLIC_PORTAL_URL@@|${PUBLIC_PORTAL_URL//|/\\|}|g" \
     -e "s|@@PUBLIC_ADMIN_URL@@|${PUBLIC_ADMIN_URL//|/\\|}|g" \
-    -e "s|@@RECAPTCHA_SITE_KEY@@|${RECAPTCHA_SITE_KEY:-}|g" \
-    -e "s|@@RECAPTCHA_SECRET@@|${RECAPTCHA_SECRET:-}|g" \
     -e "s|@@SEED_ADMIN_EMAIL@@|${SEED_ADMIN_EMAIL}|g" \
     -e "s|@@SEED_ADMIN_PASSWORD@@|${SEED_ADMIN_PASSWORD//|/\\|}|g" \
     "$tpl" > "$dest"

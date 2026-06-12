@@ -1,32 +1,24 @@
 'use client';
 
-import { useEffect, useState, type FormEvent } from 'react';
-import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
+import { useState, type FormEvent } from 'react';
 import type { CmsForm, CmsFormField } from '@/lib/cms';
 import { HumanVerificationField, useHumanVerification } from './HumanVerification';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
-const RECAPTCHA_CONFIGURED = !!process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
 const inputCls =
   'w-full rounded-lg border border-[#d9e0e8] bg-white px-3 py-2 text-ink focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none';
 
 // Renders any CMS-built form dynamically from its field definitions.
 export default function FormRenderer({ form }: { form: CmsForm }) {
-  const { executeRecaptcha } = useGoogleReCaptcha();
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
   const [done, setDone] = useState(false);
-  const [showHumanVerification, setShowHumanVerification] = useState(false);
+  // `form.recaptcha` is the CMS "verification required" flag.
+  const showHumanVerification = form.recaptcha !== false;
   const humanVerification = useHumanVerification('form_submit', showHumanVerification);
-
-  useEffect(() => {
-    if (form.recaptcha && (!RECAPTCHA_CONFIGURED || !executeRecaptcha)) {
-      setShowHumanVerification(true);
-    }
-  }, [executeRecaptcha, form.recaptcha]);
 
   function setValue(name: string, v: unknown) {
     setValues((prev) => ({ ...prev, [name]: v }));
@@ -51,25 +43,10 @@ export default function FormRenderer({ form }: { form: CmsForm }) {
     setError('');
     setPending(true);
 
-    let recaptchaToken: string | undefined;
-    if (form.recaptcha && RECAPTCHA_CONFIGURED && executeRecaptcha && !showHumanVerification) {
-      try {
-        recaptchaToken = await executeRecaptcha('form_submit');
-      } catch {
-        setShowHumanVerification(true);
-        setError('Please complete the verification question and submit again.');
-        setPending(false);
-        return;
-      }
-    }
-
-    if (form.recaptcha && !recaptchaToken) {
-      setShowHumanVerification(true);
-      if (!humanVerification.challenge || !humanVerification.answer.trim()) {
-        setError('Please answer the verification question.');
-        setPending(false);
-        return;
-      }
+    if (showHumanVerification && (!humanVerification.challenge || !humanVerification.answer.trim())) {
+      setError('Please answer the verification question.');
+      setPending(false);
+      return;
     }
 
     try {
@@ -79,10 +56,9 @@ export default function FormRenderer({ form }: { form: CmsForm }) {
         // Record the consent acknowledgement alongside the submission as evidence.
         body: JSON.stringify({
           data: { ...values, _consentAcknowledged: true, _consentAt: new Date().toISOString() },
-          recaptchaAction: 'form_submit',
-          recaptchaToken,
-          humanVerificationToken: !recaptchaToken ? humanVerification.challenge?.token : undefined,
-          humanVerificationAnswer: !recaptchaToken ? humanVerification.answer.trim() : undefined,
+          verificationAction: 'form_submit',
+          humanVerificationToken: showHumanVerification ? humanVerification.challenge?.token : undefined,
+          humanVerificationAnswer: showHumanVerification ? humanVerification.answer.trim() : undefined,
         }),
       });
       if (!res.ok) {
@@ -92,8 +68,7 @@ export default function FormRenderer({ form }: { form: CmsForm }) {
       setDone(true);
     } catch (err) {
       if ((err instanceof Error ? err.message : '').toLowerCase().includes('security')) {
-        setShowHumanVerification(true);
-        void humanVerification.refresh();
+        void humanVerification.refresh(); // challenge is single-use — get a fresh one
       }
       setError(err instanceof Error ? err.message : 'Submission failed');
     } finally {

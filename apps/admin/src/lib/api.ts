@@ -1,5 +1,10 @@
 const API = process.env.API_URL || 'http://localhost:4000/api';
 
+export type HumanVerification = {
+  humanVerificationToken?: string;
+  humanVerificationAnswer?: string;
+};
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -61,11 +66,11 @@ async function authFetch(
 // Auth
 // ---------------------------------------------------------------------------
 
-export async function apiLogin(email: string, password: string, recaptchaToken?: string): Promise<AuthResult> {
+export async function apiLogin(email: string, password: string, verification?: HumanVerification): Promise<AuthResult> {
   const res = await fetch(`${API}/admin/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, recaptchaToken }),
+    body: JSON.stringify({ email, password, ...verification }),
   });
   return handleResponse<AuthResult>(res);
 }
@@ -87,11 +92,11 @@ export async function apiLogout(accessToken: string, refreshToken: string): Prom
   await handleResponse<void>(res);
 }
 
-export async function apiForgotPassword(email: string, recaptchaToken?: string): Promise<{ ok: boolean }> {
+export async function apiForgotPassword(email: string, verification?: HumanVerification): Promise<{ ok: boolean }> {
   const res = await fetch(`${API}/admin/auth/forgot-password`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, recaptchaToken }),
+    body: JSON.stringify({ email, ...verification }),
   });
   return handleResponse<{ ok: boolean }>(res);
 }

@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useState, type FormEvent } from 'react';
-import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
+import { useState, type FormEvent } from 'react';
 import { HumanVerificationField, useHumanVerification } from './HumanVerification';
 
 export type Field =
@@ -11,7 +10,6 @@ export type Field =
   | { name: string; label: string; type: 'file'; required?: boolean; optional?: boolean };
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
-const RECAPTCHA_CONFIGURED = !!process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
 
 export default function ContactForm({
   fields,
@@ -27,44 +25,22 @@ export default function ContactForm({
   action?: string;
   formSlug?: string;
 }) {
-  const { executeRecaptcha } = useGoogleReCaptcha();
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
   const [pending, setPending] = useState(false);
-  const [showHumanVerification, setShowHumanVerification] = useState(false);
+  const showHumanVerification = !!formSlug;
   const humanVerification = useHumanVerification(action, showHumanVerification);
-
-  useEffect(() => {
-    if (formSlug && (!RECAPTCHA_CONFIGURED || !executeRecaptcha)) {
-      setShowHumanVerification(true);
-    }
-  }, [executeRecaptcha, formSlug]);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError('');
     setPending(true);
 
-    let recaptchaToken: string | undefined;
-    if (formSlug && RECAPTCHA_CONFIGURED && executeRecaptcha && !showHumanVerification) {
-      try {
-        recaptchaToken = await executeRecaptcha(action);
-      } catch {
-        setShowHumanVerification(true);
-        setError('Please complete the verification question and submit again.');
+    if (formSlug) {
+      if (!humanVerification.challenge || !humanVerification.answer.trim()) {
+        setError('Please answer the verification question.');
         setPending(false);
         return;
-      }
-    }
-
-    if (formSlug) {
-      if (!recaptchaToken) {
-        setShowHumanVerification(true);
-        if (!humanVerification.challenge || !humanVerification.answer.trim()) {
-          setError('Please answer the verification question.');
-          setPending(false);
-          return;
-        }
       }
 
       const form = e.currentTarget;
@@ -79,10 +55,9 @@ export default function ContactForm({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             data,
-            recaptchaAction: action,
-            recaptchaToken,
-            humanVerificationToken: !recaptchaToken ? humanVerification.challenge?.token : undefined,
-            humanVerificationAnswer: !recaptchaToken ? humanVerification.answer.trim() : undefined,
+            verificationAction: action,
+            humanVerificationToken: humanVerification.challenge?.token,
+            humanVerificationAnswer: humanVerification.answer.trim(),
           }),
         });
         if (!res.ok) {
@@ -91,8 +66,7 @@ export default function ContactForm({
         }
       } catch (err) {
         if ((err instanceof Error ? err.message : '').toLowerCase().includes('security')) {
-          setShowHumanVerification(true);
-          void humanVerification.refresh();
+          void humanVerification.refresh(); // challenge is single-use — get a fresh one
           setError('Please answer the refreshed verification question and submit again.');
           setPending(false);
           return;
@@ -203,15 +177,6 @@ export default function ContactForm({
             </>
           ) : submitLabel}
         </button>
-        {RECAPTCHA_CONFIGURED && executeRecaptcha && (
-          <p className="text-xs text-muted mt-3 leading-relaxed">
-            Protected by reCAPTCHA.{' '}
-            <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">Privacy</a>
-            {' & '}
-            <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">Terms</a>
-            {' apply.'}
-          </p>
-        )}
       </div>
     </form>
   );
