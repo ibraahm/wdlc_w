@@ -1,5 +1,20 @@
 # WDLC Server Deployment Guide
 
+## TL;DR — one command
+
+```bash
+deploy/setup.sh
+```
+
+It prompts for your domain and `DATABASE_URL` where input is needed, then
+generates all env files (with strong auto-generated secrets), installs
+dependencies, runs migrations + optional seed, builds all four services for
+production, and smoke-tests the backend against the database. At the end it
+prints the pm2/nginx steps that remain. The rest of this guide is the detailed
+reference behind it.
+
+---
+
 This guide gets the four services talking to each other on a server. It exists
 because the apps ship with **no committed `.env` files** (they're gitignored),
 so a fresh clone falls back to `http://localhost:4000` everywhere — which is why

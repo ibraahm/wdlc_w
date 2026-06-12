@@ -56,11 +56,14 @@ ask DEPLOY_MODE "Deploy mode (domain/ip)" "domain"
 
 if [[ "$DEPLOY_MODE" == "domain" ]]; then
   SCHEME="${SCHEME:-https}"
-  ask BASE_DOMAIN "Base domain (apex)" "example.com"
+  ask BASE_DOMAIN "Base domain (apex)" "worlddirectlink.com"
   : "${PUBLIC_WEB_URL:=$SCHEME://$BASE_DOMAIN}"
   : "${PUBLIC_PORTAL_URL:=$SCHEME://portal.$BASE_DOMAIN}"
-  : "${PUBLIC_ADMIN_URL:=$SCHEME://admin.$BASE_DOMAIN}"
-  : "${PUBLIC_API_URL:=$SCHEME://api.$BASE_DOMAIN/api}"
+  : "${PUBLIC_ADMIN_URL:=$SCHEME://secure.$BASE_DOMAIN}"
+  # Default: same-origin /api proxied to the backend on the web domain — no
+  # api. subdomain and no CORS needed for the public site. Override with a full
+  # URL (e.g. https://api.example.com/api) if you prefer a dedicated API host.
+  : "${PUBLIC_API_URL:=/api}"
   warn "Derived subdomains (edit if your DNS differs):"
 elif [[ "$DEPLOY_MODE" == "ip" ]]; then
   SCHEME="${SCHEME:-http}"
