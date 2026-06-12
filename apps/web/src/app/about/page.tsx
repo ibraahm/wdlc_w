@@ -120,10 +120,10 @@ export default async function AboutPage() {
         <SectionHeading title="How money moves" />
         <p className="max-w-3xl text-lg text-gray-700 leading-relaxed mb-8">
           World Direct Link delivers funds through a vetted foreign correspondent
-          network led by Taaj Financial Services, enabling reliable delivery to
-          regions around the world — including areas where conventional banking is
-          limited. Our correspondents undergo annual due diligence and ongoing
-          risk-based monitoring to protect every transaction.
+          network, enabling reliable delivery to regions around the world —
+          including areas where conventional banking is limited. Our correspondents
+          undergo annual due diligence and ongoing risk-based monitoring to protect
+          every transaction.
         </p>
         <div className="max-w-2xl">
           <Steps

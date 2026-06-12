@@ -164,9 +164,9 @@ export default async function PartnersPage() {
           <div className="max-w-2xl">
             <SectionHeading title="Correspondent network" />
             <p className="text-lg text-gray-700 leading-relaxed">
-              Our lead correspondent, Taaj Financial Services, extends our reach to regions where
-              conventional banking is limited, including East Africa. All correspondents undergo
-              annual due diligence and ongoing risk-based monitoring.
+              World Direct Link works with a vetted network of correspondents, banks, and
+              technology providers. Every partner undergoes annual due diligence and ongoing
+              risk-based monitoring before and throughout the relationship.
             </p>
           </div>
         </Section>
