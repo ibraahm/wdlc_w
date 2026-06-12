@@ -1,95 +1,114 @@
 #!/usr/bin/env bash
 #
-# WDLC one-command production setup.
+# WDLC one-command production setup — friendly edition.
 #
 #   deploy/setup.sh
 #
-# Interactive: prompts for your domain/DB/secrets where input is needed, then
-#   1. preflight checks (node >= 20, npm, openssl)
-#   2. generates backend/.env + apps/*/.env.local   (deploy/generate-env.sh)
-#   3. installs dependencies (root workspaces + backend)
-#   4. prisma generate + migrate deploy + optional seed admin
-#   5. builds backend, web, portal, admin for production
-#   6. smoke-tests the backend (/api/health/ready — proves DB connectivity)
-#   7. prints the pm2 / nginx steps that remain
+# Walks you through everything in plain language:
+#   1. checks this server has what it needs
+#   2. asks a few questions and writes the config files
+#   3. downloads the app's building blocks (dependencies)
+#   4. prepares the database
+#   5. builds the four apps for production
+#   6. test-starts the backend to prove everything is wired up
+#   7. tells you exactly what's left to do
 #
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-say()  { printf '\n\033[1;36m== %s\033[0m\n' "$*"; }
+TOTAL=7
+step() { printf '\n\033[1;36m━━ Step %s of %s — %s\033[0m\n' "$1" "$TOTAL" "$2"; }
 ok()   { printf '\033[32m  ✔ %s\033[0m\n' "$*"; }
+note() { printf '\033[2m  %s\033[0m\n' "$*"; }
 warn() { printf '\033[33m  ! %s\033[0m\n' "$*"; }
-die()  { printf '\033[31m  ✘ %s\033[0m\n' "$*" >&2; exit 1; }
+die()  { printf '\n\033[31m  ✘ %s\033[0m\n' "$*" >&2; exit 1; }
 
 confirm() { # confirm "Question" -> 0 yes / 1 no
-  local reply; read -r -p "$1 [y/N]: " reply || true
+  local reply; read -r -p "  $1 [y/N]: " reply || true
   [[ "$reply" =~ ^[Yy] ]]
 }
 
+echo
+printf '\033[1;36m╔══════════════════════════════════════════════════════════╗\n'
+printf '║          WDLC production setup — welcome!                ║\n'
+printf '╚══════════════════════════════════════════════════════════╝\033[0m\n'
+note "This takes about 5-10 minutes. I'll do the heavy lifting and only"
+note "stop when I need an answer from you. You can safely re-run this"
+note "script any time — it picks up where things left off."
+
 # ── 1. Preflight ─────────────────────────────────────────────────────────────
-say "Preflight checks"
-command -v node >/dev/null || die "node not found — install Node.js >= 20"
-command -v npm  >/dev/null || die "npm not found"
-command -v openssl >/dev/null || die "openssl not found (needed to generate secrets)"
+step 1 "Checking this server has what it needs"
+command -v node >/dev/null || die "Node.js isn't installed. Install Node.js 20 or newer, then re-run me. (On Ubuntu: https://nodejs.org/en/download)"
+command -v npm  >/dev/null || die "npm isn't installed (it normally comes with Node.js)."
+command -v openssl >/dev/null || die "openssl isn't installed (needed to create security keys). On Ubuntu: sudo apt install openssl"
 NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]')"
-(( NODE_MAJOR >= 20 )) || die "Node $(node -v) found — this project requires >= 20"
-ok "node $(node -v), npm $(npm -v)"
+(( NODE_MAJOR >= 20 )) || die "Your Node.js is $(node -v), but version 20+ is required. Please upgrade Node.js and re-run."
+ok "Node.js $(node -v) and npm $(npm -v) — good to go"
 
 # ── 2. Environment files ─────────────────────────────────────────────────────
-say "Environment files"
+step 2 "Your settings (addresses, database, admin login)"
 ENV_FLAG=""
 if [[ -f backend/.env || -f apps/web/.env.local ]]; then
-  warn "Env files already exist."
-  if confirm "Regenerate them (overwrites, new secrets are generated)?"; then
+  warn "You already have configuration files from a previous run."
+  note "Keeping them is the safe choice. Recreating them generates brand-new"
+  note "security keys, which logs everyone out (fine before launch)."
+  if confirm "Recreate the configuration from scratch?"; then
     ENV_FLAG="--force"
   else
-    ok "Keeping existing env files."
+    ok "Keeping your existing configuration."
   fi
 fi
 if [[ ! -f backend/.env || -n "$ENV_FLAG" ]]; then
   bash deploy/generate-env.sh $ENV_FLAG
 fi
-[[ -f backend/.env ]] || die "backend/.env missing — env generation failed"
-ok "backend/.env, apps/{web,portal,admin}/.env.local in place"
+[[ -f backend/.env ]] || die "Configuration wasn't created — see the message above, then re-run me."
+ok "Configuration files are in place"
 
 # ── 3. Dependencies ──────────────────────────────────────────────────────────
-say "Installing dependencies"
+step 3 "Downloading the app's building blocks (this is the slow part)"
+note "Grabbing libraries from the internet — a few minutes on first run."
 npm install
 npm install --prefix backend
-ok "dependencies installed"
+ok "All dependencies installed"
 
 # ── 4. Database ──────────────────────────────────────────────────────────────
-say "Database (Prisma)"
+step 4 "Preparing the database"
+note "Creating/updating the tables the app needs. Your data is never deleted."
 ( cd backend
   npx prisma generate
   npx prisma migrate deploy
-) || die "Migration failed — check DATABASE_URL in backend/.env and that Postgres is reachable"
-ok "migrations applied"
+) || die "Couldn't reach or update the database. Double-check the database password/host you entered (stored in backend/.env), make sure PostgreSQL is running, then re-run me."
+ok "Database tables are ready"
 
-if confirm "Seed the admin user + default content now (safe to skip if already seeded)?"; then
-  ( cd backend && npm run db:seed ) || die "Seed failed"
-  ok "seeded — admin login is SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD from backend/.env"
-  warn "Change the seed admin password on first login."
+echo
+note "First time here? Say yes below to create your admin account and the"
+note "starter website content. Already did this before? Say no — it's done."
+if confirm "Create the admin account + starter content now?"; then
+  ( cd backend && npm run db:seed ) || die "Creating the starter data failed — scroll up for the reason, fix it, and re-run me."
+  ok "Done — log in with the admin email & password from Step 2"
+  warn "Change that password right after your first login."
 fi
 
 # ── 5. Production builds ─────────────────────────────────────────────────────
-say "Building for production (NEXT_PUBLIC_* values are baked in at this step)"
-npm run --prefix backend build           && ok "backend built"
-npm run --workspace=apps/web build       && ok "web built"
-npm run --workspace=apps/portal build    && ok "portal built"
-npm run --workspace=apps/admin build     && ok "admin built"
+step 5 "Building the four apps for production"
+note "Turning the source code into fast, optimized versions. ~2-5 minutes."
+npm run --prefix backend build           && ok "1/4 backend (the engine) built"
+npm run --workspace=apps/web build       && ok "2/4 public website built"
+npm run --workspace=apps/portal build    && ok "3/4 agent portal built"
+npm run --workspace=apps/admin build     && ok "4/4 admin panel built"
 
 # ── 6. Backend smoke test ────────────────────────────────────────────────────
-say "Smoke test: backend boot + DB readiness"
+step 6 "Test-starting the engine to prove everything is connected"
 PORT="$(grep -E '^PORT=' backend/.env | cut -d= -f2 | tr -d '\"' || true)"
 PORT="${PORT:-4000}"
 HEALTH="http://127.0.0.1:${PORT}/api/health/ready"
 
 if curl -fsS --max-time 3 "$HEALTH" >/dev/null 2>&1; then
-  ok "backend already running and ready on :$PORT"
+  ok "The backend is already running and talking to the database"
 else
+  note "Starting the backend briefly to verify it boots and reaches the database…"
   ( cd backend && NODE_ENV=production node dist/main.js >/tmp/wdlc-smoke.log 2>&1 & echo $! >/tmp/wdlc-smoke.pid )
   SMOKE_PID="$(cat /tmp/wdlc-smoke.pid)"
   READY=0
@@ -101,38 +120,42 @@ else
   kill "$SMOKE_PID" 2>/dev/null || true
   wait "$SMOKE_PID" 2>/dev/null || true
   if (( READY )); then
-    ok "backend boots in production mode and reaches the database"
+    ok "Backend starts cleanly and the database answers — you're wired up"
   else
-    warn "Backend failed the smoke test. Last log lines:"
+    warn "The backend didn't start. Here are its last words:"
     tail -15 /tmp/wdlc-smoke.log || true
-    die "Fix the above (usually DATABASE_URL or JWT secrets) and re-run."
+    die "Most often this is a wrong database password or host (in backend/.env). Fix it and re-run me — everything done so far is saved."
   fi
 fi
 
 # ── 7. What's left ───────────────────────────────────────────────────────────
-say "Setup complete — remaining manual steps"
+step 7 "You're nearly live — here's the short to-do list"
 cat <<'NEXT'
-  1) Run the four services under a process manager, e.g. pm2:
+
+  A) Keep the apps running permanently with pm2 (copy-paste these):
+
+       sudo npm install -g pm2
        pm2 start "npm run start:prod" --name wdlc-backend --cwd backend
        pm2 start "npm run start" --name wdlc-web    --cwd apps/web
        pm2 start "npm run start" --name wdlc-portal --cwd apps/portal
        pm2 start "npm run start" --name wdlc-admin  --cwd apps/admin
        pm2 save && pm2 startup
 
-  2) nginx (TLS) per subdomain  ->  local port:
-       web     -> 127.0.0.1:3000   (+ "location /api { proxy_pass http://127.0.0.1:4000; }"
-                                     if you chose the default same-origin /api)
-       portal  -> 127.0.0.1:3001
-       admin   -> 127.0.0.1:3002   (your secure.* subdomain — HTTPS is REQUIRED
-                                     or the admin login cookie is rejected)
-     Send X-Forwarded-For / X-Forwarded-Proto on every block.
+     (pm2 restarts everything automatically after a crash or reboot.)
 
-  3) Firewall: keep 3000-3002 and 4000 closed to the public internet —
-     only nginx talks to them on 127.0.0.1.
+  B) Point your web server (nginx) at the apps — each domain to its port:
 
-  4) Log in to the admin, change the seed password, then rotate/remove
-     SEED_ADMIN_* from backend/.env.
+       main website   -> 127.0.0.1:3000   (also forward /api to 127.0.0.1:4000)
+       portal.…       -> 127.0.0.1:3001
+       secure.…       -> 127.0.0.1:3002   (admin — MUST be https, or login
+                                           silently fails)
 
-  Full reference: deploy/DEPLOYMENT.md (proxy examples, hardening checklist,
-  troubleshooting map).
+     Copy-paste-ready nginx examples: deploy/DEPLOYMENT.md, section 6.
+
+  C) Firewall: only ports 80 and 443 should be open to the world.
+     Ports 3000-3002 and 4000 stay private (nginx reaches them locally).
+
+  D) Log in to the admin panel, change your password, and you're live!
+
+  Stuck? deploy/DEPLOYMENT.md has a "symptom -> fix" table at the bottom.
 NEXT

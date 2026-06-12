@@ -2,8 +2,8 @@
 #
 # Generate the real .env files for every WDLC app from deploy/env/*.template.
 #
-# It fills in your public URLs (or server IP), auto-generates strong distinct
-# secrets, and writes:
+# Friendly interactive prompts; every question shows a [default] you can accept
+# by just pressing ENTER. Writes:
 #   backend/.env            apps/web/.env.local
 #   apps/portal/.env.local  apps/admin/.env.local
 #
@@ -30,6 +30,7 @@ FORCE=0
 [[ "${1:-}" == "--force" ]] && FORCE=1
 
 say()  { printf '\033[36m%s\033[0m\n' "$*"; }
+note() { printf '\033[2m%s\033[0m\n' "$*"; }
 warn() { printf '\033[33m%s\033[0m\n' "$*"; }
 die()  { printf '\033[31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 
@@ -39,9 +40,30 @@ ask() { # ask VAR "Prompt" "default"
   local var="$1" prompt="$2" def="${3:-}" cur="${!1:-}"
   [[ -n "$cur" ]] && { printf -v "$var" '%s' "$cur"; return; }
   local reply=""
-  if [[ -n "$def" ]]; then read -r -p "$prompt [$def]: " reply || true; reply="${reply:-$def}"
-  else read -r -p "$prompt: " reply || true; fi
+  if [[ -n "$def" ]]; then read -r -p "  $prompt [$def]: " reply || true; reply="${reply:-$def}"
+  else read -r -p "  $prompt: " reply || true; fi
   printf -v "$var" '%s' "$reply"
+}
+
+ask_secret() { # ask_secret VAR "Prompt"  (input hidden while typing)
+  local var="$1" prompt="$2" cur="${!1:-}"
+  [[ -n "$cur" ]] && { printf -v "$var" '%s' "$cur"; return; }
+  local reply=""
+  read -r -s -p "  $prompt: " reply || true; echo
+  printf -v "$var" '%s' "$reply"
+}
+
+# Percent-encode characters that would break a connection URL (e.g. @ : / #).
+urlencode() {
+  local s="$1" out="" c i
+  for (( i=0; i<${#s}; i++ )); do
+    c="${s:$i:1}"
+    case "$c" in
+      [a-zA-Z0-9.~_-]) out+="$c" ;;
+      *) printf -v c '%%%02X' "'$c"; out+="$c" ;;
+    esac
+  done
+  printf '%s' "$out"
 }
 
 # Strip a URL down to its origin (scheme://host[:port]) for CORS.
@@ -49,57 +71,104 @@ origin() { sed -E 's#^(https?://[^/]+).*#\1#' <<<"$1"; }
 
 gen() { openssl rand -hex 32; }
 
-say "WDLC environment generator"
+echo
+say "════════════════════════════════════════════════════════════"
+say "  WDLC setup — let's connect your apps together"
+say "════════════════════════════════════════════════════════════"
+note "I'll ask a few questions. Whenever you see a value in [brackets],"
+note "just press ENTER to accept it. Nothing is sent anywhere — answers"
+note "only end up in config files on this server."
 echo
 
-ask DEPLOY_MODE "Deploy mode (domain/ip)" "domain"
+# ── Step A: how people will reach your sites ────────────────────────────────
+say "STEP A — Your website addresses"
+note "Do you have domain names pointed at this server (like worlddirectlink.com),"
+note "or are you testing with just the server's IP address for now?"
+ask DEPLOY_MODE "Type 'domain' or 'ip'" "domain"
+case "$DEPLOY_MODE" in 1|d|D) DEPLOY_MODE=domain ;; 2|i|I) DEPLOY_MODE=ip ;; esac
 
+# Suggestions are passed as [defaults] so you can still type something else;
+# pre-setting PUBLIC_*_URL in the environment skips the prompt entirely.
 if [[ "$DEPLOY_MODE" == "domain" ]]; then
   SCHEME="${SCHEME:-https}"
-  ask BASE_DOMAIN "Base domain (apex)" "worlddirectlink.com"
-  : "${PUBLIC_WEB_URL:=$SCHEME://$BASE_DOMAIN}"
-  : "${PUBLIC_PORTAL_URL:=$SCHEME://portal.$BASE_DOMAIN}"
-  : "${PUBLIC_ADMIN_URL:=$SCHEME://secure.$BASE_DOMAIN}"
+  ask BASE_DOMAIN "Your main domain" "worlddirectlink.com"
+  DEF_WEB="$SCHEME://$BASE_DOMAIN"
+  DEF_PORTAL="$SCHEME://portal.$BASE_DOMAIN"
+  DEF_ADMIN="$SCHEME://secure.$BASE_DOMAIN"
   # Default: same-origin /api proxied to the backend on the web domain — no
-  # api. subdomain and no CORS needed for the public site. Override with a full
-  # URL (e.g. https://api.example.com/api) if you prefer a dedicated API host.
-  : "${PUBLIC_API_URL:=/api}"
-  warn "Derived subdomains (edit if your DNS differs):"
+  # api. subdomain and no CORS needed for the public site.
+  DEF_API="/api"
+  echo
+  note "Based on that, I'll suggest an address for each app. Press ENTER to"
+  note "accept each one, or type a different address if yours differs."
 elif [[ "$DEPLOY_MODE" == "ip" ]]; then
   SCHEME="${SCHEME:-http}"
-  ask SERVER_IP "Server public IP" ""
-  [[ -n "$SERVER_IP" ]] || die "SERVER_IP is required in ip mode."
-  : "${PUBLIC_WEB_URL:=$SCHEME://$SERVER_IP:3000}"
-  : "${PUBLIC_PORTAL_URL:=$SCHEME://$SERVER_IP:3001}"
-  : "${PUBLIC_ADMIN_URL:=$SCHEME://$SERVER_IP:3002}"
-  : "${PUBLIC_API_URL:=$SCHEME://$SERVER_IP:4000/api}"
-  warn "IP mode uses plain HTTP and exposes port 4000 to the browser."
-  warn "The admin login cookie is 'secure' in production and needs HTTPS — use"
-  warn "domain mode + TLS before trusting the admin app on the public internet."
+  ask SERVER_IP "This server's public IP address" ""
+  [[ -n "$SERVER_IP" ]] || die "I need the server IP to continue."
+  DEF_WEB="$SCHEME://$SERVER_IP:3000"
+  DEF_PORTAL="$SCHEME://$SERVER_IP:3001"
+  DEF_ADMIN="$SCHEME://$SERVER_IP:3002"
+  DEF_API="$SCHEME://$SERVER_IP:4000/api"
+  warn "Heads-up: IP mode is fine for testing, but the admin login only fully"
+  warn "works over HTTPS — use domain mode with TLS before going live."
 else
-  die "DEPLOY_MODE must be 'domain' or 'ip'."
+  die "Please answer 'domain' or 'ip'."
 fi
 
-# Allow per-URL overrides / confirmation.
-ask PUBLIC_WEB_URL    "  Public web URL"     "$PUBLIC_WEB_URL"
-ask PUBLIC_PORTAL_URL "  Public portal URL"  "$PUBLIC_PORTAL_URL"
-ask PUBLIC_ADMIN_URL  "  Public admin URL"   "$PUBLIC_ADMIN_URL"
-ask PUBLIC_API_URL    "  Browser API base (absolute URL, or /api if proxied)" "$PUBLIC_API_URL"
+ask PUBLIC_WEB_URL    "Public website (visitors)" "$DEF_WEB"
+ask PUBLIC_PORTAL_URL "Agent portal"              "$DEF_PORTAL"
+ask PUBLIC_ADMIN_URL  "Admin panel"               "$DEF_ADMIN"
+ask PUBLIC_API_URL    "API address browsers use (keep /api unless you know otherwise)" "$DEF_API"
 
 INTERNAL_API_URL="${INTERNAL_API_URL:-http://127.0.0.1:4000/api}"
 
+# ── Step B: database ─────────────────────────────────────────────────────────
 echo
-ask DATABASE_URL "PostgreSQL DATABASE_URL" ""
-[[ -n "$DATABASE_URL" ]] || die "DATABASE_URL is required."
+say "STEP B — Your PostgreSQL database"
+if [[ -z "${DATABASE_URL:-}" ]]; then
+  note "If you have a full connection string (starts with postgresql://),"
+  note "paste it now. Otherwise just press ENTER and I'll build it with you."
+  ask DATABASE_URL "Connection string (or ENTER to answer step by step)" ""
+  if [[ -z "$DATABASE_URL" ]]; then
+    ask DB_HOST "Where does the database run? (usually this same server)" "localhost"
+    ask DB_PORT "Database port (PostgreSQL's standard is 5432)" "5432"
+    ask DB_NAME "Database name" "wdlc"
+    ask DB_USER "Database username" "postgres"
+    ask_secret DB_PASS "Database password (typing is hidden)"
+    [[ -n "$DB_PASS" ]] || warn "Empty password — okay only if Postgres allows it."
+    DATABASE_URL="postgresql://$(urlencode "$DB_USER"):$(urlencode "$DB_PASS")@${DB_HOST}:${DB_PORT}/${DB_NAME}?schema=public"
+    note "Built: postgresql://${DB_USER}:•••••@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+  fi
+fi
+[[ -n "$DATABASE_URL" ]] || die "I can't continue without database details."
 
+# ── Step C: bot protection (optional) ────────────────────────────────────────
 echo
-say "reCAPTCHA v3 (optional but recommended for admin/portal logins)"
-ask RECAPTCHA_SITE_KEY "  Public site key (blank = disabled)" "${RECAPTCHA_SITE_KEY:-}"
-ask RECAPTCHA_SECRET   "  Backend secret  (blank = disabled)" "${RECAPTCHA_SECRET:-}"
+say "STEP C — Bot protection for login forms (optional, can add later)"
+note "Google reCAPTCHA stops bots from hammering your admin/portal logins."
+note "Get free keys at https://www.google.com/recaptcha (choose v3)."
+note "No keys yet? Just press ENTER twice to skip — everything still works."
+ask RECAPTCHA_SITE_KEY "reCAPTCHA SITE key (ENTER to skip)" "${RECAPTCHA_SITE_KEY:-}"
+ask RECAPTCHA_SECRET   "reCAPTCHA SECRET key (ENTER to skip)" "${RECAPTCHA_SECRET:-}"
+if [[ -n "$RECAPTCHA_SITE_KEY" && -z "$RECAPTCHA_SECRET" ]] || [[ -z "$RECAPTCHA_SITE_KEY" && -n "$RECAPTCHA_SECRET" ]]; then
+  warn "You gave one reCAPTCHA key but not the other — both are needed."
+  warn "Continuing with reCAPTCHA disabled; add both keys later to enable it."
+  RECAPTCHA_SITE_KEY=""; RECAPTCHA_SECRET=""
+fi
 
+# ── Step D: your admin login ─────────────────────────────────────────────────
 echo
-ask SEED_ADMIN_EMAIL "Seed admin email" "info@worlddirectlink.com"
-: "${SEED_ADMIN_PASSWORD:=$(gen | cut -c1-20)!Aa1}"  # strong default if unset
+say "STEP D — Your first admin account (how YOU log in)"
+ask SEED_ADMIN_EMAIL "Admin email address" "info@worlddirectlink.com"
+if [[ -z "${SEED_ADMIN_PASSWORD:-}" ]]; then
+  note "Press ENTER and I'll generate a strong password for you (recommended),"
+  note "or type one yourself (12+ characters)."
+  ask_secret SEED_ADMIN_PASSWORD "Admin password (ENTER = generate one)"
+  if [[ -z "$SEED_ADMIN_PASSWORD" ]]; then
+    SEED_ADMIN_PASSWORD="$(gen | cut -c1-20)!Aa1"
+    GENERATED_PW=1
+  fi
+fi
 
 # CORS = the browser-facing app origins (web definitely calls cross-origin).
 CORS_ORIGIN="$(origin "$PUBLIC_WEB_URL"),$(origin "$PUBLIC_PORTAL_URL"),$(origin "$PUBLIC_ADMIN_URL")"
@@ -113,7 +182,7 @@ REVALIDATE_SECRET="$(gen)"
 
 render() { # render TEMPLATE DEST
   local tpl="$1" dest="$2"
-  [[ -f "$dest" && $FORCE -eq 0 ]] && die "$dest exists. Re-run with --force to overwrite."
+  [[ -f "$dest" && $FORCE -eq 0 ]] && die "$dest already exists. Re-run with --force to replace it."
   sed \
     -e "s|@@DATABASE_URL@@|${DATABASE_URL//|/\\|}|g" \
     -e "s|@@ADMIN_JWT_SECRET@@|${ADMIN_JWT_SECRET}|g" \
@@ -133,25 +202,30 @@ render() { # render TEMPLATE DEST
     -e "s|@@SEED_ADMIN_PASSWORD@@|${SEED_ADMIN_PASSWORD//|/\\|}|g" \
     "$tpl" > "$dest"
   chmod 600 "$dest"
-  say "  wrote $dest"
+  say "  ✔ wrote $dest"
 }
 
 echo
-say "Writing env files…"
+say "Writing configuration files (strong security keys are generated for you)…"
 render "$TPL/backend.env.template" "$ROOT/backend/.env"
 render "$TPL/web.env.template"     "$ROOT/apps/web/.env.local"
 render "$TPL/portal.env.template"  "$ROOT/apps/portal/.env.local"
 render "$TPL/admin.env.template"   "$ROOT/apps/admin/.env.local"
 
 echo
-say "Done. Summary:"
+say "════════════════════════════════════════════════════════════"
+say "  All set! Here's your summary — keep it somewhere safe"
+say "════════════════════════════════════════════════════════════"
 cat <<SUMMARY
-  Web    : $PUBLIC_WEB_URL      -> :3000
-  Portal : $PUBLIC_PORTAL_URL   -> :3001
-  Admin  : $PUBLIC_ADMIN_URL    -> :3002
-  API    : browser=$PUBLIC_API_URL  server=$INTERNAL_API_URL  -> :4000
-  CORS   : $CORS_ORIGIN
-  Seed admin login: $SEED_ADMIN_EMAIL / $SEED_ADMIN_PASSWORD
+  Public website : $PUBLIC_WEB_URL
+  Agent portal   : $PUBLIC_PORTAL_URL
+  Admin panel    : $PUBLIC_ADMIN_URL
+  Admin login    : $SEED_ADMIN_EMAIL
 SUMMARY
-warn "Save the seed admin password now and change it on first login."
-echo "Next: see deploy/DEPLOYMENT.md (migrate DB, build, run, reverse proxy)."
+if [[ -n "${GENERATED_PW:-}" ]]; then
+  printf '  Admin password : %s\n' "$SEED_ADMIN_PASSWORD"
+  warn "  ↑ WRITE THIS PASSWORD DOWN NOW — it is shown only this once."
+else
+  echo "  Admin password : (the one you typed)"
+fi
+warn "Change the admin password after your first login."
