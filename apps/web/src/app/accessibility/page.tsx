@@ -51,7 +51,7 @@ export default async function AccessibilityPage() {
                 <p>
                   Accessibility is an ongoing effort. Some content may not yet fully meet our target standard;
                   we continue to test and improve. Third-party components (such as embedded maps and the
-                  reCAPTCHA security check) may not be fully under our control.
+                  embedded map) may not be fully under our control.
                 </p>
 
                 <h2>Need help, or found a barrier?</h2>

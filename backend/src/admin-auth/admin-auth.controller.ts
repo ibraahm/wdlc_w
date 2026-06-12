@@ -16,7 +16,8 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser, AuthUser } from '../auth/decorators/current-user.decorator';
 import { AdminJwtAuthGuard } from './admin-jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
-import { RecaptchaService } from '../common/recaptcha.service';
+import { HumanVerificationService } from '../common/human-verification.service';
+import { ForbiddenException } from '@nestjs/common';
 
 // All routes use the admin JWT guard; RolesGuard enforces the @Roles() on
 // user-management endpoints (without it those decorators are inert).
@@ -25,7 +26,7 @@ import { RecaptchaService } from '../common/recaptcha.service';
 export class AdminAuthController {
   constructor(
     private auth: AdminAuthService,
-    private recaptcha: RecaptchaService,
+    private humanVerification: HumanVerificationService,
   ) {}
 
   // ── Public endpoints ──────────────────────────────────────────────────────
@@ -34,9 +35,10 @@ export class AdminAuthController {
   @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @Post('login')
   login(@Body() dto: AdminLoginDto, @Req() req: Request) {
-    // reCAPTCHA is intentionally skipped for the internal admin portal.
-    // The portal is not public-facing; rate limiting + account lockout are the
-    // relevant controls here.
+    // Defense in depth for the admin portal: rate limiting + account lockout
+    // + a server-signed human-verification challenge.
+    if (!this.humanVerification.verify(dto.humanVerificationToken, dto.humanVerificationAnswer, 'admin_login'))
+      throw new ForbiddenException('Security check failed. Please answer the verification question.');
     return this.auth.login(dto.email, dto.password, req.ip, req.headers['user-agent']);
   }
 
@@ -51,6 +53,8 @@ export class AdminAuthController {
   @Throttle({ default: { ttl: 300_000, limit: 3 } })
   @Post('forgot-password')
   forgotPassword(@Body() dto: AdminForgotPasswordDto) {
+    if (!this.humanVerification.verify(dto.humanVerificationToken, dto.humanVerificationAnswer, 'admin_forgot_password'))
+      throw new ForbiddenException('Security check failed. Please answer the verification question.');
     return this.auth.forgotPassword(dto.email);
   }
 

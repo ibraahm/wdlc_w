@@ -26,7 +26,11 @@ export class AgentSignupDto {
 
   @IsOptional()
   @IsString()
-  recaptchaToken?: string;
+  humanVerificationToken?: string;
+
+  @IsOptional()
+  @IsString()
+  humanVerificationAnswer?: string;
 }
 
 export class AgentLoginDto {
@@ -39,7 +43,11 @@ export class AgentLoginDto {
 
   @IsOptional()
   @IsString()
-  recaptchaToken?: string;
+  humanVerificationToken?: string;
+
+  @IsOptional()
+  @IsString()
+  humanVerificationAnswer?: string;
 }
 
 export class AgentRefreshDto {
@@ -53,7 +61,11 @@ export class AgentForgotPasswordDto {
 
   @IsOptional()
   @IsString()
-  recaptchaToken?: string;
+  humanVerificationToken?: string;
+
+  @IsOptional()
+  @IsString()
+  humanVerificationAnswer?: string;
 }
 
 export class AgentResetPasswordDto {

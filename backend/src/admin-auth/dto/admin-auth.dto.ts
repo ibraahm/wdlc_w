@@ -12,7 +12,11 @@ export class AdminLoginDto {
 
   @IsOptional()
   @IsString()
-  recaptchaToken?: string;
+  humanVerificationToken?: string;
+
+  @IsOptional()
+  @IsString()
+  humanVerificationAnswer?: string;
 }
 
 export class AdminCreateUserDto {
@@ -48,7 +52,11 @@ export class AdminForgotPasswordDto {
 
   @IsOptional()
   @IsString()
-  recaptchaToken?: string;
+  humanVerificationToken?: string;
+
+  @IsOptional()
+  @IsString()
+  humanVerificationAnswer?: string;
 }
 
 export class AdminResetPasswordDto {

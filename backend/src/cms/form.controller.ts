@@ -16,7 +16,6 @@ import { AdminJwtAuthGuard } from '../admin-auth/admin-jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { FormService } from './form.service';
 import { CreateFormDto, UpdateFormDto, SubmitFormDto } from './dto/form.dto';
-import { RecaptchaService } from '../common/recaptcha.service';
 import { HumanVerificationService } from '../common/human-verification.service';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -29,7 +28,6 @@ export class FormController {
 
   constructor(
     private forms: FormService,
-    private recaptcha: RecaptchaService,
     private humanVerification: HumanVerificationService,
   ) {}
 
@@ -86,23 +84,18 @@ export class FormController {
   @Public()
   @Post(':slug/submit')
   async submit(@Param('slug') slug: string, @Body() dto: SubmitFormDto, @Req() req: Request) {
+    // `recaptcha` is the form's legacy "verification required" flag in the CMS.
     const form = await this.forms.getPublic(slug) as { recaptcha?: boolean };
-    const action = dto.recaptchaAction || 'form_submit';
+    const action = dto.verificationAction || 'form_submit';
     if (process.env.NODE_ENV !== 'production') {
       this.logger.log(
-        `form submit received: slug=${slug} action=${action} recaptchaTokenPresent=${!!dto.recaptchaToken} humanTokenPresent=${!!dto.humanVerificationToken}`,
+        `form submit received: slug=${slug} action=${action} humanTokenPresent=${!!dto.humanVerificationToken}`,
       );
     }
 
     if (form.recaptcha !== false) {
-      const recaptchaOk = dto.recaptchaToken
-        ? await this.recaptcha.verify(dto.recaptchaToken, action)
-        : false;
-      const fallbackOk = recaptchaOk
-        ? false
-        : this.humanVerification.verify(dto.humanVerificationToken, dto.humanVerificationAnswer, action);
-
-      if (!recaptchaOk && !fallbackOk) {
+      const ok = this.humanVerification.verify(dto.humanVerificationToken, dto.humanVerificationAnswer, action);
+      if (!ok) {
         throw new BadRequestException('Security check failed. Please try again.');
       }
     }

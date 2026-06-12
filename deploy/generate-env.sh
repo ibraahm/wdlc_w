@@ -19,7 +19,6 @@
 #   DATABASE_URL  postgresql://user:pass@host:5432/wdlc?schema=public
 #   PUBLIC_WEB_URL / PUBLIC_PORTAL_URL / PUBLIC_ADMIN_URL / PUBLIC_API_URL
 #   INTERNAL_API_URL   (default http://127.0.0.1:4000/api)
-#   RECAPTCHA_SITE_KEY / RECAPTCHA_SECRET
 #   SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD
 #
 set -euo pipefail
@@ -142,23 +141,9 @@ if [[ -z "${DATABASE_URL:-}" ]]; then
 fi
 [[ -n "$DATABASE_URL" ]] || die "I can't continue without database details."
 
-# ── Step C: bot protection (optional) ────────────────────────────────────────
+# ── Step C: your admin login ─────────────────────────────────────────────────
 echo
-say "STEP C — Bot protection for login forms (optional, can add later)"
-note "Google reCAPTCHA stops bots from hammering your admin/portal logins."
-note "Get free keys at https://www.google.com/recaptcha (choose v3)."
-note "No keys yet? Just press ENTER twice to skip — everything still works."
-ask RECAPTCHA_SITE_KEY "reCAPTCHA SITE key (ENTER to skip)" "${RECAPTCHA_SITE_KEY:-}"
-ask RECAPTCHA_SECRET   "reCAPTCHA SECRET key (ENTER to skip)" "${RECAPTCHA_SECRET:-}"
-if [[ -n "$RECAPTCHA_SITE_KEY" && -z "$RECAPTCHA_SECRET" ]] || [[ -z "$RECAPTCHA_SITE_KEY" && -n "$RECAPTCHA_SECRET" ]]; then
-  warn "You gave one reCAPTCHA key but not the other — both are needed."
-  warn "Continuing with reCAPTCHA disabled; add both keys later to enable it."
-  RECAPTCHA_SITE_KEY=""; RECAPTCHA_SECRET=""
-fi
-
-# ── Step D: your admin login ─────────────────────────────────────────────────
-echo
-say "STEP D — Your first admin account (how YOU log in)"
+say "STEP C — Your first admin account (how YOU log in)"
 ask SEED_ADMIN_EMAIL "Admin email address" "info@worlddirectlink.com"
 if [[ -z "${SEED_ADMIN_PASSWORD:-}" ]]; then
   note "Press ENTER and I'll generate a strong password for you (recommended),"
@@ -196,8 +181,6 @@ render() { # render TEMPLATE DEST
     -e "s|@@PUBLIC_WEB_URL@@|${PUBLIC_WEB_URL//|/\\|}|g" \
     -e "s|@@PUBLIC_PORTAL_URL@@|${PUBLIC_PORTAL_URL//|/\\|}|g" \
     -e "s|@@PUBLIC_ADMIN_URL@@|${PUBLIC_ADMIN_URL//|/\\|}|g" \
-    -e "s|@@RECAPTCHA_SITE_KEY@@|${RECAPTCHA_SITE_KEY:-}|g" \
-    -e "s|@@RECAPTCHA_SECRET@@|${RECAPTCHA_SECRET:-}|g" \
     -e "s|@@SEED_ADMIN_EMAIL@@|${SEED_ADMIN_EMAIL}|g" \
     -e "s|@@SEED_ADMIN_PASSWORD@@|${SEED_ADMIN_PASSWORD//|/\\|}|g" \
     "$tpl" > "$dest"

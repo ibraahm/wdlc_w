@@ -166,11 +166,7 @@ function pageHtml() {
  <div><label>Username</label><input name="dbuser" value="postgres"></div></div>
  <label>Password</label><input name="dbpass" type="password">
 
- <h2>3 — Bot protection (optional — leave empty to skip)</h2>
- <div class="row"><div><label>reCAPTCHA site key</label><input name="rcsite"></div>
- <div><label>reCAPTCHA secret</label><input name="rcsecret"></div></div>
-
- <h2>4 — Your admin account</h2>
+ <h2>3 — Your admin account</h2>
  <label>Email</label><input name="adminemail" value="info@worlddirectlink.com">
  <label>Password (leave empty = generate a strong one)</label><input name="adminpass" type="password">
 
@@ -217,7 +213,6 @@ async function install(form, res) {
     INTERNAL_API_URL: 'http://127.0.0.1:4000/api',
     PUBLIC_API_URL: '/api',
     PUBLIC_WEB_URL: web, PUBLIC_PORTAL_URL: portal, PUBLIC_ADMIN_URL: admin,
-    RECAPTCHA_SITE_KEY: get('rcsite'), RECAPTCHA_SECRET: get('rcsecret'),
     SEED_ADMIN_EMAIL: get('adminemail', 'info@worlddirectlink.com'),
     SEED_ADMIN_PASSWORD: adminPass,
   };

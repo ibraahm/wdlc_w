@@ -33,8 +33,7 @@ export class UpdateFormDto {
 
 export class SubmitFormDto {
   @IsObject() data: Record<string, unknown>;
-  @IsOptional() @IsString() @MaxLength(120) recaptchaAction?: string;
-  @IsOptional() @IsString() @MaxLength(3000) recaptchaToken?: string;
+  @IsOptional() @IsString() @MaxLength(120) verificationAction?: string;
   @IsOptional() @IsString() @MaxLength(3000) humanVerificationToken?: string;
   @IsOptional() @IsString() @MaxLength(40) humanVerificationAnswer?: string;
 }

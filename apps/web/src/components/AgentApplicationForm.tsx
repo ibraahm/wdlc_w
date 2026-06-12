@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useRef, useEffect, type FormEvent } from 'react';
-import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 
 interface NominatimResult {
   display_name: string;
@@ -400,14 +399,11 @@ export default function AgentApplicationForm({
   const [pending, setPending] = useState(false);
   const [zipLookupLoading, setZipLookupLoading] = useState(false);
   const [zipLookupMessage, setZipLookupMessage] = useState('');
-  const { executeRecaptcha } = useGoogleReCaptcha();
-  const publicSiteKeyConfigured = !!process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY;
-  const needsHumanVerification = !publicSiteKeyConfigured || !executeRecaptcha;
   const [humanChallenge, setHumanChallenge] = useState<HumanVerificationChallenge | null>(null);
   const [humanAnswer, setHumanAnswer] = useState('');
   const [humanLoading, setHumanLoading] = useState(false);
   const [humanError, setHumanError] = useState('');
-  const showHumanVerification = needsHumanVerification || !!humanChallenge;
+  const showHumanVerification = true;
 
   const isBusiness = applicantType === 'BUSINESS';
 
@@ -511,10 +507,10 @@ export default function AgentApplicationForm({
       howFoundOther, comments, signatureName, signatureTitle, signatureConsent]);
 
   useEffect(() => {
-    if (step !== 4 || !needsHumanVerification || humanChallenge || humanLoading) return;
+    if (step !== 4 || humanChallenge || humanLoading) return;
     void loadHumanChallenge();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step, needsHumanVerification, humanChallenge, humanLoading]);
+  }, [step, humanChallenge, humanLoading]);
 
   useEffect(() => {
     if (currentlyProvides !== false) return;
@@ -649,41 +645,12 @@ export default function AgentApplicationForm({
     setError('');
     setPending(true);
 
-    let recaptchaToken: string | undefined;
-    const humanFallbackReady = !!humanChallenge && !!humanAnswer.trim();
+    const humanReady = !!humanChallenge && !!humanAnswer.trim();
     if (process.env.NODE_ENV !== 'production') {
-      console.info('[agent-application] submit:start', {
-        applicantType,
-        hasExecuteRecaptcha: !!executeRecaptcha,
-        publicSiteKeyConfigured,
-        humanFallbackReady,
-      });
+      console.info('[agent-application] submit:start', { applicantType, humanReady });
     }
-    if (executeRecaptcha && publicSiteKeyConfigured && !humanFallbackReady) {
-      try {
-        recaptchaToken = await executeRecaptcha('agent_application');
-        if (process.env.NODE_ENV !== 'production') {
-          console.info('[agent-application] recaptcha:ok', {
-            tokenPresent: !!recaptchaToken,
-            tokenLength: recaptchaToken?.length ?? 0,
-          });
-        }
-      } catch (err) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.error('[agent-application] recaptcha:execute failed', {
-            message: err instanceof Error ? err.message : String(err),
-          });
-        }
-        if (!humanChallenge) {
-          await loadHumanChallenge();
-        }
-        setError('Please answer the verification question and submit again.');
-        setPending(false);
-        return;
-      }
-    }
-
-    if (!recaptchaToken && showHumanVerification && !humanFallbackReady) {
+    if (!humanReady) {
+      if (!humanChallenge) void loadHumanChallenge();
       setError('Please answer the verification question.');
       setPending(false);
       return;
@@ -722,16 +689,14 @@ export default function AgentApplicationForm({
       signatureConsent,
       signatureConsentText: ESIGN_CONSENT_TEXT,
       signatureClientTimestamp: new Date().toISOString(),
-      recaptchaToken,
-      humanVerificationToken: !recaptchaToken ? humanChallenge?.token : undefined,
-      humanVerificationAnswer: !recaptchaToken ? humanAnswer.trim() : undefined,
+      humanVerificationToken: humanChallenge?.token,
+      humanVerificationAnswer: humanAnswer.trim(),
     };
 
     try {
       if (process.env.NODE_ENV !== 'production') {
         console.info('[agent-application] api:request', {
-          tokenPresent: !!payload.recaptchaToken,
-          humanFallbackPresent: !!payload.humanVerificationToken,
+          humanTokenPresent: !!payload.humanVerificationToken,
           product: payload.productsOffered,
         });
       }
@@ -749,7 +714,12 @@ export default function AgentApplicationForm({
         });
       }
       if (!res.ok) {
-        setError(data.error || 'Submission failed. Please review the form and try again.');
+        const message: string = data.error || data.message || 'Submission failed. Please review the form and try again.';
+        if (res.status === 403 || message.toLowerCase().includes('security')) {
+          // Challenges are single-use — fetch a fresh question for the retry.
+          void loadHumanChallenge();
+        }
+        setError(message);
         setPending(false);
         return;
       }

@@ -172,9 +172,9 @@ You asked for the admin to be locked down. Beyond the strong generated secrets:
 - [ ] **Restrict who can reach `admin.example.com`** — it's the most sensitive
       surface. Put it behind a VPN, an IP allowlist, or proxy-level auth (e.g.
       nginx `allow`/`deny` or HTTP basic auth) in addition to the app login.
-- [ ] **Enable reCAPTCHA on the admin login** — set `NEXT_PUBLIC_RECAPTCHA_SITE_KEY`
-      (admin) **and** `RECAPTCHA_SECRET` (backend) together. Backend verification
-      fails closed in production when the secret is set.
+- [ ] **Bot protection is built in** — every login and public form requires a
+      server-signed math challenge (single-use, rate-limited, minimum solve
+      time). No third-party keys needed.
 - [ ] **Change the seed admin password on first login**, then remove/rotate
       `SEED_ADMIN_*` from `backend/.env`.
 - [ ] **Don't expose backend port 4000 publicly** — firewall it; the proxy and
