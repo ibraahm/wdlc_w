@@ -104,6 +104,42 @@ async function main() {
     ]});
   });
 
+  // ── Footer link columns (column = the bold heading on the public footer) ───
+  // Seeded once: after first run, admin edits/additions are preserved.
+  await seedOnce('nav.footer.v1', async () => {
+    await prisma.navItem.deleteMany({ where: { location: 'FOOTER' } });
+    let order = 0;
+    const f = (label: string, href: string, column: string) =>
+      ({ label, href, location: 'FOOTER', column, order: order++ });
+    await prisma.navItem.createMany({ data: [
+      f('About Us', '/about', 'World Direct Link'),
+      f('Licenses & Regulatory Disclosures', '/licenses', 'World Direct Link'),
+      f('Contact Us', '/support/contact', 'World Direct Link'),
+
+      f('Services Overview', '/services', 'Services'),
+      f('Send Money', '/services/send-money', 'Services'),
+      f('Cash Pickup', '/services/cash-pickup', 'Services'),
+      f('Bank Deposit', '/services/bank-deposit', 'Services'),
+      f('Mobile Wallet Payout', '/services/mobile-wallet', 'Services'),
+      f('Track Transfer', '/services/track', 'Services'),
+
+      f('Become an Agent', '/agents/become-an-agent', 'Agents & Partners'),
+      f('Agent Resources', '/agents/resources', 'Agents & Partners'),
+      f('Partners', '/agents/partners', 'Agents & Partners'),
+
+      f('Compliance Overview', '/compliance', 'Compliance'),
+      f('Fraud & Consumer Scams', '/compliance/fraud', 'Compliance'),
+      f('Report or File a Complaint', '/compliance/report', 'Compliance'),
+      f('Agent Regulatory Notices', '/compliance/notices', 'Compliance'),
+      f('Law Enforcement Requests', '/compliance/law-enforcement', 'Compliance'),
+      f('Compliance Resources', '/compliance/resources', 'Compliance'),
+
+      f('Help Center', '/support/help', 'Support'),
+      f('Contact Us', '/support/contact', 'Support'),
+      f('Report or File a Complaint', '/compliance/report', 'Support'),
+    ]});
+  });
+
   // ── All frontend pages ────────────────────────────────────────────────────
   const pages = [
     { slug: 'home',                      title: 'Home',                                  description: 'Fast, affordable, and reliable money transfers for immigrant, refugee, and diaspora families.' },

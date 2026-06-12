@@ -34,6 +34,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     heading: 'Administration',
     items: [
+      { href: '/navigation', label: 'Navigation', description: 'Header, utility, and footer menus' },
       { href: '/settings', label: 'Settings', description: 'Site settings and operational defaults' },
       { href: '/users', label: 'Users', description: 'Admin users and access state' },
     ],

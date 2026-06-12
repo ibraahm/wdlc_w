@@ -1,8 +1,11 @@
 import Link from 'next/link';
 import { footerNav, company } from '@/lib/site';
+import { getCmsFooterNav } from '@/lib/cms';
 
-export default function Footer() {
+export default async function Footer() {
   const year = new Date().getFullYear();
+  // CMS-managed footer columns when present; otherwise the static defaults.
+  const columns = (await getCmsFooterNav()) ?? footerNav;
 
   return (
     <footer className="footer">
@@ -21,12 +24,12 @@ export default function Footer() {
             </p>
           </div>
 
-          {footerNav.map((col) => (
+          {columns.map((col) => (
             <nav key={col.title}>
               <span className="footer-col-label">{col.title}</span>
               <div className="footer-links">
                 {col.links.map((link) => (
-                  <Link key={link.href} href={link.href}>{link.label}</Link>
+                  <Link key={`${col.title}-${link.href}-${link.label}`} href={link.href}>{link.label}</Link>
                 ))}
               </div>
             </nav>

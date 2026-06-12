@@ -731,3 +731,57 @@ export async function apiDeleteNewsPost(accessToken: string, id: string): Promis
   const res = await authFetch(`/cms/news/${id}`, accessToken, { method: 'DELETE' });
   return handleResponse<{ ok: boolean }>(res);
 }
+
+// ---------------------------------------------------------------------------
+// Navigation menus (header / utility bar / footer)
+// ---------------------------------------------------------------------------
+
+export type NavLocation = 'HEADER' | 'UTILITY' | 'FOOTER';
+
+export interface NavItem {
+  id: string;
+  label: string;
+  href: string;
+  location: string;
+  column: string | null;
+  order: number;
+  visible: boolean;
+  parentId: string | null;
+  children?: NavItem[];
+}
+
+export interface NavItemInput {
+  label: string;
+  href: string;
+  location?: string;
+  column?: string | null;
+  order?: number;
+  visible?: boolean;
+  parentId?: string | null;
+}
+
+export async function apiListNav(accessToken: string, location?: string): Promise<NavItem[]> {
+  const q = location ? `?location=${encodeURIComponent(location)}` : '';
+  const res = await authFetch(`/cms/nav/admin${q}`, accessToken);
+  return handleResponse<NavItem[]>(res);
+}
+
+export async function apiCreateNavItem(accessToken: string, data: NavItemInput): Promise<NavItem> {
+  const res = await authFetch('/cms/nav', accessToken, { method: 'POST', body: JSON.stringify(data) });
+  return handleResponse<NavItem>(res);
+}
+
+export async function apiUpdateNavItem(accessToken: string, id: string, data: Partial<NavItemInput>): Promise<NavItem> {
+  const res = await authFetch(`/cms/nav/${id}`, accessToken, { method: 'PATCH', body: JSON.stringify(data) });
+  return handleResponse<NavItem>(res);
+}
+
+export async function apiDeleteNavItem(accessToken: string, id: string): Promise<void> {
+  const res = await authFetch(`/cms/nav/${id}`, accessToken, { method: 'DELETE' });
+  await handleResponse<void>(res);
+}
+
+export async function apiReorderNav(accessToken: string, items: { id: string; order: number }[]): Promise<void> {
+  const res = await authFetch('/cms/nav/reorder', accessToken, { method: 'PATCH', body: JSON.stringify({ items }) });
+  await handleResponse<void>(res);
+}
