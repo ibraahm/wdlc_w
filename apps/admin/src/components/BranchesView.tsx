@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { AgentBranch, BranchUser } from '@/lib/api';
-import { resendBranchUserSetupAction } from '@/lib/actions';
+import { resendBranchUserSetupAction, verifyBranchUserAction } from '@/lib/actions';
 
 const STAGE_COLOR: Record<string, string> = {
   ACTIVE: 'bg-green-100 text-green-700',
@@ -27,6 +27,15 @@ function UserChip({ u }: { u: BranchUser }) {
     start(async () => {
       const res = await resendBranchUserSetupAction(u.id);
       setMsg(res.ok ? 'Setup email sent ✓' : res.error ?? 'Failed');
+      if (res.ok) router.refresh();
+    });
+  }
+
+  function verify() {
+    setMsg('');
+    start(async () => {
+      const res = await verifyBranchUserAction(u.id);
+      setMsg(res.ok ? 'Verified & activated ✓' : res.error ?? 'Failed');
       if (res.ok) router.refresh();
     });
   }
@@ -59,6 +68,17 @@ function UserChip({ u }: { u: BranchUser }) {
         >
           {pending ? 'Sending…' : notSetUp ? 'Resend setup email' : 'Resend access email'}
         </button>
+        {notSetUp && (
+          <button
+            type="button"
+            onClick={verify}
+            disabled={pending}
+            title="Mark this user's email verified and account active (lets them sign in now)"
+            className="rounded-md border border-green-300 px-2 py-1 text-[11px] font-semibold text-green-700 hover:bg-green-50 disabled:opacity-50"
+          >
+            Verify &amp; activate
+          </button>
+        )}
         {msg && <span className={`text-[11px] ${msg.includes('✓') ? 'text-green-600' : 'text-red-600'}`}>{msg}</span>}
       </div>
     </div>

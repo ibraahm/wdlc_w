@@ -43,6 +43,11 @@ export class DDAdminController {
     return this.dd.resendPortalSetup(userId, adminId);
   }
 
+  @Post('users/:userId/verify')
+  verifyUser(@Param('userId') userId: string, @CurrentUser('id') adminId: string) {
+    return this.dd.verifyPortalUser(userId, adminId);
+  }
+
   @Post()
   create(@Body() dto: CreateDDFileDto, @CurrentUser('id') adminId: string) {
     return this.dd.createFile(dto, adminId);

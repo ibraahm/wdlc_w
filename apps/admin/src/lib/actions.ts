@@ -31,6 +31,7 @@ import {
   apiSetDDBranchCode,
   apiUpdateTellerApplication,
   apiResendBranchUserSetup,
+  apiVerifyBranchUser,
   apiSetSubmissionStatus,
   apiAddSubmissionNote,
   apiReplySubmission,
@@ -634,5 +635,17 @@ export async function resendBranchUserSetupAction(userId: string): Promise<{ ok:
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Resend failed' };
+  }
+}
+
+export async function verifyBranchUserAction(userId: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiVerifyBranchUser(session.accessToken, userId);
+    revalidatePath('/branches');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Verify failed' };
   }
 }
