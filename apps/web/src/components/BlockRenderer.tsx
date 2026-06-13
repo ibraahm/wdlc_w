@@ -1,6 +1,7 @@
 import sanitizeHtml from 'sanitize-html';
 import { PageHero, Section, Callout, CtaBand, ButtonOnDark, ButtonPrimary } from '@/components/ui';
 import NetworkMap from '@/components/NetworkMap';
+import RemittanceFact from '@/components/RemittanceFact';
 import { getCmsNetworkCountries } from '@/lib/cms';
 
 const HEADING_ALLOW: sanitizeHtml.IOptions = {
@@ -305,7 +306,7 @@ function HomeAboutBlock({ props }: { props: Record<string, unknown> }) {
           {!!str(props.buttonText) && <a className="wdl-btn wdl-btn-outline" href={str(props.buttonHref, '#')}>{str(props.buttonText)} &rarr;</a>}
         </div>
         <div className="wdl-about-image">
-          {image ? <img src={image} alt={str(props.label, 'About')} /> : <div className="wdl-about-image-ph" />}
+          {image ? <img src={image} alt={str(props.label, 'About')} /> : <RemittanceFact />}
         </div>
       </div>
     </section>
