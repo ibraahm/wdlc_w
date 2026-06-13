@@ -115,7 +115,10 @@ export class DDService {
         entityType,
         states,
         regionalOffice: dto.regionalOffice ?? null,
-        stage: 'DD_IN_PROGRESS',
+        // Step 2 (DD) is only reachable once step 1 (the application) is in hand.
+        // Files opened from an application begin collecting documents; files
+        // created manually start at the application step and must progress.
+        stage: dto.applicationId ? 'DD_IN_PROGRESS' : 'APPLICATION',
         documents: {
           create: DD_CATALOG.map((item) => {
             const applicable = !(item.businessOnly && entityType === 'INDIVIDUAL');
@@ -292,12 +295,46 @@ export class DDService {
   }
 
   // ── File-level mutations ────────────────────────────────────────────────────
+  // The onboarding pipeline is strictly ordered: a file cannot reach a later
+  // step without completing the earlier ones (you can't get to step 2 — DD — or
+  // beyond without going through the application/review step first). Backward
+  // moves, suspension, and termination remain available.
+  private assertStageTransition(from: string, to: string) {
+    if (from === to) return;
+    const PIPELINE = ['APPLICATION', 'UNDER_REVIEW', 'DD_IN_PROGRESS', 'ACTIVE'];
+
+    if (to === 'TERMINATED') return; // a file can always be offboarded
+    if (from === 'TERMINATED') {
+      throw new BadRequestException('A terminated file cannot be reopened — create a new file');
+    }
+    if (to === 'SUSPENDED') {
+      if (from === 'DD_IN_PROGRESS' || from === 'ACTIVE') return;
+      throw new BadRequestException('Only a file in due diligence or active can be suspended');
+    }
+    if (from === 'SUSPENDED') {
+      if (to === 'ACTIVE' || to === 'DD_IN_PROGRESS') return;
+      throw new BadRequestException('A suspended file can only resume to due diligence or active');
+    }
+
+    const fi = PIPELINE.indexOf(from);
+    const ti = PIPELINE.indexOf(to);
+    if (fi === -1 || ti === -1) throw new BadRequestException('Invalid stage transition');
+    if (ti > fi + 1) {
+      throw new BadRequestException(
+        `Cannot skip ahead to ${to} — complete the ${PIPELINE[fi + 1]} step first`,
+      );
+    }
+    // backward moves (ti < fi) and a single step forward (ti === fi + 1) are allowed
+  }
+
   async setStage(id: string, dto: SetStageDto, adminId: string) {
     const file = await this.prisma.agentDDFile.findUnique({
       where: { id },
       include: { documents: true },
     });
     if (!file) throw new NotFoundException('DD file not found');
+
+    this.assertStageTransition(file.stage, dto.stage);
 
     if (dto.stage === 'ACTIVE') {
       const blockers = this.getActivationBlockers(file);

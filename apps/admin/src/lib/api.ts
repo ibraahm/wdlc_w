@@ -15,6 +15,7 @@ export type AdminUser = {
   name: string;
   role: string;
   active?: boolean;
+  mustChangePassword?: boolean;
 };
 
 export type AuthResult = {

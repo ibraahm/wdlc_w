@@ -34,7 +34,7 @@ import {
   apiReorderNav,
 } from './api';
 import type { Partner, NetworkCountry, NavItemInput } from './api';
-import { getSession, setSessionCookies, clearSessionCookies } from './auth';
+import { getSession, setSessionCookies, clearSessionCookies, clearMustChangePassword } from './auth';
 
 // ---------------------------------------------------------------------------
 // Auth actions
@@ -106,9 +106,15 @@ export async function changePasswordAction(formData: FormData): Promise<{ ok: bo
 
   const currentPassword = formData.get('currentPassword') as string;
   const newPassword = formData.get('newPassword') as string;
+  if (!currentPassword || !newPassword) return { ok: false, error: 'Both fields are required' };
+  if (newPassword.length < 12) return { ok: false, error: 'New password must be at least 12 characters' };
+  if (newPassword === currentPassword) return { ok: false, error: 'New password must be different' };
 
   try {
     await apiChangePassword(session.accessToken, currentPassword, newPassword);
+    // Clear the "must change password" flag in the session cookie so the
+    // forced-change redirect stops immediately.
+    await clearMustChangePassword();
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Change password failed' };

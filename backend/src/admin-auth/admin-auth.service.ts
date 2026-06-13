@@ -25,11 +25,12 @@ import { AdminCreateUserDto } from './dto/admin-auth.dto';
 
 const OWNER_KEY = 'adminId';
 const adminSecret = () => process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET;
-const publicUser = (u: { id: string; email: string; name: string; role: string }) => ({
+const publicUser = (u: { id: string; email: string; name: string; role: string; mustChangePassword?: boolean }) => ({
   id: u.id,
   email: u.email,
   name: u.name,
   role: u.role,
+  mustChangePassword: !!u.mustChangePassword,
 });
 
 @Injectable()
@@ -147,7 +148,7 @@ export class AdminAuthService {
       throw new BadRequestException('Current password is incorrect');
     }
     const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
-    await this.prisma.adminUser.update({ where: { id: adminId }, data: { passwordHash } });
+    await this.prisma.adminUser.update({ where: { id: adminId }, data: { passwordHash, mustChangePassword: false } });
     await this.tokens.revokeAll(this.rtDelegate, OWNER_KEY, adminId);
     await this.audit.log({ action: 'admin.password_change', adminId });
     return { ok: true };
@@ -160,7 +161,8 @@ export class AdminAuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
     const user = await this.prisma.adminUser.create({
-      data: { email: dto.email, name: dto.name, passwordHash, role: dto.role ?? 'EDITOR' },
+      // Password was set by another admin — require the user to change it on first login.
+      data: { email: dto.email, name: dto.name, passwordHash, role: dto.role ?? 'EDITOR', mustChangePassword: true },
     });
     await this.audit.log({
       action: 'admin.user.create',

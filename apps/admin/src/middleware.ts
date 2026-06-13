@@ -3,11 +3,22 @@ import { NextRequest, NextResponse } from 'next/server';
 const API = process.env.API_URL || 'http://localhost:4000/api';
 const IS_PROD = process.env.NODE_ENV === 'production';
 
-const PROTECTED_PREFIXES = ['/dashboard', '/settings', '/users', '/partners', '/network', '/agents', '/applications', '/audit', '/news', '/submissions', '/navigation', '/agent-dd'];
+const PROTECTED_PREFIXES = ['/dashboard', '/settings', '/users', '/partners', '/network', '/agents', '/applications', '/audit', '/news', '/submissions', '/navigation', '/agent-dd', '/change-password'];
 const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password'];
 
 function isProtected(pathname: string): boolean {
   return PROTECTED_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + '/'));
+}
+
+// True when the signed-in user was given a password by another admin and hasn't
+// chosen their own yet (flag stored in the `auser` session cookie).
+function mustChangePassword(req: NextRequest): boolean {
+  try {
+    const raw = req.cookies.get('auser')?.value;
+    return raw ? !!JSON.parse(raw).mustChangePassword : false;
+  } catch {
+    return false;
+  }
 }
 
 function isPublicAuth(pathname: string): boolean {
@@ -47,6 +58,9 @@ export async function middleware(req: NextRequest) {
 
   if (isProtected(pathname)) {
     if (hasValidAat) {
+      if (mustChangePassword(req) && !pathname.startsWith('/change-password')) {
+        return NextResponse.redirect(new URL('/change-password', req.url));
+      }
       return NextResponse.next();
     }
 
@@ -60,7 +74,10 @@ export async function middleware(req: NextRequest) {
 
         if (refreshRes.ok) {
           const data = await refreshRes.json();
-          const response = NextResponse.next();
+          const needsChange = !!data.user?.mustChangePassword && !pathname.startsWith('/change-password');
+          const response = needsChange
+            ? NextResponse.redirect(new URL('/change-password', req.url))
+            : NextResponse.next();
 
           response.cookies.set('aat', data.accessToken, {
             httpOnly: true,

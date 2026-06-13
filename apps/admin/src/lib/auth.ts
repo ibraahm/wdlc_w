@@ -100,6 +100,27 @@ export async function setSessionCookies(
   }
 }
 
+// After a forced password change, drop the flag from the session cookie so the
+// middleware stops redirecting to /change-password for the rest of this session.
+export async function clearMustChangePassword(): Promise<void> {
+  const cookieStore = cookies();
+  const auserRaw = cookieStore.get(AUSER)?.value;
+  if (!auserRaw) return;
+  try {
+    const user = JSON.parse(auserRaw) as AdminUser;
+    user.mustChangePassword = false;
+    cookieStore.set(AUSER, JSON.stringify(user), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: ACCESS_MAX_AGE,
+    });
+  } catch {
+    // ignore
+  }
+}
+
 export async function clearSessionCookies(): Promise<void> {
   const cookieStore = cookies();
   try {
