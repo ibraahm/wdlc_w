@@ -895,3 +895,8 @@ export async function apiResendBranchUserSetup(accessToken: string, userId: stri
   const res = await authFetch(`/admin/agent-dd/users/${userId}/resend-setup`, accessToken, { method: 'POST' });
   await handleResponse<void>(res);
 }
+
+export async function apiVerifyBranchUser(accessToken: string, userId: string): Promise<void> {
+  const res = await authFetch(`/admin/agent-dd/users/${userId}/verify`, accessToken, { method: 'POST' });
+  await handleResponse<void>(res);
+}

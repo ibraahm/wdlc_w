@@ -266,6 +266,18 @@ export class DDService {
     return { ok: true };
   }
 
+  /** Manually mark a branch user's email verified and the account active. */
+  async verifyPortalUser(userId: string, adminId: string) {
+    const user = await this.prisma.agentUser.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Portal user not found');
+    await this.prisma.agentUser.update({
+      where: { id: userId },
+      data: { emailVerified: true, active: true, emailVerifyToken: null, emailVerifyExpiry: null },
+    });
+    await this.audit.log({ action: 'agent.portal.verify_activate', adminId, entity: 'AgentUser', entityId: userId, after: { email: user.email } });
+    return { ok: true };
+  }
+
   async get(id: string) {
     const file = await this.prisma.agentDDFile.findUnique({
       where: { id },
