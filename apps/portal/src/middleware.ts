@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const API = process.env.API_URL || 'http://localhost:4000/api';
 const IS_PROD = process.env.NODE_ENV === 'production';
 
-const PROTECTED_PATHS = ['/dashboard', '/profile', '/settings'];
+const PROTECTED_PATHS = ['/dashboard', '/settings'];
 const AUTH_PATHS = ['/login', '/signup'];
 
 function isProtected(pathname: string): boolean {

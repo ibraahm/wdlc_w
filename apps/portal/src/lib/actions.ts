@@ -8,7 +8,6 @@ import {
   apiForgotPassword,
   apiResetPassword,
   apiChangePassword,
-  apiUpdateProfile,
 } from './api';
 import { revalidatePath } from 'next/cache';
 import { setSessionCookies, clearSessionCookies } from './auth';
@@ -89,37 +88,6 @@ export async function resetPasswordAction(
     return { ok: true };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Reset failed.' };
-  }
-}
-
-export async function updateProfileAction(
-  _prevState: { ok?: boolean; error?: string; geocoded?: boolean } | null,
-  formData: FormData,
-): Promise<{ ok?: boolean; error?: string; geocoded?: boolean }> {
-  const cookieStore = cookies();
-  const accessToken = cookieStore.get('pat')?.value;
-  if (!accessToken) return { error: 'Not authenticated.' };
-
-  const data = {
-    businessName: (formData.get('businessName') as string) || undefined,
-    addressLine: (formData.get('addressLine') as string) || undefined,
-    city: (formData.get('city') as string) || undefined,
-    state: (formData.get('state') as string) || undefined,
-    zip: (formData.get('zip') as string) || undefined,
-    country: (formData.get('country') as string) || undefined,
-    publicPhone: (formData.get('publicPhone') as string) || undefined,
-    showOnMap: formData.get('showOnMap') === 'on',
-  };
-
-  try {
-    const result = await apiUpdateProfile(accessToken, data);
-    revalidatePath('/profile');
-    // When the agent opts into the map but the address could not be geocoded,
-    // warn them their pin won't appear yet.
-    const geocoded = result.latitude !== null && result.longitude !== null;
-    return { ok: true, geocoded: data.showOnMap ? geocoded : undefined };
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : 'Update failed.' };
   }
 }
 
