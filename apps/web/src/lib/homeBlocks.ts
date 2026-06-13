@@ -16,8 +16,8 @@ export const defaultHomeBlocks = {
         backgroundImage: '',
         stats: [
           { value: '1999', label: 'Founded' },
-          { value: '1M+', label: 'Customers' },
-          { value: '50+', label: 'Countries' },
+          { value: '25+', label: 'Years of Service' },
+          { value: 'Licensed', label: 'Money Transmitter' },
         ],
       },
     },
@@ -63,10 +63,10 @@ export const defaultHomeBlocks = {
       type: 'HomeStats',
       props: {
         items: [
-          { value: '1,000,000+', label: 'Customers Served' },
-          { value: '$300M+', label: 'Remittances Annually' },
-          { value: '$300', label: 'Average Transaction' },
-          { value: '50+', label: 'Payout Network Countries' },
+          { value: '1999', label: 'Serving Families Since' },
+          { value: '25+', label: 'Years of Trusted Service' },
+          { value: 'FinCEN', label: 'Registered MSB' },
+          { value: 'OFAC', label: 'Screened Transfers' },
         ],
       },
     },
