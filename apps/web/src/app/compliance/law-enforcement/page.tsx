@@ -44,7 +44,7 @@ export default async function LawEnforcementPage() {
               {company.legalName}<br />
               {company.address.line1}<br />
               {company.address.city}, {company.address.state} {company.address.zip}<br /><br />
-              <a href={`mailto:${company.emails.compliance}`} className="underline">{company.emails.compliance}</a><br />
+              <a href={`mailto:${company.emails.lawEnforcement}`} className="underline">{company.emails.lawEnforcement}</a><br />
               <a href={`tel:${company.tollFree}`} className="underline">{company.tollFree}</a>
             </Callout>
           </div>
