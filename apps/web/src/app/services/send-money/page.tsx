@@ -15,7 +15,7 @@ export async function generateMetadata() {
   const page = await getCmsPage('services/send-money');
   return cmsMetadata(page, {
     title: 'Send Money | World Direct Link',
-    description: 'Send money quickly and affordably at any authorized WDL agent. Bring a valid photo ID and your recipient\'s details to complete the transfer in person.',
+    description: 'Send money quickly and affordably at any authorized World Direct Link agent. Bring a valid photo ID and your recipient\'s details to complete the transfer in person.',
   });
 }
 
@@ -31,7 +31,7 @@ export default async function SendMoneyPage() {
       <Section>
         <Container>
           <p className="max-w-3xl text-lg text-gray-700">
-            Send money quickly and affordably at any authorized WDL agent. Bring a valid
+            Send money quickly and affordably at any authorized World Direct Link agent. Bring a valid
             government-issued photo ID and your recipient&apos;s details, and our agent will
             help you complete the transfer in person. We accept cash, cashier&apos;s check, or
             personal check (at the agent&apos;s discretion).

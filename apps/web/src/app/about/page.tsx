@@ -127,7 +127,7 @@ export default async function AboutPage() {
         <div className="max-w-2xl">
           <Steps
             items={[
-              { title: 'You send.', body: 'Visit an authorized WDL agent and place your transfer in person.' },
+              { title: 'You send.', body: 'Visit an authorized World Direct Link agent and place your transfer in person.' },
               { title: 'We route.', body: 'Your transfer is screened, processed, and routed through our correspondent network.' },
               { title: 'They receive.', body: 'Your recipient collects funds via the available payout method at the destination.' },
             ]}

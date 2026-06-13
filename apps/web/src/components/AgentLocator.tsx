@@ -110,7 +110,7 @@ export default function AgentLocator({ agents }: { agents: AgentLocation[] }) {
       const marker = L.marker([a.latitude, a.longitude]).addTo(map);
       const addr = fullAddress(a);
       marker.bindPopup(
-        `<strong>${a.businessName ?? 'WDL Agent'}</strong><br/>${addr}` +
+        `<strong>${a.businessName ?? 'World Direct Link Agent'}</strong><br/>${addr}` +
           (a.publicPhone ? `<br/><a href="tel:${a.publicPhone}">${a.publicPhone}</a>` : ''),
       );
       marker.on('click', () => setSelected(a.id));
@@ -161,7 +161,7 @@ export default function AgentLocator({ agents }: { agents: AgentLocation[] }) {
                 onClick={() => focusAgent(a)}
                 className={`agent-locator-item${selected === a.id ? ' is-selected' : ''}`}
               >
-                <span className="agent-locator-name">{a.businessName ?? 'WDL Agent'}</span>
+                <span className="agent-locator-name">{a.businessName ?? 'World Direct Link Agent'}</span>
                 <span className="agent-locator-addr">{fullAddress(a)}</span>
                 {a.publicPhone && (
                   <span className="agent-locator-phone">{a.publicPhone}</span>

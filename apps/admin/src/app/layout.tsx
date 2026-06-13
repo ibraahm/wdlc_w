@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'WDLC Admin',
+  title: 'World Direct Link Admin',
   description: 'World Direct Link Corp — Admin Back-Office',
   robots: { index: false, follow: false },
 };

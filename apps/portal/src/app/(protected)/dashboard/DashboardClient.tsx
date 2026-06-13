@@ -23,7 +23,7 @@ function ComplianceChecklist({ agent }: { agent: Agent }) {
   const steps = [
     { label: 'Account created', done: true },
     { label: 'Email verified', done: agent.emailVerified },
-    { label: 'Account approved by WDLC', done: agent.status === 'ACTIVE' },
+    { label: 'Account approved by World Direct Link', done: agent.status === 'ACTIVE' },
     { label: 'Review compliance materials', done: false, link: '/compliance' },
     { label: 'Complete BSA/AML training', done: false },
   ];

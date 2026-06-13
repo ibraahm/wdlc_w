@@ -35,14 +35,14 @@ export default async function ServicesPage() {
         <Container>
           <p className="max-w-3xl text-lg text-gray-700">
             World Direct Link makes it simple to support family abroad. All transfers are
-            initiated in person at an authorized WDL agent and delivered in U.S. dollars
+            initiated in person at an authorized World Direct Link agent and delivered in U.S. dollars
             through our correspondent network. Choose the payout method that works best for
             your recipient.
           </p>
 
           <div className="mt-10 grid gap-6 sm:grid-cols-2">
             <Card title="Send Money" href="/services/send-money">
-              Start a transfer in person at any authorized WDL agent.
+              Start a transfer in person at any authorized World Direct Link agent.
             </Card>
             <Card title="Cash Pickup" href="/services/cash-pickup">
               Recipients collect funds in U.S. dollars at a payout location.

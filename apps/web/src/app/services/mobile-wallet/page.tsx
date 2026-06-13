@@ -30,7 +30,7 @@ export default async function MobileWalletPage() {
         <Container>
           <p className="max-w-3xl text-lg text-gray-700">
             In selected destinations, recipients can receive funds to a supported mobile wallet
-            through our correspondent network. Ask your WDL agent whether mobile wallet payout
+            through our correspondent network. Ask your World Direct Link agent whether mobile wallet payout
             is available for your recipient&apos;s location.
           </p>
 

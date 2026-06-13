@@ -1,4 +1,4 @@
-// Central brand + structural config for the WDLC public site.
+// Central brand + structural config for the World Direct Link public site.
 // Single source of truth for company facts, navigation, footer, and regulatory data.
 
 export const company = {
