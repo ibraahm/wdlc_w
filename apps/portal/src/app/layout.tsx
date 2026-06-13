@@ -4,6 +4,7 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'WDLC Agent Training Portal',
   description: 'Secure compliance portal for World Direct Link agents',
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

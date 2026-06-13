@@ -28,7 +28,7 @@ export default function LoginPage() {
       <form onSubmit={handleSubmit} className="auth-form">
         <div className="auth-field">
           <label htmlFor="email" className="auth-label">Email address</label>
-          <input id="email" name="email" type="email" autoComplete="email" required className="auth-input" placeholder="admin@wdlc.com" />
+          <input id="email" name="email" type="email" autoComplete="email" required className="auth-input" placeholder="name@worlddirectlink.com" />
         </div>
         <div className="auth-field">
           <label htmlFor="password" className="auth-label">Password</label>

@@ -4,6 +4,7 @@ import './globals.css';
 export const metadata: Metadata = {
   title: 'WDLC Admin',
   description: 'World Direct Link Corp — Admin Back-Office',
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
