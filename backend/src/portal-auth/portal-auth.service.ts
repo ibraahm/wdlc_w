@@ -205,7 +205,18 @@ export class PortalAuthService {
     const passwordHash = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
     await this.prisma.agentUser.update({
       where: { id: agent.id },
-      data: { passwordHash, resetToken: null, resetTokenExpiry: null, ...CLEAR_LOCKOUT },
+      // Completing the emailed setup/reset link proves mailbox control, so the
+      // account is verified and activated — the agent can sign in immediately.
+      data: {
+        passwordHash,
+        emailVerified: true,
+        active: true,
+        emailVerifyToken: null,
+        emailVerifyExpiry: null,
+        resetToken: null,
+        resetTokenExpiry: null,
+        ...CLEAR_LOCKOUT,
+      },
     });
     await this.tokens.revokeAll(this.rtDelegate, OWNER_KEY, agent.id);
     await this.audit.log({ action: 'agent.password_reset.completed', agentId: agent.id });
