@@ -171,7 +171,7 @@ export default function UsersManager({ initialUsers }: UsersManagerProps) {
                   name="email"
                   type="email"
                   required
-                  placeholder="email@wdlc.com"
+                  placeholder="name@worlddirectlink.com"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>

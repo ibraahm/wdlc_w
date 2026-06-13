@@ -42,7 +42,7 @@ export default function ForgotPasswordPage() {
       <form onSubmit={handleSubmit} className="auth-form">
         <div className="auth-field">
           <label htmlFor="email" className="auth-label">Email address</label>
-          <input id="email" name="email" type="email" required autoComplete="email" className="auth-input" placeholder="admin@wdlc.com" />
+          <input id="email" name="email" type="email" required autoComplete="email" className="auth-input" placeholder="name@worlddirectlink.com" />
         </div>
         <MathChallengeField context="admin_forgot_password" />
         <button type="submit" disabled={isPending} className="auth-submit">
