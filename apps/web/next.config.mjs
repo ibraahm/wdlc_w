@@ -15,6 +15,9 @@ const CSP = [
   "font-src 'self' https://fonts.gstatic.com",
   "img-src 'self' data: blob: https:",
   `connect-src 'self' ${apiOrigin()} https://nominatim.openstreetmap.org https://*.basemaps.cartocdn.com https://*.tile.openstreetmap.org`,
+  // Allow the embedded OpenStreetMap HQ map; without an explicit frame-src it
+  // falls back to default-src 'self' and the browser blocks the iframe.
+  "frame-src 'self' https://www.openstreetmap.org",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
