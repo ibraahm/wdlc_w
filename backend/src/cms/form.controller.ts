@@ -15,7 +15,7 @@ import type { Request } from 'express';
 import { AdminJwtAuthGuard } from '../admin-auth/admin-jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { FormService } from './form.service';
-import { CreateFormDto, UpdateFormDto, SubmitFormDto } from './dto/form.dto';
+import { CreateFormDto, UpdateFormDto, SubmitFormDto, SetSubmissionStatusDto, SubmissionNoteDto, SubmissionReplyDto } from './dto/form.dto';
 import { HumanVerificationService } from '../common/human-verification.service';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -72,6 +72,25 @@ export class FormController {
   @Delete('submissions/:submissionId')
   removeSubmission(@Param('submissionId') submissionId: string, @CurrentUser() user: AuthUser) {
     return this.forms.deleteSubmission(submissionId, user.id);
+  }
+
+  // ── Submission case management ──────────────────────────────────────────────
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR')
+  @Patch('submissions/:submissionId/status')
+  setSubmissionStatus(@Param('submissionId') submissionId: string, @Body() dto: SetSubmissionStatusDto, @CurrentUser() user: AuthUser) {
+    return this.forms.setSubmissionStatus(submissionId, dto.status, user.id, dto.assignee);
+  }
+
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR')
+  @Post('submissions/:submissionId/note')
+  addSubmissionNote(@Param('submissionId') submissionId: string, @Body() dto: SubmissionNoteDto, @CurrentUser() user: AuthUser) {
+    return this.forms.addNote(submissionId, dto.body, { id: user.id, name: user.email });
+  }
+
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')
+  @Post('submissions/:submissionId/reply')
+  replySubmission(@Param('submissionId') submissionId: string, @Body() dto: SubmissionReplyDto, @CurrentUser() user: AuthUser) {
+    return this.forms.reply(submissionId, dto.subject, dto.body, { id: user.id, name: user.email });
   }
 
   // ── Public: render + submit ────────────────────────────────────────────────
