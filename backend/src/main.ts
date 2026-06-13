@@ -53,7 +53,11 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   const port = parseInt(process.env.PORT || '4000', 10);
-  await app.listen(port);
-  app.get(Logger).log(`WDLC backend listening on http://localhost:${port}/api`);
+  // Bind to loopback only — the API must never be reachable from the public
+  // internet. The Next apps and nginx reach it on 127.0.0.1. Override with
+  // BIND_HOST=0.0.0.0 only if you intentionally expose it (not recommended).
+  const host = process.env.BIND_HOST || '127.0.0.1';
+  await app.listen(port, host);
+  app.get(Logger).log(`WDLC backend listening on http://${host}:${port}/api`);
 }
 void bootstrap();
