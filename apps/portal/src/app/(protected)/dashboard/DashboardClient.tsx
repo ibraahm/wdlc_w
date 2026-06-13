@@ -66,7 +66,6 @@ export default function DashboardClient({ agent }: { agent: Agent }) {
       <ComplianceChecklist agent={agent} />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginTop: '4px' }}>
-        <QuickLink href="/profile" title="My Listing" desc="Manage your public Find-an-Agent map listing." />
         <QuickLink href="/settings" title="Account Settings" desc="View your account details and change your password." />
       </div>
     </div>

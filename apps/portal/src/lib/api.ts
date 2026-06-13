@@ -15,21 +15,6 @@ export type Agent = {
   emailVerified: boolean;
 };
 
-export type AgentProfile = {
-  id: string;
-  businessName: string | null;
-  addressLine: string | null;
-  city: string | null;
-  state: string | null;
-  zip: string | null;
-  country: string | null;
-  publicPhone: string | null;
-  latitude: number | null;
-  longitude: number | null;
-  showOnMap: boolean;
-  status: string;
-};
-
 export type AuthResult = {
   accessToken: string;
   refreshToken: string;
@@ -133,29 +118,6 @@ export async function apiResetPassword(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token, newPassword }),
-  });
-  return handleResponse(res);
-}
-
-export async function apiGetProfile(accessToken: string): Promise<AgentProfile> {
-  const res = await safeFetch(`${API}/portal/profile`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-    cache: 'no-store',
-  });
-  return handleResponse(res);
-}
-
-export async function apiUpdateProfile(
-  accessToken: string,
-  data: Partial<Omit<AgentProfile, 'id' | 'status' | 'latitude' | 'longitude'>>,
-): Promise<AgentProfile & { geocoded?: boolean }> {
-  const res = await safeFetch(`${API}/portal/profile`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-    },
-    body: JSON.stringify(data),
   });
   return handleResponse(res);
 }
