@@ -21,6 +21,7 @@ export const company = {
   emails: {
     general: 'info@worlddirectlink.com',
     compliance: 'support@worlddirectlink.com',
+    lawEnforcement: 'wdlc@worlddirectlink.com',
     claims: 'support@worlddirectlink.com',
     returns: 'support@worlddirectlink.com',
   },
