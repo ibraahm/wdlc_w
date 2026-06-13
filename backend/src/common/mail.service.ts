@@ -27,22 +27,38 @@ export class MailService {
   private readonly smtpTransport: Transporter | null;
 
   constructor() {
+    const port = parseInt(process.env.SMTP_PORT || '587', 10);
+    const secure = boolEnv(process.env.SMTP_SECURE, false);
     this.smtpTransport = hasSmtpConfig()
       ? nodemailer.createTransport({
           host: process.env.SMTP_HOST,
-          port: parseInt(process.env.SMTP_PORT || '587', 10),
-          secure: boolEnv(process.env.SMTP_SECURE, false),
+          port,
+          secure, // true for 465; false for 587 (STARTTLS)
+          requireTLS: !secure, // force STARTTLS upgrade on 587 — many hosts (Yahoo) reject plain
           auth: process.env.SMTP_USER
             ? {
                 user: process.env.SMTP_USER,
                 pass: process.env.SMTP_PASS || '',
               }
             : undefined,
+          connectionTimeout: 10_000,
+          greetingTimeout: 10_000,
+          socketTimeout: 20_000,
         })
       : null;
 
     if (!this.smtpTransport && hasSendGridConfig()) {
       sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+    }
+
+    // Verify SMTP credentials at boot so failures are visible immediately
+    // (auth, host, port, TLS) instead of silently swallowed on first send.
+    if (this.smtpTransport) {
+      this.smtpTransport.verify()
+        .then(() => this.logger.log(`SMTP ready: ${process.env.SMTP_HOST}:${port} as ${process.env.SMTP_USER}`))
+        .catch((err: Error) =>
+          this.logger.error(`SMTP verify FAILED (${process.env.SMTP_HOST}:${port} as ${process.env.SMTP_USER}): ${err.message}`),
+        );
     }
   }
 
@@ -65,29 +81,40 @@ export class MailService {
       return;
     }
 
-    if (this.smtpTransport) {
-      await this.smtpTransport.sendMail({
+    try {
+      if (this.smtpTransport) {
+        await this.smtpTransport.sendMail({
+          to,
+          from: `"${from.name}" <${from.email}>`,
+          subject,
+          html,
+          attachments,
+        });
+        return;
+      }
+
+      await sgMail.send({
         to,
-        from: `"${from.name}" <${from.email}>`,
+        from,
         subject,
         html,
-        attachments,
+        attachments: attachments.map((attachment) => ({
+          filename: attachment.filename,
+          content: attachment.content.toString('base64'),
+          type: attachment.contentType,
+          disposition: 'attachment',
+        })),
       });
-      return;
+    } catch (err) {
+      // Surface the real reason (auth, connection, sender not allowed) and, so a
+      // credential/reset email is never lost during setup, log the recovery link.
+      const linkMatch = html.match(/href="(https?:\/\/[^"]+)"/);
+      this.logger.error(
+        `Email send FAILED | To: ${to} | Subject: ${subject} | Reason: ${(err as Error).message}` +
+          (linkMatch ? ` | Recovery link: ${linkMatch[1]}` : ''),
+      );
+      throw err;
     }
-
-    await sgMail.send({
-      to,
-      from,
-      subject,
-      html,
-      attachments: attachments.map((attachment) => ({
-        filename: attachment.filename,
-        content: attachment.content.toString('base64'),
-        type: attachment.contentType,
-        disposition: 'attachment',
-      })),
-    });
   }
 
   sendEmailVerification(to: string, token: string) {
