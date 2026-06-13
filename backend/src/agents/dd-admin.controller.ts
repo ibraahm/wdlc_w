@@ -38,6 +38,11 @@ export class DDAdminController {
     return this.dd.get(id);
   }
 
+  @Post('users/:userId/resend-setup')
+  resendSetup(@Param('userId') userId: string, @CurrentUser('id') adminId: string) {
+    return this.dd.resendPortalSetup(userId, adminId);
+  }
+
   @Post()
   create(@Body() dto: CreateDDFileDto, @CurrentUser('id') adminId: string) {
     return this.dd.createFile(dto, adminId);

@@ -890,3 +890,8 @@ export async function apiListBranches(accessToken: string): Promise<AgentBranch[
   const res = await authFetch('/admin/agent-dd/branches', accessToken);
   return handleResponse<AgentBranch[]>(res);
 }
+
+export async function apiResendBranchUserSetup(accessToken: string, userId: string): Promise<void> {
+  const res = await authFetch(`/admin/agent-dd/users/${userId}/resend-setup`, accessToken, { method: 'POST' });
+  await handleResponse<void>(res);
+}

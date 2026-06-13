@@ -242,6 +242,30 @@ export class DDService {
     });
   }
 
+  /**
+   * Re-issue a portal account-setup link to a branch user who hasn't completed
+   * setup (e.g. never signed in, or the original link expired). Generates a
+   * fresh single-use 48h token and re-sends the welcome email.
+   */
+  async resendPortalSetup(userId: string, adminId: string) {
+    const user = await this.prisma.agentUser.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Portal user not found');
+    if (!user.branchCode) throw new BadRequestException('User is not assigned to a branch');
+
+    const setupRaw = generateToken(32);
+    await this.prisma.agentUser.update({
+      where: { id: userId },
+      data: { resetToken: hashToken(setupRaw), resetTokenExpiry: addHours(new Date(), 48), active: true },
+    });
+    try {
+      await this.mail.sendPortalWelcome(user.email, setupRaw, user.firstName, user.branchCode);
+    } catch (err) {
+      throw new BadRequestException(`Could not send email: ${(err as Error).message}`);
+    }
+    await this.audit.log({ action: 'agent.portal.resend_setup', adminId, entity: 'AgentUser', entityId: userId, after: { email: user.email } });
+    return { ok: true };
+  }
+
   async get(id: string) {
     const file = await this.prisma.agentDDFile.findUnique({
       where: { id },

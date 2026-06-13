@@ -122,6 +122,7 @@ export const footerNav: { title: string; links: { label: string; href: string }[
     title: 'Agents & Partners',
     links: [
       { label: 'Become an Agent', href: '/agents/become-an-agent' },
+      { label: 'Teller Application', href: '/agents/teller-application' },
       { label: 'Agent Resources', href: '/agents/resources' },
       { label: 'Partners', href: '/agents/partners' },
     ],
