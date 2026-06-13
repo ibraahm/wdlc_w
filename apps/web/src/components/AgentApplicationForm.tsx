@@ -54,13 +54,13 @@ const BUSINESS_TYPES = [
   'Multi Service', 'Pharmacy', 'Port', 'Other', 'Biller (Receiving Payments)',
 ];
 
-const PRODUCTS = [
-  'Money Transfer - Sends Only', 'Money Transfer - Sends and Receives',
-];
+const PRODUCTS = ['Money Transfer - Sends and Receives'];
 
 const LANGUAGES = ['English', 'Spanish', 'French', 'Arabic', 'Somali', 'Amharic', 'Other'];
 
 const VOLUMES = ['1 - 50 items', '51 - 250 items', '251 - 1,000 items', 'Over 1,000 items'];
+
+const DOLLAR_VOLUMES = ['Under $10,000', '$10,000 - $50,000', '$50,000 - $250,000', '$250,000 - $500,000', '$500,000 - $1,000,000', 'Over $1,000,000'];
 
 const inputCls =
   'w-full rounded-lg border border-[#d9e0e8] bg-white px-3 py-2 text-ink focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none';
@@ -374,7 +374,7 @@ export default function AgentApplicationForm({
   const [zip, setZip] = useState('');
 
   // Services & experience
-  const [productsOffered, setProductsOffered] = useState('');
+  const [productsOffered, setProductsOffered] = useState(PRODUCTS[0]);
   const [currentlyProvides, setCurrentlyProvides] = useState<boolean | null>(null);
   const [currentProvider, setCurrentProvider] = useState('');
   const [providedPast, setProvidedPast] = useState<boolean | null>(null);
@@ -384,6 +384,7 @@ export default function AgentApplicationForm({
   const [preferredLanguage, setPreferredLanguage] = useState('');
   const [preferredLanguageOther, setPreferredLanguageOther] = useState('');
   const [monthlyVolume, setMonthlyVolume] = useState('');
+  const [anticipatedDollarVolume, setAnticipatedDollarVolume] = useState('');
   const [totalLocations, setTotalLocations] = useState('');
 
   // Finish
@@ -471,6 +472,7 @@ export default function AgentApplicationForm({
       setCurrentProvider((d.currentProvider as string) ?? '');
       setPastProvider((d.pastProvider as string) ?? '');
       setMonthlyVolume((d.monthlyVolume as string) ?? '');
+      setAnticipatedDollarVolume((d.anticipatedDollarVolume as string) ?? '');
       setTotalLocations((d.totalLocations as string) ?? '');
       setHowFound((d.howFound as string) ?? '');
       setHowFoundOther((d.howFoundOther as string) ?? '');
@@ -492,7 +494,7 @@ export default function AgentApplicationForm({
     const data = {
       applicantType, step, firstName, lastName, email, phone, company, businessType,
       businessTypeOther, country, street, city, stateField, zip, productsOffered,
-      currentProvider, pastProvider, monthlyVolume, totalLocations, howFound,
+      currentProvider, pastProvider, monthlyVolume, anticipatedDollarVolume, totalLocations, howFound,
       howFoundOther, comments, signatureName, signatureTitle, signatureConsent,
     };
     try {
@@ -503,7 +505,7 @@ export default function AgentApplicationForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applicantType, step, firstName, lastName, email, phone, company, businessType,
       businessTypeOther, country, street, city, stateField, zip, productsOffered,
-      currentProvider, pastProvider, monthlyVolume, totalLocations, howFound,
+      currentProvider, pastProvider, monthlyVolume, anticipatedDollarVolume, totalLocations, howFound,
       howFoundOther, comments, signatureName, signatureTitle, signatureConsent]);
 
   useEffect(() => {
@@ -598,6 +600,7 @@ export default function AgentApplicationForm({
       if (preferredLanguage === 'Other' && !preferredLanguageOther.trim()) return 'Please name the preferred language.';
       if (isBusiness) {
         if (!monthlyVolume) return 'Please select your anticipated monthly volume.';
+        if (!anticipatedDollarVolume) return 'Please select your anticipated monthly dollar volume.';
         if (!totalLocations.trim()) return 'Please enter your total number of locations.';
       }
     }
@@ -682,6 +685,7 @@ export default function AgentApplicationForm({
       preferredLanguage: preferredLanguage || undefined,
       preferredLanguageOther: preferredLanguage === 'Other' ? preferredLanguageOther.trim() : undefined,
       monthlyVolume: isBusiness ? monthlyVolume || undefined : undefined,
+      anticipatedDollarVolume: isBusiness ? anticipatedDollarVolume || undefined : undefined,
       totalLocations: isBusiness ? totalLocations.trim() || undefined : undefined,
       comments: comments.trim(),
       signatureName: signatureName.trim(),
@@ -998,6 +1002,12 @@ export default function AgentApplicationForm({
                 </Field>
                 <Field label="Total # of Locations" required>
                   <input value={totalLocations} onChange={(e) => setTotalLocations(e.target.value)} className={inputCls} />
+                </Field>
+                <Field label="Anticipated monthly dollar volume (USD)" required>
+                  <select value={anticipatedDollarVolume} onChange={(e) => setAnticipatedDollarVolume(e.target.value)} className={inputCls}>
+                    <option value="" disabled>Select…</option>
+                    {DOLLAR_VOLUMES.map((v) => <option key={v} value={v}>{v}</option>)}
+                  </select>
                 </Field>
               </div>
             )}

@@ -4,8 +4,7 @@ import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
 import {
   apiLogin,
-  apiSignup,
-  apiLogout,
+    apiLogout,
   apiForgotPassword,
   apiResetPassword,
   apiChangePassword,
@@ -35,30 +34,6 @@ export async function loginAction(
   }
 
   redirect('/dashboard');
-}
-
-export async function signupAction(
-  _prevState: { ok?: boolean; message?: string; error?: string } | null,
-  formData: FormData,
-): Promise<{ ok?: boolean; message?: string; error?: string }> {
-  const email = formData.get('email') as string;
-  const password = formData.get('password') as string;
-  const firstName = formData.get('firstName') as string;
-  const lastName = formData.get('lastName') as string;
-  const phone = (formData.get('phone') as string) || undefined;
-  const humanVerificationToken = (formData.get('humanVerificationToken') as string) || undefined;
-  const humanVerificationAnswer = (formData.get('humanVerificationAnswer') as string) || undefined;
-
-  if (!email || !password || !firstName || !lastName) {
-    return { error: 'Please fill in all required fields.' };
-  }
-
-  try {
-    const result = await apiSignup({ email, password, firstName, lastName, phone, humanVerificationToken, humanVerificationAnswer });
-    return { ok: true, message: result.message || 'Check your email to verify your account.' };
-  } catch (err) {
-    return { error: err instanceof Error ? err.message : 'Signup failed.' };
-  }
 }
 
 export async function logoutAction(): Promise<void> {

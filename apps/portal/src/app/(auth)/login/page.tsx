@@ -42,8 +42,8 @@ export default function LoginPage() {
       </form>
 
       <p className="auth-footer">
-        Don&apos;t have an account?{' '}
-        <Link href="/signup" className="auth-link">Create account</Link>
+        Portal access is issued by World Direct Link when your agent or teller
+        application is approved.
       </p>
     </>
   );

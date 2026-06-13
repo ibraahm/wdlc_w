@@ -107,6 +107,26 @@ export class MailService {
     );
   }
 
+  /** Activation credential email — one-time setup link (48h) instead of a password. */
+  sendPortalWelcome(to: string, token: string, firstName: string, branchCode: string) {
+    const base = process.env.PORTAL_BASE_URL || 'http://localhost:3001';
+    const link = `${base}/reset-password?token=${token}&welcome=1`;
+    return this.sendRaw(
+      to,
+      'Your World Direct Link agent portal access',
+      emailLayout('Welcome to World Direct Link', `
+        <p>Hello ${firstName},</p>
+        <p>Your agent account has been approved. Your branch code is <strong>${branchCode}</strong> — keep it for all correspondence.</p>
+        <p>Set your password to access the agent portal (training and resources). This link expires in <strong>48 hours</strong>.</p>
+        <p style="text-align:center;margin:32px 0">
+          <a href="${link}" style="background:#1a56db;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600">Set Up My Account</a>
+        </p>
+        <p style="font-size:13px;color:#6b7280">Or copy this link: <a href="${link}">${link}</a></p>
+        <p style="font-size:13px;color:#6b7280">If this wasn't expected, contact compliance before using the link.</p>
+      `),
+    );
+  }
+
   sendPasswordReset(to: string, token: string, portal: 'admin' | 'agent') {
     const base =
       portal === 'admin'

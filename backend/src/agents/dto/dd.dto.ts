@@ -1,4 +1,4 @@
-import { IsBoolean, IsIn, IsISO8601, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsIn, IsISO8601, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
 import { DD_STAGES, RISK_RATINGS } from '../dd-catalog';
 
 export class CreateDDFileDto {
@@ -64,4 +64,10 @@ export class RecordReviewDto {
   @IsOptional()
   @IsISO8601()
   nextReviewDueAt?: string;
+}
+
+export class SetBranchCodeDto {
+  // 6 lowercase alphanumeric characters, e.g. uswdlc — the agent's permanent ID.
+  @Matches(/^[a-z0-9]{6}$/, { message: 'Branch code must be exactly 6 lowercase letters/digits (e.g. uswdlc)' })
+  branchCode: string;
 }

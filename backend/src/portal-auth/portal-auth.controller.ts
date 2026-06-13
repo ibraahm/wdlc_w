@@ -28,14 +28,8 @@ export class PortalAuthController {
 
   // ── Public ────────────────────────────────────────────────────────────────
 
-  @Public()
-  @Throttle({ default: { ttl: 60_000, limit: 5 } })
-  @Post('signup')
-  async signup(@Body() dto: AgentSignupDto, @Req() req: Request) {
-    if (!this.humanVerification.verify(dto.humanVerificationToken, dto.humanVerificationAnswer, 'portal_signup'))
-      throw new ForbiddenException('Security check failed. Please answer the verification question.');
-    return this.auth.signup(dto, req.ip, req.headers['user-agent']);
-  }
+  // Public signup removed — portal accounts are issued automatically when an
+  // agent application is approved (or a teller application for a branch).
 
   @Public()
   @Throttle({ default: { ttl: 60_000, limit: 5 } })

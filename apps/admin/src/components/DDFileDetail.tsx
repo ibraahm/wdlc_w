@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { DDFile, DDDocument } from '@/lib/api';
+import { setDDBranchCodeAction } from '@/lib/actions';
 import {
   updateDDDocumentAction,
   setDDStageAction,
@@ -189,6 +190,7 @@ export default function DDFileDetail({
             <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${STAGE_COLOR[f.stage] ?? 'bg-gray-100 text-gray-600 border-gray-200'}`}>
               {STAGE_LABELS[f.stage] ?? f.stage}
             </span>
+            <BranchCodeChip id={f.id} branchCode={f.branchCode ?? null} canEdit={canManageLifecycle} />
             {f.riskRating && (
               <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${RISK_COLOR[f.riskRating]}`}>
                 {f.riskRating} risk
@@ -519,5 +521,55 @@ function DocRow({
         </div>
       )}
     </div>
+  );
+}
+
+function BranchCodeChip({ id, branchCode, canEdit }: { id: string; branchCode: string | null; canEdit: boolean }) {
+  const router = useRouter();
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(branchCode ?? '');
+  const [err, setErr] = useState('');
+  const [pending, start] = useTransition();
+
+  if (!editing) {
+    return (
+      <button
+        type="button"
+        disabled={!canEdit}
+        onClick={() => setEditing(true)}
+        title={canEdit ? 'Set branch code' : 'Compliance approval required'}
+        className={`rounded-full border px-3 py-1 text-xs font-semibold ${branchCode ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}
+      >
+        {branchCode ? `Branch ${branchCode}` : '+ Assign branch code'}
+      </button>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1">
+      <input
+        value={value}
+        onChange={(e) => setValue(e.target.value.toLowerCase())}
+        maxLength={6}
+        placeholder="uswdlc"
+        className="w-24 rounded-lg border border-gray-300 px-2 py-1 text-xs font-mono"
+      />
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() => {
+          setErr('');
+          if (!/^[a-z0-9]{6}$/.test(value)) { setErr('6 lowercase letters/digits'); return; }
+          start(async () => {
+            const res = await setDDBranchCodeAction(id, value);
+            if (res.ok) { setEditing(false); router.refresh(); } else setErr(res.error ?? 'Failed');
+          });
+        }}
+        className="rounded-lg bg-navy px-2 py-1 text-xs font-semibold text-white"
+      >
+        {pending ? '…' : 'Save'}
+      </button>
+      <button type="button" onClick={() => setEditing(false)} className="text-xs text-gray-400">Cancel</button>
+      {err && <span className="text-xs text-red-600">{err}</span>}
+    </span>
   );
 }
