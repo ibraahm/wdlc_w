@@ -1,6 +1,10 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
+import { addHours } from 'date-fns';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { MailService } from '../common/mail.service';
+import { generateToken, hashToken } from '../common/crypto.util';
 import { DD_CATALOG } from './dd-catalog';
 import { computeDocStatus } from './dd-status.util';
 import {
@@ -65,8 +69,7 @@ const APPLICATION_SELECT = {
 export class DDService {
   constructor(
     private prisma: PrismaService,
-    private audit: AuditService,
-  ) {}
+    private audit: AuditService, private mail: MailService) {}
 
   // ── Creation ────────────────────────────────────────────────────────────────
   /** Creates a DD file and seeds the catalog. Business-only docs become NA for individuals. */
@@ -327,6 +330,68 @@ export class DDService {
     // backward moves (ti < fi) and a single step forward (ti === fi + 1) are allowed
   }
 
+  private readonly logger = new Logger(DDService.name);
+
+  /** Manually assign the agent's permanent 6-char branch code (unique system-wide). */
+  async setBranchCode(id: string, branchCode: string, adminId: string) {
+    const file = await this.prisma.agentDDFile.findUnique({ where: { id } });
+    if (!file) throw new NotFoundException('DD file not found');
+    const clash = await this.prisma.agentDDFile.findUnique({ where: { branchCode } });
+    if (clash && clash.id !== id) throw new BadRequestException(`Branch code ${branchCode} is already assigned to ${clash.agentName}`);
+    const updated = await this.prisma.agentDDFile.update({ where: { id }, data: { branchCode } });
+    await this.audit.log({ action: 'agent.dd.branch_code.set', adminId, entity: 'AgentDDFile', entityId: id, before: { branchCode: file.branchCode }, after: { branchCode } });
+    return updated;
+  }
+
+  /**
+   * Activation side effect: issue a portal login for the principal. Creates the
+   * account from the linked application with an unusable password and emails a
+   * single-use 48h setup link. Idempotent — an existing account is re-linked.
+   */
+  private async provisionPortalAccount(file: { id: string; branchCode: string | null; applicationId: string | null }, adminId: string) {
+    if (!file.applicationId || !file.branchCode) return;
+    const app = await this.prisma.agentApplication.findUnique({
+      where: { id: file.applicationId },
+      select: { email: true, firstName: true, lastName: true, businessPhone: true },
+    });
+    if (!app?.email) return;
+
+    const existing = await this.prisma.agentUser.findUnique({ where: { email: app.email } });
+    if (existing) {
+      await this.prisma.agentUser.update({
+        where: { id: existing.id },
+        data: { branchCode: file.branchCode, status: 'ACTIVE', active: true },
+      });
+      await this.audit.log({ action: 'agent.portal.relinked', adminId, entity: 'AgentUser', entityId: existing.id, after: { branchCode: file.branchCode } });
+      return;
+    }
+
+    const setupRaw = generateToken(32);
+    const user = await this.prisma.agentUser.create({
+      data: {
+        email: app.email,
+        firstName: app.firstName,
+        lastName: app.lastName,
+        phone: app.businessPhone,
+        branchCode: file.branchCode,
+        role: 'PRINCIPAL',
+        status: 'ACTIVE',
+        active: true,
+        emailVerified: true, // the setup link proves mailbox control
+        // No usable password until the agent sets one via the emailed link.
+        passwordHash: await bcrypt.hash(generateToken(32), 12),
+        resetToken: hashToken(setupRaw),
+        resetTokenExpiry: addHours(new Date(), 48),
+      },
+    });
+    try {
+      await this.mail.sendPortalWelcome(app.email, setupRaw, app.firstName, file.branchCode);
+    } catch (err) {
+      this.logger.error(`portal welcome email failed for ${app.email}: ${(err as Error).message}`);
+    }
+    await this.audit.log({ action: 'agent.portal.provisioned', adminId, entity: 'AgentUser', entityId: user.id, after: { branchCode: file.branchCode } });
+  }
+
   async setStage(id: string, dto: SetStageDto, adminId: string) {
     const file = await this.prisma.agentDDFile.findUnique({
       where: { id },
@@ -347,6 +412,14 @@ export class DDService {
     // Stamp the onboarded date the first time the file goes ACTIVE.
     if (dto.stage === 'ACTIVE' && !file.onboardedAt) data.onboardedAt = new Date();
     const updated = await this.prisma.agentDDFile.update({ where: { id }, data });
+
+    // Lifecycle side effects: ACTIVE issues portal credentials for the branch;
+    // SUSPENDED/TERMINATED cuts portal access for everyone on the branch.
+    if (dto.stage === 'ACTIVE') {
+      await this.provisionPortalAccount(updated as { id: string; branchCode: string | null; applicationId: string | null }, adminId);
+    } else if ((dto.stage === 'SUSPENDED' || dto.stage === 'TERMINATED') && updated.branchCode) {
+      await this.prisma.agentUser.updateMany({ where: { branchCode: updated.branchCode }, data: { active: false } });
+    }
     await this.audit.log({
       action: 'agent.dd.stage.change',
       adminId,
@@ -373,6 +446,7 @@ export class DDService {
     const blockers: string[] = [];
 
     if (!file.riskRating) blockers.push('risk rating is required');
+    if (!(file as { branchCode?: string | null }).branchCode) blockers.push('branch code must be assigned');
     if (!file.lastReviewedAt || !file.reviewedBy) blockers.push('compliance review must be recorded');
 
     const incompleteDocs = file.documents

@@ -5,7 +5,7 @@ import {
   UpdateDocumentDto,
   SetStageDto,
   SetRiskDto,
-  RecordReviewDto,
+  RecordReviewDto, SetBranchCodeDto,
 } from './dto/dd.dto';
 import { AdminJwtAuthGuard } from '../admin-auth/admin-jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -51,6 +51,12 @@ export class DDAdminController {
   @Post(':id/recompute')
   recompute(@Param('id') id: string) {
     return this.dd.recomputeStatuses(id);
+  }
+
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER')
+@Patch(':id/branch-code')
+  setBranchCode(@Param('id') id: string, @Body() dto: SetBranchCodeDto, @CurrentUser('id') adminId: string) {
+    return this.dd.setBranchCode(id, dto.branchCode, adminId);
   }
 
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER')

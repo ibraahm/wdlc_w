@@ -69,21 +69,6 @@ async function handleResponse<T>(res: Response): Promise<T> {
   throw new Error(message);
 }
 
-export async function apiSignup(data: {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  phone?: string;
-} & HumanVerification): Promise<{ ok: boolean; message: string; agent: Agent }> {
-  const res = await safeFetch(`${API}/portal/auth/signup`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  return handleResponse(res);
-}
-
 export async function apiVerifyEmail(token: string): Promise<{ ok: boolean; message: string }> {
   const res = await safeFetch(`${API}/portal/auth/verify-email`, {
     method: 'POST',

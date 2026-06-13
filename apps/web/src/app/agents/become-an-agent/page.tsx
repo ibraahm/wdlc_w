@@ -31,6 +31,15 @@ export default async function BecomeAnAgentPage() {
         <ButtonOnDark href="#apply">Start Your Application</ButtonOnDark>
       </PageHero>
 
+      <div className="bg-[#f8fafc] border-b border-[#e6ebf1]">
+        <div className="mx-auto max-w-6xl px-4 py-3 text-sm text-ink/70">
+          Work at an existing World Direct Link branch?{' '}
+          <a href="/agents/teller-application" className="font-semibold text-primary hover:underline">
+            Apply as a teller instead →
+          </a>
+        </div>
+      </div>
+
       <Section>
         <div className="grid lg:grid-cols-5 gap-10 items-start">
 

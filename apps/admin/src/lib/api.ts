@@ -593,6 +593,7 @@ export interface DDFile {
     updatedAt: string;
   } | null;
   agentName: string;
+  branchCode?: string | null;
   entityType: 'BUSINESS' | 'INDIVIDUAL';
   states: string | null;
   regionalOffice: string | null;
@@ -785,4 +786,43 @@ export async function apiDeleteNavItem(accessToken: string, id: string): Promise
 export async function apiReorderNav(accessToken: string, items: { id: string; order: number }[]): Promise<void> {
   const res = await authFetch('/cms/nav/reorder', accessToken, { method: 'PATCH', body: JSON.stringify({ items }) });
   await handleResponse<void>(res);
+}
+
+export async function apiSetDDBranchCode(accessToken: string, id: string, branchCode: string): Promise<DDFile> {
+  const res = await authFetch(`/admin/agent-dd/${id}/branch-code`, accessToken, { method: 'PATCH', body: JSON.stringify({ branchCode }) });
+  return handleResponse<DDFile>(res);
+}
+
+// ---------------------------------------------------------------------------
+// Teller applications
+// ---------------------------------------------------------------------------
+
+export type TellerApplication = {
+  id: string;
+  branchCode: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  addressLine?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+  signatureName?: string | null;
+  status: string;
+  createdAt: string;
+};
+
+export async function apiListTellerApplications(accessToken: string): Promise<TellerApplication[]> {
+  const res = await authFetch('/admin/teller-applications', accessToken);
+  return handleResponse<TellerApplication[]>(res);
+}
+
+export async function apiUpdateTellerApplication(
+  accessToken: string,
+  id: string,
+  data: { branchCode?: string; status?: string },
+): Promise<TellerApplication> {
+  const res = await authFetch(`/admin/teller-applications/${id}`, accessToken, { method: 'PATCH', body: JSON.stringify(data) });
+  return handleResponse<TellerApplication>(res);
 }

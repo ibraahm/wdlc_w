@@ -24,8 +24,8 @@ function ComplianceChecklist({ agent }: { agent: Agent }) {
     { label: 'Account created', done: true },
     { label: 'Email verified', done: agent.emailVerified },
     { label: 'Account approved by World Direct Link', done: agent.status === 'ACTIVE' },
-    { label: 'Review compliance materials', done: false, link: '/compliance' },
-    { label: 'Complete BSA/AML training', done: false },
+    { label: 'Review compliance materials (coming soon)', done: false },
+    { label: 'Complete BSA/AML training (coming soon)', done: false },
   ];
 
   const completed = steps.filter((s) => s.done).length;
@@ -49,9 +49,7 @@ function ComplianceChecklist({ agent }: { agent: Agent }) {
               {step.done ? '✓' : '○'}
             </span>
             <span style={{ fontSize: '0.84rem', color: step.done ? 'var(--charcoal)' : 'var(--muted)', textDecoration: step.done ? 'none' : 'none' }}>
-              {step.link && !step.done
-                ? <a href={step.link} style={{ color: 'var(--gold)' }}>{step.label}</a>
-                : step.label}
+              {step.label}
             </span>
           </div>
         ))}

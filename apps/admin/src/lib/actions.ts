@@ -28,6 +28,8 @@ import {
   apiSetDDStage,
   apiSetDDRisk,
   apiRecordDDReview,
+  apiSetDDBranchCode,
+  apiUpdateTellerApplication,
   apiCreateNavItem,
   apiUpdateNavItem,
   apiDeleteNavItem,
@@ -543,5 +545,36 @@ export async function reorderNavAction(
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Reorder failed' };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Branch code + teller actions
+// ---------------------------------------------------------------------------
+
+export async function setDDBranchCodeAction(id: string, branchCode: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiSetDDBranchCode(session.accessToken, id, branchCode.trim().toLowerCase());
+    revalidatePath(`/agent-dd/${id}`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
+  }
+}
+
+export async function updateTellerApplicationAction(
+  id: string,
+  data: { branchCode?: string; status?: string },
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiUpdateTellerApplication(session.accessToken, id, data);
+    revalidatePath('/tellers');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
   }
 }
