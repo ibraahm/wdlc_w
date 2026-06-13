@@ -189,12 +189,22 @@ export const licenseDisclosureGeneral =
   'World Direct Link, Corp. is licensed as a money transmitter and is a FinCEN-registered Money Services Business (NMLS ID 1119263). Money transmission is offered only in the states listed above where the company holds an active license. License status and details can be verified on the NMLS Consumer Access website at nmlsconsumeraccess.org. If you have a complaint, first contact World Direct Link consumer assistance at 800-939-7185. If your complaint is not resolved, you may contact your state regulator using the information shown for each state.';
 
 export const stateDisclosures: Record<string, string> = {
+  Alaska:
+    'For Alaska residents only: if your issue is unresolved by World Direct Link, Corp. (NMLS ID 1119263) at 800-939-7185, you may submit a formal complaint to the State of Alaska, Division of Banking & Securities. Download the complaint form at commerce.alaska.gov, and mail it with supporting documents to: Division of Banking & Securities, PO Box 110807, Juneau, AK 99811-0807. Questions: dbs.licensing@alaska.gov or (907) 465-2521.',
+  Colorado:
+    'Colorado residents: if your complaint regarding money transmission services is not resolved by World Direct Link, Corp. at 800-939-7185, you may contact the Colorado Division of Banking at 1560 Broadway, Suite 975, Denver, CO 80202, (303) 894-7575, or banking.colorado.gov.',
+  Georgia:
+    'World Direct Link, Corp. conducts money transmission in Georgia. If you have a complaint or concern regarding the money transmission services, please call customer support at 800-939-7185. For unresolved complaints, contact the Georgia Department of Banking and Finance at 2990 Brandywine Road, Suite 200, Atlanta, GA 30341, or (888) 986-1633.',
+  Maryland:
+    'The Commissioner of Financial Regulation for the State of Maryland will accept questions or complaints from Maryland residents regarding World Direct Link, Corp. (NMLS ID 1119263) at 500 N. Calvert Street, Suite 402, Baltimore, MD 21202; toll-free (888) 784-0136; dllr.state.md.us.',
+  Minnesota:
+    'To report fraud or suspected fraud in connection with money transmission services, please call World Direct Link customer support at 800-939-7185. Minnesota residents may also contact the Minnesota Department of Commerce at (651) 539-1500 or mn.gov/commerce.',
+  Tennessee:
+    'If World Direct Link, Corp. is unable to resolve your question or complaint regarding money transmission services, you may contact the Tennessee Department of Financial Institutions at 312 Rosa L. Parks Avenue, 26th Floor, Nashville, TN 37243, or (615) 253-6714.',
   Texas:
-    'If you have a complaint, first contact the consumer assistance division of World Direct Link, Corp. at 800-939-7185. If you still have an unresolved complaint regarding the company’s money transmission or currency exchange activity, please direct your complaint to: Texas Department of Banking, 2601 North Lamar Boulevard, Austin, Texas 78705, 1-877-276-5554 (toll free), www.dob.texas.gov.',
+    'If you have a complaint, first contact the consumer assistance division of World Direct Link, Corp. at 800-939-7185. If you still have an unresolved complaint regarding the company’s money transmission activity, please direct your complaint to: Texas Department of Banking, 2601 North Lamar Boulevard, Austin, Texas 78705-4294, 1-877-276-5554 (toll free), consumer.complaints@dob.texas.gov, www.dob.texas.gov.',
   Washington:
-    'Washington residents: if your complaint is not resolved by World Direct Link, you may file a complaint with the Washington State Department of Financial Institutions, Division of Consumer Services, at 1-877-746-4334 or dfi.wa.gov.',
-  California:
-    'California residents: if you have complaints about this money transmitter, please contact the California Department of Financial Protection and Innovation (DFPI) toll-free at 1-866-275-2677 or dfpi.ca.gov.',
+    'You should be aware that fraud may and does occur, and that fraudulent transactions may result in the loss of your money with no recourse. If you have questions or concerns regarding a transaction with World Direct Link, Corp., contact the Washington State Department of Financial Institutions, Division of Consumer Services, at (360) 902-8703, by mail at 150 Israel Road SW, Olympia, WA 98501, or file a complaint at dfi.wa.gov.',
 };
 
 
