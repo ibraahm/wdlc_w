@@ -15,7 +15,7 @@ const resources = [
   { title: 'OFAC', body: 'Office of Foreign Assets Control — U.S. Department of the Treasury', href: 'https://ofac.treasury.gov' },
   { title: 'Consumer Financial Protection Bureau', body: 'Consumer financial education and complaint submission', href: 'https://www.consumerfinance.gov' },
   { title: 'NMLS Consumer Access', body: 'Verify World Direct Link licenses and registration', href: 'https://www.nmlsconsumeraccess.org' },
-  { title: 'WDL Help Center', body: 'Consumer disclosures and refund / error-resolution policy', href: '/support/help' },
+  { title: 'World Direct Link Help Center', body: 'Consumer disclosures and refund / error-resolution policy', href: '/support/help' },
 ];
 
 export default async function ResourcesPage() {

@@ -33,7 +33,7 @@ const rights = [
 const faqs = [
   {
     q: 'How do I send money?',
-    a: 'Visit any authorized WDL agent in person. Bring a valid government-issued photo ID and your recipient\'s name and contact details. Your agent will walk you through the transfer and provide a receipt with all fees and amounts disclosed upfront.',
+    a: 'Visit any authorized World Direct Link agent in person. Bring a valid government-issued photo ID and your recipient\'s name and contact details. Your agent will walk you through the transfer and provide a receipt with all fees and amounts disclosed upfront.',
   },
   {
     q: 'What ID do I need?',

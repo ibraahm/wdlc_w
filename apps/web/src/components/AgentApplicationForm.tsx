@@ -46,7 +46,7 @@ const US_STATES = [
 
 const HOW_FOUND = [
   'Advertisement in newspaper / publication', 'Social media (eg Facebook)', 'Word of mouth',
-  'WDL Sales representative', 'WDL website', 'Other',
+  'World Direct Link sales representative', 'World Direct Link website', 'Other',
 ];
 
 const BUSINESS_TYPES = [

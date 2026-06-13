@@ -58,7 +58,7 @@ async function bootstrap() {
   // BIND_HOST=0.0.0.0 only if you intentionally expose it (not recommended).
   const host = process.env.BIND_HOST || '127.0.0.1';
   await app.listen(port, host);
-  app.get(Logger).log(`WDLC backend listening on http://${host}:${port}/api`);
+  app.get(Logger).log(`World Direct Link backend listening on http://${host}:${port}/api`);
 
   // Startup route validation: log how many routes registered and, specifically,
   // the nav routes. This proves whether THIS running build actually serves

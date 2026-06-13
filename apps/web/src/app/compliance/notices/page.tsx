@@ -7,7 +7,7 @@ export async function generateMetadata() {
   const page = await getCmsPage('compliance/notices');
   return cmsMetadata(page, {
     title: 'Agent Regulatory Notices | World Direct Link',
-    description: 'Regulatory notices, posting requirements, and compliance updates for authorized WDL agents.',
+    description: 'Regulatory notices, posting requirements, and compliance updates for authorized World Direct Link agents.',
   });
 }
 
@@ -21,7 +21,7 @@ export default async function NoticesPage() {
       <PageHero
         eyebrow="Compliance"
         title="Agent Regulatory Notices"
-        subtitle="Posting requirements and updates for authorized WDL agents."
+        subtitle="Posting requirements and updates for authorized World Direct Link agents."
       />
 
       <Section>

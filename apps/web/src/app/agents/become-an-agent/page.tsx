@@ -6,7 +6,7 @@ import BlockRenderer from '@/components/BlockRenderer';
 export async function generateMetadata() {
   const page = await getCmsPage('agents/become-an-agent');
   return cmsMetadata(page, {
-    title: 'Become a WDL Agent | World Direct Link',
+    title: 'Become an Agent | World Direct Link',
     description: 'Partner with World Direct Link to offer money transfer services, earn commissions, and serve your community with ongoing support.',
   });
 }
@@ -25,7 +25,7 @@ export default async function BecomeAnAgentPage() {
     <>
       <PageHero
         eyebrow="Agents & Partners"
-        title="Become a WDL Agent"
+        title="Become a World Direct Link Agent"
         subtitle="Partner with a licensed money transmitter. Earn commissions and serve your community."
       >
         <ButtonOnDark href="#apply">Start Your Application</ButtonOnDark>

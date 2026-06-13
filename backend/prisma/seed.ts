@@ -38,7 +38,7 @@ async function main() {
   const admin = await prisma.adminUser.upsert({
     where: { email },
     update: {},
-    create: { email, passwordHash, name: 'WDLC Administrator', role: 'SUPER_ADMIN' },
+    create: { email, passwordHash, name: 'World Direct Link Administrator', role: 'SUPER_ADMIN' },
   });
   console.log(`Seeded admin: ${admin.email}`);
 
@@ -149,18 +149,18 @@ async function main() {
     { slug: 'licenses',                  title: 'Licenses & Regulatory Disclosures',     description: 'Licensed, registered, and verifiable. NMLS ID 1119263.' },
     { slug: 'support/contact',             title: 'Contact Us',                            description: "We're here to help — reach our headquarters or send us a message." },
     { slug: 'services',                  title: 'Our Services',                          description: 'One link. Every way to deliver.' },
-    { slug: 'services/send-money',       title: 'Send Money',                            description: 'Send money quickly and affordably at any authorized WDL agent.' },
+    { slug: 'services/send-money',       title: 'Send Money',                            description: 'Send money quickly and affordably at any authorized World Direct Link agent.' },
     { slug: 'services/cash-pickup',      title: 'Cash Pickup',                           description: 'Recipients can collect funds in U.S. dollars at a participating payout location.' },
     { slug: 'services/bank-deposit',     title: 'Bank Deposit',                          description: "Deliver funds directly to a recipient's bank account where available." },
     { slug: 'services/mobile-wallet',    title: 'Mobile Wallet Payout',                  description: 'Recipients can receive funds to a supported mobile wallet where available.' },
     { slug: 'services/track',            title: 'Track Your Transfer',                   description: 'Check the status of a transfer using your transaction ID.' },
-    { slug: 'agents/become-an-agent',    title: 'Become a WDL Agent',                   description: 'Grow with a trusted principal.' },
+    { slug: 'agents/become-an-agent',    title: 'Become an Agent',                   description: 'Grow with a trusted principal.' },
     { slug: 'agents/resources',          title: 'Agent Resources',                       description: 'Tools and documents World Direct Link authorized delegates need to stay compliant.' },
     { slug: 'agents/partners',           title: 'Our Partners',                          description: 'World Direct Link works with established correspondent partners to deliver funds reliably worldwide.' },
     { slug: 'compliance',                title: 'Compliance & Anti-Money Laundering',    description: 'Compliance you can count on.' },
     { slug: 'compliance/fraud',          title: 'Protect Yourself from Fraud',           description: 'Stay alert, stay safe.' },
     { slug: 'compliance/report',         title: 'Report Fraud or File a Complaint',      description: 'One secure intake for fraud, suspicious activity, transaction concerns, refund issues, and agent conduct.' },
-    { slug: 'compliance/notices',        title: 'Agent Regulatory Notices',              description: 'Posting requirements and updates for authorized WDL agents.' },
+    { slug: 'compliance/notices',        title: 'Agent Regulatory Notices',              description: 'Posting requirements and updates for authorized World Direct Link agents.' },
     { slug: 'compliance/law-enforcement',title: 'Law Enforcement Requests',              description: 'World Direct Link cooperates fully with lawful requests from law enforcement.' },
     { slug: 'compliance/resources',      title: 'Compliance Resources',                  description: 'Helpful references for customers, agents, and partners.' },
     { slug: 'news',                      title: 'Newsroom',                              description: 'Stay up to date on World Direct Link news, community initiatives, and service updates.' },
