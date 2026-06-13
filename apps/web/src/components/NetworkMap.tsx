@@ -329,8 +329,52 @@ export default function NetworkMap({ countries }: { countries: NetworkCountryDat
         },
       }).addTo(map);
 
+      // Fill each covered country's shape with its flag (SVG pattern), so the
+      // polygon shows the flag's colors instead of a flat gold fill. Leaflet
+      // writes options.fillColor straight to the SVG `fill`, so a url(#pattern)
+      // reference works and survives later setStyle calls.
+      function applyFlagFills() {
+        if (!geoLayer.current || !mapInstance.current) return;
+        const svg = mapInstance.current.getPanes().overlayPane.querySelector('svg');
+        if (!svg) return;
+        const NS = 'http://www.w3.org/2000/svg';
+        let defs = svg.querySelector('defs');
+        if (!defs) {
+          defs = document.createElementNS(NS, 'defs');
+          svg.insertBefore(defs, svg.firstChild);
+        }
+        geoLayer.current.eachLayer((layer) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const l = layer as any;
+          const name = normalizeName(l.feature.properties.name as string);
+          const data = countryMapRef.current.get(name);
+          if (!data) return; // leave USA (origin) and uncovered countries as-is
+          const code = COUNTRY_CODES[name]?.toLowerCase();
+          const flag = safeFlagUrl(data.flagUrl) || (code ? `https://flagcdn.com/w320/${code}.png` : '');
+          if (!flag) return;
+          const id = `wdlflag-${code || name.replace(/[^a-z0-9]/gi, '')}`;
+          if (!defs!.querySelector(`#${id}`)) {
+            const pat = document.createElementNS(NS, 'pattern');
+            pat.setAttribute('id', id);
+            pat.setAttribute('patternContentUnits', 'objectBoundingBox');
+            pat.setAttribute('width', '1');
+            pat.setAttribute('height', '1');
+            const img = document.createElementNS(NS, 'image');
+            img.setAttribute('href', flag);
+            img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', flag);
+            img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+            img.setAttribute('width', '1');
+            img.setAttribute('height', '1');
+            pat.appendChild(img);
+            defs!.appendChild(pat);
+          }
+          l.setStyle({ fillColor: `url(#${id})`, fillOpacity: 1, weight: 1, color: '#ffffff' });
+        });
+      }
+
       drawConnections();
       drawFlagMarkers();
+      applyFlagFills();
       setReady(true);
     }
 
