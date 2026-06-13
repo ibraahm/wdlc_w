@@ -91,8 +91,9 @@ async function main() {
     await prisma.navItem.createMany({ data: [
       { label: 'Find an Agent', href: '/find-an-agent', parentId: agents.id, location: 'HEADER', order: 1 },
       { label: 'Become an Agent', href: '/agents/become-an-agent', parentId: agents.id, location: 'HEADER', order: 2 },
-      { label: 'Agent Resources', href: '/agents/resources', parentId: agents.id, location: 'HEADER', order: 3 },
-      { label: 'Partners', href: '/agents/partners', parentId: agents.id, location: 'HEADER', order: 4 },
+      { label: 'Teller Application', href: '/agents/teller-application', parentId: agents.id, location: 'HEADER', order: 3 },
+      { label: 'Agent Resources', href: '/agents/resources', parentId: agents.id, location: 'HEADER', order: 4 },
+      { label: 'Partners', href: '/agents/partners', parentId: agents.id, location: 'HEADER', order: 5 },
     ]});
 
     const compliance = await prisma.navItem.create({ data: { label: 'Compliance', href: '/compliance', location: 'HEADER', order: 5 } });
@@ -126,6 +127,7 @@ async function main() {
       f('Track Transfer', '/services/track', 'Services'),
 
       f('Become an Agent', '/agents/become-an-agent', 'Agents & Partners'),
+      f('Teller Application', '/agents/teller-application', 'Agents & Partners'),
       f('Agent Resources', '/agents/resources', 'Agents & Partners'),
       f('Partners', '/agents/partners', 'Agents & Partners'),
 
