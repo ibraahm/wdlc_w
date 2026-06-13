@@ -1,9 +1,10 @@
 /**
- * Embedded OpenStreetMap for World Direct Link HQ.
- * Uses OSM export iframe — no API key required.
- * Coordinates: 5405 Memorial Drive, Suite A104, Stone Mountain, GA 30083
- *   lat ≈ 33.7930, lon ≈ -84.1820
+ * Embedded Google Map for World Direct Link HQ.
+ * Uses Google's keyless `output=embed` map — free, no API key required.
+ * Address: 5405 Memorial Drive, Suite A104, Stone Mountain, GA 30083
  */
+const HQ_QUERY = '5405 Memorial Drive, Suite A104, Stone Mountain, GA 30083';
+
 export default function HQMap({
   label = 'World Direct Link Corporate Headquarters — 5405 Memorial Drive, Stone Mountain, GA',
   height = 340,
@@ -11,12 +12,9 @@ export default function HQMap({
   label?: string;
   height?: number;
 }) {
-  const lat = 33.793;
-  const lon = -84.182;
-  const delta = 0.018;
-  const bbox = `${lon - delta},${lat - delta},${lon + delta},${lat + delta}`;
-  const src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`;
-  const fullLink = `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lon}#map=15/${lat}/${lon}`;
+  const q = encodeURIComponent(HQ_QUERY);
+  const src = `https://www.google.com/maps?q=${q}&output=embed`;
+  const fullLink = `https://www.google.com/maps/search/?api=1&query=${q}`;
 
   return (
     <div className="overflow-hidden rounded-xl border border-[#d9e0e8] bg-gray-100">
@@ -28,6 +26,7 @@ export default function HQMap({
         style={{ border: 0, display: 'block' }}
         loading="lazy"
         referrerPolicy="no-referrer-when-downgrade"
+        allowFullScreen
         aria-label={label}
       />
       <a
