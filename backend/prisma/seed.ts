@@ -194,6 +194,14 @@ async function main() {
   }
   console.log(`Seeded ${createdPages} new page(s); ${pages.length - createdPages} already existed`);
 
+  // The page seed above is create-only, so refresh the home page content once
+  // to pick up corrected homeBlocks (removed unverified marketing figures).
+  // Bump the version suffix whenever homeBlocks changes and a refresh is wanted.
+  await seedOnce('home.blocks.v2', async () => {
+    const res = await prisma.page.updateMany({ where: { slug: 'home' }, data: { blocks: JSON.stringify(homeBlocks) } });
+    if (res.count) console.log('Refreshed home page blocks');
+  });
+
   // Global payout network map countries from the legacy Elementor map.
   // Additive: existing admin-edited countries are preserved.
   await seedOnce('network.countries.v1', async () => {
