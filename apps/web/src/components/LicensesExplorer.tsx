@@ -37,14 +37,29 @@ export default function LicensesExplorer({
 }) {
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [onlyDisclosures, setOnlyDisclosures] = useState(false);
+
+  const disclosureCount = useMemo(() => rows.filter((r) => r.disclosure).length, [rows]);
+
+  // States that mandate a specific consumer disclosure sort to the top
+  // (alphabetically), then the rest alphabetically.
+  const sorted = useMemo(() => {
+    return [...rows].sort((a, b) => {
+      const ad = a.disclosure ? 0 : 1;
+      const bd = b.disclosure ? 0 : 1;
+      if (ad !== bd) return ad - bd;
+      return a.state.localeCompare(b.state);
+    });
+  }, [rows]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter(
-      (r) => r.state.toLowerCase().includes(q) || r.number.toLowerCase().includes(q),
-    );
-  }, [rows, query]);
+    return sorted.filter((r) => {
+      if (onlyDisclosures && !r.disclosure) return false;
+      if (!q) return true;
+      return r.state.toLowerCase().includes(q) || r.number.toLowerCase().includes(q);
+    });
+  }, [sorted, query, onlyDisclosures]);
 
   return (
     <div>
@@ -52,6 +67,17 @@ export default function LicensesExplorer({
       <div className="rounded-xl border border-blue-100 bg-blue-50/60 px-5 py-4 text-sm text-gray-700 leading-relaxed">
         {generalDisclosure}
       </div>
+
+      {/* Required-disclosure notice */}
+      {disclosureCount > 0 && (
+        <div className="mt-4 flex items-start gap-3 rounded-xl border border-[#e6d9b0] bg-[#fcf8ec] px-5 py-4">
+          <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#b8860b] text-xs font-bold text-white">!</span>
+          <p className="text-sm leading-relaxed text-gray-700">
+            <span className="font-semibold text-primary-strong">{disclosureCount} state{disclosureCount === 1 ? '' : 's'} require a specific consumer disclosure.</span>{' '}
+            These are listed first and marked <span className="font-semibold text-[#9a6b00]">“Consumer disclosure.”</span> If you reside in one of these states, please review its required notice below.
+          </p>
+        </div>
+      )}
 
       {/* Controls */}
       <div className="mt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -67,9 +93,22 @@ export default function LicensesExplorer({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
           </svg>
         </div>
-        <p className="text-sm text-gray-500">
-          {filtered.length} of {rows.length} jurisdictions
-        </p>
+        <div className="flex items-center gap-4">
+          {disclosureCount > 0 && (
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-600">
+              <input
+                type="checkbox"
+                checked={onlyDisclosures}
+                onChange={(e) => setOnlyDisclosures(e.target.checked)}
+                className="h-4 w-4 accent-[#b8860b]"
+              />
+              Only states with a required disclosure
+            </label>
+          )}
+          <p className="text-sm text-gray-500">
+            {filtered.length} of {rows.length} jurisdictions
+          </p>
+        </div>
       </div>
 
       {/* Table */}
@@ -100,7 +139,16 @@ export default function LicensesExplorer({
                       className="cursor-pointer odd:bg-white even:bg-gray-50 hover:bg-blue-50/50 transition-colors"
                       onClick={() => setExpanded(open ? null : r.state)}
                     >
-                      <td className="px-5 py-3 font-medium text-gray-900">{r.state}</td>
+                      <td className="px-5 py-3 font-medium text-gray-900">
+                        <span className="flex flex-wrap items-center gap-2">
+                          {r.state}
+                          {r.disclosure && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-[#fcf8ec] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#9a6b00] ring-1 ring-[#e6d9b0]">
+                              Consumer disclosure
+                            </span>
+                          )}
+                        </span>
+                      </td>
                       <td className="px-5 py-3 text-gray-700">{r.number}</td>
                       <td className="px-5 py-3 text-gray-600">{r.since ?? 'On file (NMLS)'}</td>
                       <td className="px-5 py-3"><StatusBadge status={r.status} /></td>
@@ -132,9 +180,12 @@ export default function LicensesExplorer({
                               </div>
                             )}
                             {r.disclosure && (
-                              <div className="md:col-span-2">
-                                <dt className="text-xs font-semibold uppercase tracking-wide text-gray-400">Required consumer disclosure</dt>
-                                <dd className="text-sm text-gray-700 leading-relaxed">{r.disclosure}</dd>
+                              <div className="md:col-span-2 rounded-lg border-l-4 border-[#b8860b] bg-[#fcf8ec] px-4 py-3">
+                                <dt className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[#9a6b00]">
+                                  <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#b8860b] text-[10px] text-white">!</span>
+                                  Required consumer disclosure — {r.state}
+                                </dt>
+                                <dd className="mt-2 text-sm leading-relaxed text-gray-800">{r.disclosure}</dd>
                               </div>
                             )}
                           </dl>
