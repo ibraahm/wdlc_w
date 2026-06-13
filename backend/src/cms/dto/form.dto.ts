@@ -1,6 +1,7 @@
 import {
   IsArray,
   IsBoolean,
+  IsIn,
   IsObject,
   IsOptional,
   IsString,
@@ -36,4 +37,18 @@ export class SubmitFormDto {
   @IsOptional() @IsString() @MaxLength(120) verificationAction?: string;
   @IsOptional() @IsString() @MaxLength(3000) humanVerificationToken?: string;
   @IsOptional() @IsString() @MaxLength(40) humanVerificationAnswer?: string;
+}
+
+export class SetSubmissionStatusDto {
+  @IsString() @IsIn(['NEW', 'IN_PROGRESS', 'RESPONDED', 'CLOSED']) status: string;
+  @IsOptional() @IsString() @MaxLength(120) assignee?: string;
+}
+
+export class SubmissionNoteDto {
+  @IsString() @MaxLength(5000) body: string;
+}
+
+export class SubmissionReplyDto {
+  @IsString() @MaxLength(200) subject: string;
+  @IsString() @MaxLength(8000) body: string;
 }

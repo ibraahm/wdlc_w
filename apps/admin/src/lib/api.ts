@@ -437,11 +437,24 @@ export type WebsiteForm = {
   submissionCount?: number;
 };
 
+export type SubmissionMessage = {
+  id: string;
+  kind: 'REPLY' | 'NOTE';
+  body: string;
+  toEmail?: string | null;
+  authorName?: string | null;
+  emailError?: string | null;
+  createdAt: string;
+};
+
 export type WebsiteSubmission = {
   id: string;
   status: string;
+  assignee?: string | null;
   data: Record<string, unknown>;
   createdAt: string;
+  updatedAt?: string;
+  messages?: SubmissionMessage[];
 };
 
 export async function apiListWebsiteForms(accessToken: string): Promise<WebsiteForm[]> {
@@ -825,4 +838,19 @@ export async function apiUpdateTellerApplication(
 ): Promise<TellerApplication> {
   const res = await authFetch(`/admin/teller-applications/${id}`, accessToken, { method: 'PATCH', body: JSON.stringify(data) });
   return handleResponse<TellerApplication>(res);
+}
+
+export async function apiSetSubmissionStatus(accessToken: string, submissionId: string, status: string, assignee?: string): Promise<void> {
+  const res = await authFetch(`/cms/forms/submissions/${submissionId}/status`, accessToken, { method: 'PATCH', body: JSON.stringify({ status, assignee }) });
+  await handleResponse<void>(res);
+}
+
+export async function apiAddSubmissionNote(accessToken: string, submissionId: string, body: string): Promise<SubmissionMessage> {
+  const res = await authFetch(`/cms/forms/submissions/${submissionId}/note`, accessToken, { method: 'POST', body: JSON.stringify({ body }) });
+  return handleResponse<SubmissionMessage>(res);
+}
+
+export async function apiReplySubmission(accessToken: string, submissionId: string, subject: string, body: string): Promise<SubmissionMessage> {
+  const res = await authFetch(`/cms/forms/submissions/${submissionId}/reply`, accessToken, { method: 'POST', body: JSON.stringify({ subject, body }) });
+  return handleResponse<SubmissionMessage>(res);
 }

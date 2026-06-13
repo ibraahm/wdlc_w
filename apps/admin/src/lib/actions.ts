@@ -30,6 +30,9 @@ import {
   apiRecordDDReview,
   apiSetDDBranchCode,
   apiUpdateTellerApplication,
+  apiSetSubmissionStatus,
+  apiAddSubmissionNote,
+  apiReplySubmission,
   apiCreateNavItem,
   apiUpdateNavItem,
   apiDeleteNavItem,
@@ -576,5 +579,47 @@ export async function updateTellerApplicationAction(
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Website submission case management
+// ---------------------------------------------------------------------------
+
+export async function setSubmissionStatusAction(submissionId: string, status: string, assignee?: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiSetSubmissionStatus(session.accessToken, submissionId, status, assignee);
+    revalidatePath('/submissions');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
+  }
+}
+
+export async function addSubmissionNoteAction(submissionId: string, body: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  if (!body.trim()) return { ok: false, error: 'Note cannot be empty' };
+  try {
+    await apiAddSubmissionNote(session.accessToken, submissionId, body.trim());
+    revalidatePath('/submissions');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Failed to add note' };
+  }
+}
+
+export async function replySubmissionAction(submissionId: string, subject: string, body: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  if (!subject.trim() || !body.trim()) return { ok: false, error: 'Subject and message are required' };
+  try {
+    await apiReplySubmission(session.accessToken, submissionId, subject.trim(), body.trim());
+    revalidatePath('/submissions');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Reply failed' };
   }
 }

@@ -6,10 +6,11 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { CreateFormDto, UpdateFormDto } from './dto/form.dto';
+import { MailService } from '../common/mail.service';
 
 @Injectable()
 export class FormService {
-  constructor(private prisma: PrismaService, private audit: AuditService) {}
+  constructor(private prisma: PrismaService, private audit: AuditService, private mail: MailService) {}
 
   // ── Public ────────────────────────────────────────────────────────────────
   // Returns a published form by slug with its parsed field definitions.
@@ -126,13 +127,66 @@ export class FormService {
     const subs = await this.prisma.formSubmission.findMany({
       where: { formId: id },
       orderBy: { createdAt: 'desc' },
+      include: { messages: { orderBy: { createdAt: 'asc' } } },
     });
     return subs.map((s) => ({
       id: s.id,
       status: s.status,
+      assignee: s.assignee,
       data: this.safeParse(s.data),
       createdAt: s.createdAt,
+      updatedAt: s.updatedAt,
+      messages: s.messages,
     }));
+  }
+
+  // ── Case management: status, internal notes, emailed replies ──────────────
+  private submitterEmail(data: unknown): string | null {
+    const d = (data ?? {}) as Record<string, unknown>;
+    const v = d.email ?? d.emailAddress ?? d.Email;
+    return typeof v === 'string' && v.includes('@') ? v : null;
+  }
+
+  async setSubmissionStatus(submissionId: string, status: string, adminId: string, assignee?: string) {
+    const updated = await this.prisma.formSubmission.update({
+      where: { id: submissionId },
+      data: { status, ...(assignee !== undefined ? { assignee } : {}) },
+    });
+    await this.audit.log({ action: 'form.submission.status', adminId, entity: 'FormSubmission', entityId: submissionId, after: { status } });
+    return updated;
+  }
+
+  async addNote(submissionId: string, body: string, admin: { id: string; name?: string }) {
+    const msg = await this.prisma.submissionMessage.create({
+      data: { submissionId, kind: 'NOTE', body, authorId: admin.id, authorName: admin.name },
+    });
+    await this.prisma.formSubmission.update({ where: { id: submissionId }, data: { updatedAt: new Date() } });
+    await this.audit.log({ action: 'form.submission.note', adminId: admin.id, entity: 'FormSubmission', entityId: submissionId });
+    return msg;
+  }
+
+  async reply(submissionId: string, subject: string, body: string, admin: { id: string; name?: string }) {
+    const sub = await this.prisma.formSubmission.findUnique({ where: { id: submissionId } });
+    if (!sub) throw new NotFoundException('Submission not found');
+    const to = this.submitterEmail(this.safeParse(sub.data));
+    if (!to) throw new BadRequestException('This submission has no email address to reply to.');
+
+    let emailError: string | null = null;
+    try {
+      await this.mail.sendSubmissionReply(to, subject, body);
+    } catch (err) {
+      emailError = (err as Error).message;
+    }
+    const msg = await this.prisma.submissionMessage.create({
+      data: { submissionId, kind: 'REPLY', body, toEmail: to, authorId: admin.id, authorName: admin.name, emailError },
+    });
+    await this.prisma.formSubmission.update({
+      where: { id: submissionId },
+      data: { status: 'RESPONDED', updatedAt: new Date() },
+    });
+    await this.audit.log({ action: 'form.submission.reply', adminId: admin.id, entity: 'FormSubmission', entityId: submissionId, after: { to, emailError } });
+    if (emailError) throw new BadRequestException(`Reply saved but email failed to send: ${emailError}`);
+    return msg;
   }
 
   async deleteSubmission(submissionId: string, adminId: string) {

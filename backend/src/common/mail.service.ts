@@ -135,6 +135,20 @@ export class MailService {
   }
 
   /** Activation credential email — one-time setup link (48h) instead of a password. */
+  /** A staff reply to a public form submission (contact / claim / support). */
+  sendSubmissionReply(to: string, subject: string, message: string) {
+    const safe = message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br/>');
+    return this.sendRaw(
+      to,
+      subject,
+      emailLayout('World Direct Link', `
+        <p>${safe}</p>
+        <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0"/>
+        <p style="font-size:12px;color:#6b7280">This message is in reference to your submission on worlddirectlink.com. You may reply to this email.</p>
+      `),
+    );
+  }
+
   sendPortalWelcome(to: string, token: string, firstName: string, branchCode: string) {
     const base = process.env.PORTAL_BASE_URL || 'http://localhost:3001';
     const link = `${base}/reset-password?token=${token}&welcome=1`;
