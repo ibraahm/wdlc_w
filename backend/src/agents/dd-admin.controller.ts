@@ -28,6 +28,11 @@ export class DDAdminController {
     return this.dd.attentionDashboard();
   }
 
+  @Get('branches')
+  branches() {
+    return this.dd.listActiveBranches();
+  }
+
   @Get(':id')
   get(@Param('id') id: string) {
     return this.dd.get(id);
