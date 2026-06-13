@@ -774,3 +774,41 @@ input::placeholder, textarea::placeholder { color: rgba(250, 250, 247, 0.4); }
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ── Corporate article body (news / press) ─────────────────────────────── */
+.article-body {
+  font-family: var(--body);
+  color: #334155;
+  font-size: 1.075rem;
+  line-height: 1.8;
+}
+.article-body > * + * { margin-top: 1.15rem; }
+.article-body h2 {
+  font-family: var(--display);
+  color: #13325f;
+  font-size: 1.6rem;
+  line-height: 1.25;
+  margin-top: 2.25rem;
+}
+.article-body h3 {
+  font-family: var(--display);
+  color: #13325f;
+  font-size: 1.3rem;
+  margin-top: 1.75rem;
+}
+.article-body a { color: #13325f; text-decoration: underline; }
+.article-body a:hover { color: #b8860b; }
+.article-body ul,
+.article-body ol { padding-left: 1.4rem; }
+.article-body ul { list-style: disc; }
+.article-body ol { list-style: decimal; }
+.article-body li + li { margin-top: 0.4rem; }
+.article-body blockquote {
+  border-left: 3px solid #b8860b;
+  padding-left: 1.1rem;
+  font-style: italic;
+  color: #475569;
+}
+.article-body img { border-radius: 0.75rem; margin: 1.5rem 0; }
+.article-body strong { color: #1e293b; }
+.article-body hr { border: none; border-top: 1px solid #e2e8f0; margin: 2rem 0; }
