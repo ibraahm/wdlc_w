@@ -46,8 +46,7 @@ const BUSINESS_TYPES = [
 ];
 
 const PRODUCTS = [
-  'Money Transfer - Sends Only',
-  'Money Transfer - Sends and Receives',
+  'Money Transmission',
 ];
 
 const HOW_FOUND = [

@@ -54,7 +54,7 @@ const BUSINESS_TYPES = [
   'Multi Service', 'Pharmacy', 'Port', 'Other', 'Biller (Receiving Payments)',
 ];
 
-const PRODUCTS = ['Money Transfer - Sends and Receives'];
+const PRODUCTS = ['Money Transmission'];
 
 const LANGUAGES = ['English', 'Spanish', 'French', 'Arabic', 'Somali', 'Amharic', 'Other'];
 
