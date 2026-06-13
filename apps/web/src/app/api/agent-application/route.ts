@@ -10,19 +10,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
+  // Preserve the real client IP across the proxy hop so the backend records the
+  // signer's actual IP (not the web server's 127.0.0.1) on the e-signature.
+  const clientIp =
+    req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
+    req.headers.get('x-real-ip') ||
+    req.ip ||
+    '';
+
   try {
-    if (process.env.NODE_ENV !== 'production') {
-      const maybeBody = body as { humanVerificationToken?: unknown; productsOffered?: unknown };
-      console.info('[agent-application api] forwarding submit', {
-        apiBase: API,
-        humanTokenPresent:
-          typeof maybeBody.humanVerificationToken === 'string' && maybeBody.humanVerificationToken.length > 0,
-        product: maybeBody.productsOffered,
-      });
-    }
     const res = await fetch(`${API}/agents/apply`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(clientIp ? { 'x-forwarded-for': clientIp, 'x-real-ip': clientIp } : {}),
+      },
       body: JSON.stringify(body),
     });
     const text = await res.text();

@@ -60,7 +60,7 @@ const LANGUAGES = ['English', 'Spanish', 'French', 'Arabic', 'Somali', 'Amharic'
 
 const VOLUMES = ['1 - 50 items', '51 - 250 items', '251 - 1,000 items', 'Over 1,000 items'];
 
-const DOLLAR_VOLUMES = ['Under $10,000', '$10,000 - $50,000', '$50,000 - $250,000', '$250,000 - $500,000', '$500,000 - $1,000,000', 'Over $1,000,000'];
+const DOLLAR_VOLUMES = ['$0 - $50,000', '$50,000 - $100,000', '$100,000 - $250,000', '$250,000 - $500,000', '$500,000 - $1,000,000', 'Over $1,000,000'];
 
 const inputCls =
   'w-full rounded-lg border border-[#d9e0e8] bg-white px-3 py-2 text-ink focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none';
