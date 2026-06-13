@@ -121,16 +121,6 @@ function safeFlagUrl(flagUrl?: string): string {
   return '';
 }
 
-function flagMarkerHtml(country: string, flagUrl?: string): string {
-  const safeUrl = safeFlagUrl(flagUrl) || flagImageUrl(country);
-  const label = escapeHtml(`${country} flag`);
-
-  if (safeUrl) {
-    return `<span class="wdl-map-flag-marker" title="${escapeHtml(country)}"><img src="${escapeHtml(safeUrl)}" alt="${label}" /></span>`;
-  }
-
-  return `<span class="wdl-map-flag-marker wdl-map-flag-marker--fallback" aria-label="${label}" title="${escapeHtml(country)}">${escapeHtml(country.slice(0, 2).toUpperCase())}</span>`;
-}
 
 function FlagMark({
   country,
@@ -226,35 +216,6 @@ export default function NetworkMap({ countries }: { countries: NetworkCountryDat
         setPanel(data ? { ...data } : { name: 'United States', payoutTypes: ['Origin country'], flagUrl: undefined });
       }
 
-      function drawFlagMarkers() {
-        if (!geoLayer.current || !flagLayer.current) return;
-        flagLayer.current.clearLayers();
-
-        geoLayer.current.eachLayer((layer) => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const l = layer as any;
-          const feat = l.feature as { properties: { name: string } };
-          const name = normalizeName(feat.properties.name);
-          const isUSA = name === 'United States of America';
-          const data = countryMapRef.current.get(name);
-          if (!data && !isUSA) return;
-
-          const bounds = l.getBounds();
-          const markerCountry = data?.name ?? 'United States';
-          const marker = L.marker(bounds.getCenter(), {
-            icon: L.divIcon({
-              className: 'wdl-map-flag-icon',
-              html: flagMarkerHtml(markerCountry, data?.flagUrl),
-              iconSize: [36, 28],
-              iconAnchor: [18, 14],
-            }),
-            keyboard: true,
-            title: markerCountry,
-          });
-          marker.on('click', () => selectCountry(l, data));
-          marker.addTo(flagLayer.current!);
-        });
-      }
 
       function drawConnections() {
         const svgEl = svgRef.current;
@@ -362,7 +323,9 @@ export default function NetworkMap({ countries }: { countries: NetworkCountryDat
             const img = document.createElementNS(NS, 'image');
             img.setAttribute('href', flag);
             img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', flag);
-            img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+            // Stretch to the country's bounding box (then clipped to its borders)
+            // — reliable across browsers; the flag's colors always fill the shape.
+            img.setAttribute('preserveAspectRatio', 'none');
             img.setAttribute('width', '1');
             img.setAttribute('height', '1');
             pat.appendChild(img);
@@ -373,8 +336,8 @@ export default function NetworkMap({ countries }: { countries: NetworkCountryDat
       }
 
       drawConnections();
-      drawFlagMarkers();
       applyFlagFills();
+      map.on('zoomend moveend', applyFlagFills);
       setReady(true);
     }
 
