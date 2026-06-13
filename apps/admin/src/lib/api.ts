@@ -854,3 +854,39 @@ export async function apiReplySubmission(accessToken: string, submissionId: stri
   const res = await authFetch(`/cms/forms/submissions/${submissionId}/reply`, accessToken, { method: 'POST', body: JSON.stringify({ subject, body }) });
   return handleResponse<SubmissionMessage>(res);
 }
+
+// ---------------------------------------------------------------------------
+// Active agent branches (register of live agents + their portal users)
+// ---------------------------------------------------------------------------
+
+export type BranchUser = {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string | null;
+  role: string; // PRINCIPAL | TELLER
+  status: string;
+  active: boolean;
+  lastLoginAt?: string | null;
+};
+
+export type AgentBranch = {
+  id: string;
+  branchCode: string;
+  agentName: string;
+  stage: string;
+  riskRating: string | null;
+  nextReviewDueAt: string | null;
+  lastReviewedAt: string | null;
+  reviewDue: boolean;
+  compliant: boolean;
+  summary: Record<string, number>;
+  application?: { firstName: string; lastName: string; email: string; businessCity?: string | null; businessState?: string | null } | null;
+  users: BranchUser[];
+};
+
+export async function apiListBranches(accessToken: string): Promise<AgentBranch[]> {
+  const res = await authFetch('/admin/agent-dd/branches', accessToken);
+  return handleResponse<AgentBranch[]>(res);
+}

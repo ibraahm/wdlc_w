@@ -197,6 +197,51 @@ export class DDService {
     });
   }
 
+  /**
+   * Active agent register: every branch that is live (ACTIVE) or on hold
+   * (SUSPENDED) with its assigned branch code, each joined to the portal users
+   * (principals + tellers) provisioned under that code. Surfaces ongoing review
+   * dates so active agents get revisited.
+   */
+  async listActiveBranches() {
+    const files = await this.prisma.agentDDFile.findMany({
+      where: { stage: { in: ['ACTIVE', 'SUSPENDED'] }, branchCode: { not: null } },
+      orderBy: [{ stage: 'asc' }, { nextReviewDueAt: 'asc' }],
+      include: { documents: { select: { status: true } }, application: { select: APPLICATION_SELECT } },
+    });
+    const codes = files.map((f) => f.branchCode!).filter(Boolean);
+    const users = codes.length
+      ? await this.prisma.agentUser.findMany({
+          where: { branchCode: { in: codes } },
+          select: {
+            id: true, firstName: true, lastName: true, email: true, phone: true,
+            role: true, status: true, active: true, branchCode: true, lastLoginAt: true, createdAt: true,
+          },
+          orderBy: [{ role: 'asc' }, { createdAt: 'asc' }],
+        })
+      : [];
+    const byCode = new Map<string, typeof users>();
+    for (const u of users) {
+      if (!u.branchCode) continue;
+      if (!byCode.has(u.branchCode)) byCode.set(u.branchCode, []);
+      byCode.get(u.branchCode)!.push(u);
+    }
+    const now = Date.now();
+    return files.map((f) => {
+      const counts = { OK: 0, EXPIRING: 0, EXPIRED: 0, MISSING: 0, NA: 0 } as Record<string, number>;
+      for (const d of f.documents) counts[d.status] = (counts[d.status] ?? 0) + 1;
+      const { documents: _documents, ...rest } = f;
+      const reviewDue = !!f.nextReviewDueAt && new Date(f.nextReviewDueAt).getTime() <= now;
+      return {
+        ...rest,
+        summary: counts,
+        compliant: counts.EXPIRED === 0 && counts.MISSING === 0,
+        reviewDue,
+        users: byCode.get(f.branchCode!) ?? [],
+      };
+    });
+  }
+
   async get(id: string) {
     const file = await this.prisma.agentDDFile.findUnique({
       where: { id },
