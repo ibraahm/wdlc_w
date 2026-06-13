@@ -36,8 +36,19 @@ export default function LicensesExplorer({
   generalDisclosure: string;
 }) {
   const [query, setQuery] = useState('');
-  const [expanded, setExpanded] = useState<string | null>(null);
+  // Disclosure states start expanded so the required notice is visible up front.
+  const [expanded, setExpanded] = useState<Set<string>>(
+    () => new Set(rows.filter((r) => r.disclosure).map((r) => r.state)),
+  );
   const [onlyDisclosures, setOnlyDisclosures] = useState(false);
+
+  const toggle = (state: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(state)) next.delete(state);
+      else next.add(state);
+      return next;
+    });
 
   const disclosureCount = useMemo(() => rows.filter((r) => r.disclosure).length, [rows]);
 
@@ -132,12 +143,12 @@ export default function LicensesExplorer({
               </tr>
             ) : (
               filtered.map((r) => {
-                const open = expanded === r.state;
+                const open = expanded.has(r.state);
                 return (
                   <Fragment key={r.state}>
                     <tr
                       className="cursor-pointer odd:bg-white even:bg-gray-50 hover:bg-blue-50/50 transition-colors"
-                      onClick={() => setExpanded(open ? null : r.state)}
+                      onClick={() => toggle(r.state)}
                     >
                       <td className="px-5 py-3 font-medium text-gray-900">
                         <span className="flex flex-wrap items-center gap-2">
