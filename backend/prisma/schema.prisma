@@ -20,6 +20,7 @@ model AdminUser {
   name            String
   role            String    @default("EDITOR")
   active          Boolean   @default(true)
+  mustChangePassword Boolean @default(false)
   mfaEnabled      Boolean   @default(false)
   mfaSecret       String?
   resetToken        String?   @unique

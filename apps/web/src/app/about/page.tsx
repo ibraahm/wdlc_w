@@ -58,10 +58,9 @@ export default async function AboutPage() {
           <p>
             World Direct Link, Corp. is a privately held, for-profit corporation
             organized under the laws of the State of Georgia on November 2, 1999, to
-            operate an international money transfer business. The company was originally
-            named Warsan Fast Track, Inc., later North American Money Transfer, Inc.
-            (2001), and adopted its current name, World Direct Link, Corp., effective
-            February 14, 2018.
+            operate an international money transfer business. The company was
+            previously named North American Money Transfer, Inc. and adopted its
+            current name, World Direct Link, Corp., effective February 14, 2018.
           </p>
           <p>
             We are a principal money transmitter and a registered Money Services
