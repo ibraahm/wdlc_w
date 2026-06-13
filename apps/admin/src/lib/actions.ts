@@ -30,6 +30,7 @@ import {
   apiRecordDDReview,
   apiSetDDBranchCode,
   apiUpdateTellerApplication,
+  apiResendBranchUserSetup,
   apiSetSubmissionStatus,
   apiAddSubmissionNote,
   apiReplySubmission,
@@ -621,5 +622,17 @@ export async function replySubmissionAction(submissionId: string, subject: strin
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Reply failed' };
+  }
+}
+
+export async function resendBranchUserSetupAction(userId: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiResendBranchUserSetup(session.accessToken, userId);
+    revalidatePath('/branches');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Resend failed' };
   }
 }

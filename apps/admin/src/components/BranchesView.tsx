@@ -1,8 +1,10 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { AgentBranch, BranchUser } from '@/lib/api';
+import { resendBranchUserSetupAction } from '@/lib/actions';
 
 const STAGE_COLOR: Record<string, string> = {
   ACTIVE: 'bg-green-100 text-green-700',
@@ -14,23 +16,50 @@ function fmtDate(v?: string | null) {
 }
 
 function UserChip({ u }: { u: BranchUser }) {
+  const router = useRouter();
   const isPrincipal = u.role === 'PRINCIPAL';
+  const notSetUp = !u.lastLoginAt; // never signed in → hasn't completed account setup
+  const [pending, start] = useTransition();
+  const [msg, setMsg] = useState('');
+
+  function resend() {
+    setMsg('');
+    start(async () => {
+      const res = await resendBranchUserSetupAction(u.id);
+      setMsg(res.ok ? 'Setup email sent ✓' : res.error ?? 'Failed');
+      if (res.ok) router.refresh();
+    });
+  }
+
   return (
-    <div className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${u.active ? 'border-gray-200 bg-white' : 'border-gray-200 bg-gray-50 opacity-70'}`}>
-      <div className="min-w-0">
-        <p className="truncate text-sm font-medium text-gray-900">
-          {u.firstName} {u.lastName}
-          <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${isPrincipal ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
-            {isPrincipal ? 'Principal' : 'Teller'}
+    <div className={`rounded-lg border px-3 py-2 ${u.active ? 'border-gray-200 bg-white' : 'border-gray-200 bg-gray-50 opacity-70'}`}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-gray-900">
+            {u.firstName} {u.lastName}
+            <span className={`ml-2 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase ${isPrincipal ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
+              {isPrincipal ? 'Principal' : 'Teller'}
+            </span>
+          </p>
+          <p className="truncate text-xs text-gray-500">{u.email}{u.phone ? ` · ${u.phone}` : ''}</p>
+        </div>
+        <div className="shrink-0 text-right">
+          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${notSetUp ? 'bg-amber-100 text-amber-700' : u.active ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
+            {notSetUp ? 'Pending setup' : u.active ? u.status : 'Inactive'}
           </span>
-        </p>
-        <p className="truncate text-xs text-gray-500">{u.email}{u.phone ? ` · ${u.phone}` : ''}</p>
+          <p className="mt-0.5 text-[10px] text-gray-400">{u.lastLoginAt ? `Last in ${fmtDate(u.lastLoginAt)}` : 'Never signed in'}</p>
+        </div>
       </div>
-      <div className="shrink-0 text-right">
-        <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${u.active ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600'}`}>
-          {u.active ? u.status : 'Inactive'}
-        </span>
-        <p className="mt-0.5 text-[10px] text-gray-400">{u.lastLoginAt ? `Last in ${fmtDate(u.lastLoginAt)}` : 'Never signed in'}</p>
+      <div className="mt-2 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={resend}
+          disabled={pending}
+          className="rounded-md border border-gray-300 px-2 py-1 text-[11px] font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+        >
+          {pending ? 'Sending…' : notSetUp ? 'Resend setup email' : 'Resend access email'}
+        </button>
+        {msg && <span className={`text-[11px] ${msg.includes('✓') ? 'text-green-600' : 'text-red-600'}`}>{msg}</span>}
       </div>
     </div>
   );
