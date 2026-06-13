@@ -32,8 +32,11 @@ export class ApplicationsPublicController {
       humanVerificationAnswer: _humanVerificationAnswer,
       ...data
     } = dto;
+    // Prefer the client IP forwarded by the web proxy hop; fall back to req.ip.
+    const fwd = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0].trim();
+    const ip = fwd || (req.headers['x-real-ip'] as string | undefined) || req.ip;
     return this.applications.create(data, {
-      ip: req.ip,
+      ip,
       userAgent: req.headers['user-agent'],
     });
   }
