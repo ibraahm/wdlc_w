@@ -59,5 +59,26 @@ async function bootstrap() {
   const host = process.env.BIND_HOST || '127.0.0.1';
   await app.listen(port, host);
   app.get(Logger).log(`WDLC backend listening on http://${host}:${port}/api`);
+
+  // Startup route validation: log how many routes registered and, specifically,
+  // the nav routes. This proves whether THIS running build actually serves
+  // /api/cms/nav/admin (vs. a stale dist / old pm2 process answering).
+  try {
+    const instance = app.getHttpAdapter().getInstance();
+    const stack = (instance?._router?.stack ?? []) as Array<{
+      route?: { path: string; methods: Record<string, boolean> };
+    }>;
+    const routes: string[] = [];
+    for (const layer of stack) {
+      if (layer.route?.path) {
+        const methods = Object.keys(layer.route.methods).map((m) => m.toUpperCase()).join(',');
+        routes.push(`${methods} ${layer.route.path}`);
+      }
+    }
+    const navRoutes = routes.filter((r) => r.includes('/nav'));
+    app.get(Logger).log(`[routes] total=${routes.length} nav=[${navRoutes.join(' | ') || 'NONE'}]`);
+  } catch (e) {
+    app.get(Logger).warn(`[routes] route dump failed: ${(e as Error).message}`);
+  }
 }
 void bootstrap();

@@ -49,11 +49,15 @@ async function main() {
     tagline: 'A Quarter Century of Financial Excellence',
     nmlsId: '1119263',
     description: 'Licensed money transmitter headquartered in Stone Mountain, Georgia, serving diaspora families with reliable in-person money transfer services.',
+    // Public site maintenance switch — set to true in admin → Settings to show
+    // the maintenance notice across the public site.
+    maintenanceMode: false,
   };
   for (const [key, value] of Object.entries(settings)) {
     await prisma.siteSetting.upsert({
       where: { key },
-      update: { value: JSON.stringify(value) },
+      // Seed defaults only on first creation — never clobber admin edits on re-seed.
+      update: {},
       create: { key, value: JSON.stringify(value) },
     });
   }

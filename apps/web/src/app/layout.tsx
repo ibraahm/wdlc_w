@@ -3,7 +3,9 @@ import './globals.css';
 import Script from 'next/script';
 import SiteNav from '@/components/SiteNav';
 import Footer from '@/components/Footer';
+import MaintenanceScreen from '@/components/MaintenanceScreen';
 import { company } from '@/lib/site';
+import { getCmsSetting } from '@/lib/cms';
 
 export const metadata: Metadata = {
   title: {
@@ -16,7 +18,11 @@ export const metadata: Metadata = {
   openGraph: { siteName: company.legalName, type: 'website' },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // When maintenance mode is on, replace the whole site with the notice.
+  const maintenance = await getCmsSetting<unknown>('maintenanceMode', false);
+  const maintenanceOn = maintenance === true || maintenance === 'true';
+
   return (
     <html lang="en">
       <head>
@@ -28,6 +34,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        {maintenanceOn ? (
+          <MaintenanceScreen />
+        ) : (
+        <>
         <div className="progress" id="progress" />
           <SiteNav />
           {children}
@@ -122,6 +132,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
 })();
         `}</Script>
+        </>
+        )}
       </body>
     </html>
   );
