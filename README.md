@@ -1,19 +1,25 @@
 # World Direct Link — WDLC Platform
 
-Full-stack monorepo for the World Direct Link, Corp. corporate platform. Includes a headless CMS backend, a public marketing website, a secure agent compliance portal, and an admin back-office.
+Full-stack monorepo for the **World Direct Link, Corp.** money-transmitter platform: a
+NestJS API, a public marketing website, a secure agent/teller portal (with a corporate
+training LMS), and an admin back-office for compliance and operations.
+
+> Operations & deployment runbook: see **[INSTRUCTIONS.md](./INSTRUCTIONS.md)**.
 
 ---
 
 ## Repository structure
 
 ```
-wdlc_w/
-├── backend/          NestJS API — auth, CMS, audit log
+wdlc/
+├── backend/              NestJS API — auth, CMS, agents/DD, training/LMS, audit
+│   └── prisma/           schema.prisma + migrations
 ├── apps/
-│   ├── web/          Public website (Next.js 14, port 3000)
-│   ├── portal/       Agent compliance portal (Next.js 14, port 3001)
-│   └── admin/        Admin back-office (Next.js 14, port 3002)
-└── package.json      npm workspace root
+│   ├── web/              Public website        (Next.js 14, port 3000)
+│   ├── portal/           Agent/teller portal   (Next.js 14, port 3001)
+│   └── admin/            Admin back-office      (Next.js 14, port 3002)
+├── ecosystem.config.js   PM2 process definitions (all 4 services)
+└── package.json          npm workspace root (apps/*; backend has its own lockfile)
 ```
 
 ---
@@ -22,240 +28,128 @@ wdlc_w/
 
 | Layer | Technology |
 |-------|-----------|
-| API | NestJS 10, Prisma ORM, SQLite (swap to PostgreSQL by changing one line) |
-| Auth | JWT (rotating refresh tokens, httpOnly cookies), bcrypt 12 rounds |
-| Email | SendGrid — falls back to console.log in development |
-| Frontend | Next.js 14 App Router, Tailwind CSS, TypeScript |
-| Rate limiting | `@nestjs/throttler` — 100 req/60 s global, tighter per-route on auth |
-| Security | Helmet headers, ValidationPipe whitelist, account lockout after 5 failures |
+| API | NestJS 10, Prisma ORM, **PostgreSQL** |
+| Auth | JWT (separate admin/agent secrets), rotating refresh tokens, httpOnly cookies, bcrypt 12 rounds; optional **Google sign-in** for the portal |
+| Email | SMTP (preferred) with SendGrid fallback; logs to console in dev |
+| Frontend | Next.js 14 App Router, TypeScript, Tailwind (admin) + scoped CSS (portal/web) |
+| Docs/PDF | `pdfkit` (agent application PDFs, training certificates) |
+| Content safety | `sanitize-html` allowlist on all admin-authored HTML |
+| Rate limiting | `@nestjs/throttler` — 100 req/60 s global, tighter on auth routes |
+| Security | strict CSP (web), ValidationPipe whitelist, account lockout, server-signed math challenge |
+| Process mgr | PM2 (`wdlc-api`, `wdlc-web`, `wdlc-portal`, `wdlc-admin`) |
 
 ---
 
-## Quick start
+## What's in the platform
 
-### 1. Backend
+- **Public website** — CMS-driven pages/blocks, news & press, partner & country network map,
+  licenses & state consumer-disclosures, and the public "Become an Agent" / teller applications.
+- **Agent lifecycle** — public application → compliance Due-Diligence file → 6-char branch code →
+  auto-provisioned portal login (PRINCIPAL/TELLER) via a one-time emailed setup link.
+- **Agent/teller portal** — account + security settings, and a **corporate training LMS**:
+  - Udemy-style courses: sections → lessons (embedded YouTube/Vimeo/Loom video + text)
+  - Per-lesson progress with resume, final quiz, **PDF completion certificate**
+  - **Multi-language** course variants with a language switcher
+  - Assignment **deadlines** with overdue flags
+- **Admin back-office** — CMS, navigation, agent applications & DD, active branches & portal users,
+  teller applications, website submission inbox, and **Training management**: course/quiz builder,
+  curriculum (sections/lessons), resources, categories, and score-tracking reports
+  (all / by state / by agent, CSV export).
+
+---
+
+## Quick start (local development)
 
 ```bash
+# 1. Backend
 cd backend
-cp .env.example .env          # fill in secrets (see Environment below)
+cp .env.example .env                # fill in DATABASE_URL + secrets
 npm install
-npm run prisma:deploy         # apply migrations
-npm run db:seed               # creates the first SUPER_ADMIN
-npm run start:dev             # http://localhost:4000
+npx prisma migrate deploy           # apply migrations
+npx prisma generate
+npm run db:seed                     # creates the first SUPER_ADMIN
+npm run start:dev                   # http://localhost:4000/api
+
+# 2. Frontend apps (each reads API_URL from its own .env.local)
+cd ..
+npm install
+npm run dev:web      # http://localhost:3000
+npm run dev:portal   # http://localhost:3001
+npm run dev:admin    # http://localhost:3002
 ```
 
-### 2. Frontend apps
-
-Each app reads `API_URL` from its own `.env.local`. Create the file in each app directory:
+Each app's `.env.local` needs at least:
 
 ```
-API_URL=http://localhost:4000
+API_URL="http://localhost:4000/api"
 ```
 
-Then run any or all three:
-
-```bash
-# Public website
-npm --workspace=apps/web run dev        # http://localhost:3000
-
-# Agent portal
-npm --workspace=apps/portal run dev     # http://localhost:3001
-
-# Admin back-office
-npm --workspace=apps/admin run dev      # http://localhost:3002
-```
-
-Or from the root (each in its own terminal, or backgrounded):
-
-```bash
-npm run dev:backend & npm run dev:web & npm run dev:portal & npm run dev:admin
-```
-
----
-
-## Environment variables
-
-### `backend/.env`
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `JWT_SECRET` | Yes | Shared JWT fallback secret — generate with `openssl rand -hex 32` |
-| `ADMIN_JWT_SECRET` | No | Override JWT secret for admin tokens |
-| `AGENT_JWT_SECRET` | No | Override JWT secret for agent tokens |
-| `PORT` | No | API port, default `4000` |
-| `CORS_ORIGIN` | Yes | Allowed CORS origin(s), e.g. `http://localhost:3000` |
-| `PORTAL_BASE_URL` | Yes | Used in email verification links, e.g. `http://localhost:3001` |
-| `ADMIN_BASE_URL` | Yes | Used in password reset links, e.g. `http://localhost:3002` |
-| `SEED_ADMIN_EMAIL` | Yes | Email for the initial SUPER_ADMIN account |
-| `SEED_ADMIN_PASSWORD` | Yes | Password for the initial SUPER_ADMIN account |
-| `NODE_ENV` | No | Set to `production` to enable real email sending |
-| `SENDGRID_API_KEY` | No | SendGrid API key — omit to log emails to console |
-| `SENDGRID_FROM_EMAIL` | No | From address, default `info@worlddirectlink.com` |
-
-### `apps/*/env.local`
-
-| Variable | Description |
-|----------|-------------|
-| `API_URL` | Backend base URL, default `http://localhost:4000` |
+See `apps/*/.env.example` and `backend/.env.example` for the full list.
 
 ---
 
 ## Auth architecture
 
-Two completely separate auth systems share the same API, distinguished by a `portal` claim inside the JWT.
+Two independent auth systems share the API, distinguished by a `portal` claim in the JWT and by
+**separate signing secrets** (`ADMIN_JWT_SECRET`, `AGENT_JWT_SECRET`).
 
-### Admin portal (`portal: 'admin'`)
+- **Admin** (`portal: 'admin'`) — roles `SUPER_ADMIN`, `COMPLIANCE_OFFICER`, `MANAGER`, `EDITOR`.
+  Login only; admins are created by a SUPER_ADMIN. Cookies `aat` / `art`.
+- **Agent** (`portal: 'agent'`) — **no self-signup**; accounts are issued when an application is
+  approved. Email verification, password reset, login history. Cookies `pat` / `prt`.
+  Optional **Google sign-in** authenticates an existing approved account by verified email.
 
-- Roles: `SUPER_ADMIN`, `COMPLIANCE_OFFICER`, `MANAGER`, `EDITOR`
-- Login only (no self-signup — admins are created by a SUPER_ADMIN)
-- Password reset via email
-- Tokens: `aat` (access, 15 min) + `art` (refresh, 7 days) in httpOnly cookies
-
-### Agent portal (`portal: 'agent'`)
-
-- Self-signup with email verification required before first login
-- Password reset via email, login history tracked per session
-- Tokens: `pat` (access, 15 min) + `prt` (refresh, 7 days) in httpOnly cookies
-- Account statuses: `PENDING` → `ACTIVE` → `SUSPENDED`
-
-### Token security
-
-- Refresh tokens are SHA-256 hashed before storage — raw token never persisted
-- Token rotation on every refresh — reuse of a consumed token revokes all sessions for that account
-- Account lockout: 5 consecutive failed logins → 15-minute lockout
-- Each Next.js middleware silently refreshes the access token when it expires (no re-login required)
+Token security: refresh tokens are SHA-256 hashed at rest and rotate on every use (reuse revokes
+all sessions); 5 failed logins → 15-minute lockout; Next.js middleware silently refreshes the
+access token. Cookies are `secure` only when `NODE_ENV=production` — deploy behind HTTPS.
 
 ---
 
-## CMS
+## API surface (prefix: `/api`)
 
-Managed through the admin back-office at `http://localhost:3002`.
+| Area | Base route |
+|------|-----------|
+| Health | `GET /api/health` |
+| Public CMS | `/api/cms/pages`, `/api/cms/nav`, `/api/cms/settings`, `/api/cms/news`, `/api/cms/network`, `/api/cms/partners` |
+| Public forms | `/api/cms/forms`, `/api/agents` (applications), `/api/agents/tellers/apply` |
+| Agent auth | `/api/portal/auth/*` (login, refresh, google, verify-email, forgot/reset, change-password) |
+| Agent training | `/api/portal/training/*` (courses, lessons, quiz submit, certificate, resources) |
+| Admin auth | `/api/admin/auth/*` |
+| Admin ops | `/api/admin/agent-applications`, `/api/admin/agent-dd`, `/api/admin/agents`, `/api/admin/teller-applications`, `/api/admin/audit` |
+| Admin training | `/api/admin/training/*` (courses, sections, lessons, resources, completions, report) |
 
-### Pages
-
-Pages have a `slug` (URL path), metadata fields, and a `blocks` array. The public site renders any published page at `/{slug}`.
-
-Available block types:
-
-| Type | Fields |
-|------|--------|
-| `hero` | `heading`, `subheading`, `ctaText`, `ctaHref` |
-| `text` | `content` (HTML) |
-| `features` | `items[]` with `icon`, `title`, `body` |
-| `cta` | `heading`, `buttonText`, `href` |
-
-The homepage is the page with slug `home`.
-
-### Navigation
-
-Nav items are organized into locations (`HEADER`, `FOOTER`) and support parent–child nesting. Order is adjustable in the admin.
-
-### Site settings
-
-Key–value store for global config. Common keys:
-
-| Key | Example value |
-|-----|--------------|
-| `siteName` | `World Direct Link` |
-| `tagline` | `Trusted global remittance` |
-| `contactEmail` | `info@worlddirectlink.com` |
+Exact handlers live in the controllers under `backend/src/**`.
 
 ---
 
-## Database
+## Database & migrations
 
-SQLite is used out of the box — no installation required. To switch to PostgreSQL, change two lines in `backend/prisma/schema.prisma`:
-
-```diff
- datasource db {
--  provider = "sqlite"
--  url      = env("DATABASE_URL")
-+  provider = "postgresql"
-+  url      = env("DATABASE_URL")
- }
-```
-
-Then update `DATABASE_URL` in `.env` and run `npm run prisma:deploy`.
-
-### Migrations
+PostgreSQL, via Prisma. Migrations are **append-only** and idempotent (`IF NOT EXISTS`).
 
 ```bash
-# Apply all pending migrations (CI / production)
-npm --workspace=backend run prisma:deploy
-
-# Create a new migration during development
-cd backend && npx prisma migrate dev --name describe_your_change
+cd backend
+npx prisma migrate deploy            # apply pending migrations (prod-safe)
+npx prisma generate                  # regenerate the client after schema changes
+# during development, to author a new migration:
+npx prisma migrate dev --name describe_your_change
 ```
 
----
-
-## API overview
-
-All endpoints are prefixed with the backend base URL (`http://localhost:4000`).
-
-### Public (no auth)
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/cms/pages/published` | List all published pages |
-| `GET` | `/cms/pages/published/:slug` | Get a single published page |
-| `GET` | `/cms/nav` | Nav tree (pass `?location=HEADER`) |
-| `GET` | `/cms/settings` | All site settings |
-
-### Agent auth
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/portal-auth/signup` | Register a new agent |
-| `POST` | `/portal-auth/verify-email` | Verify email with token |
-| `POST` | `/portal-auth/resend-verification` | Resend verification email |
-| `POST` | `/portal-auth/login` | Login → access + refresh tokens |
-| `POST` | `/portal-auth/refresh` | Rotate refresh token |
-| `POST` | `/portal-auth/logout` | Revoke session |
-| `POST` | `/portal-auth/forgot-password` | Send reset email |
-| `POST` | `/portal-auth/reset-password` | Set new password with token |
-| `POST` | `/portal-auth/change-password` | Change password (authenticated) |
-| `GET` | `/portal-auth/login-history` | Login history for current agent |
-
-### Admin auth
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `POST` | `/admin-auth/login` | Login |
-| `POST` | `/admin-auth/refresh` | Rotate refresh token |
-| `POST` | `/admin-auth/logout` | Revoke session |
-| `POST` | `/admin-auth/forgot-password` | Send reset email |
-| `POST` | `/admin-auth/reset-password` | Set new password |
-| `POST` | `/admin-auth/change-password` | Change password |
-| `GET` | `/admin-auth/users` | List admin users (authenticated) |
-| `POST` | `/admin-auth/users` | Create admin user (SUPER_ADMIN) |
-| `PATCH` | `/admin-auth/users/:id/active` | Activate / deactivate user (SUPER_ADMIN) |
-
-### CMS (admin auth required)
-
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET/POST` | `/cms/pages` | List all pages / create page |
-| `GET/PATCH/DELETE` | `/cms/pages/:slug` | Get / update / delete page |
-| `PATCH` | `/cms/pages/:slug/publish` | Publish page |
-| `PATCH` | `/cms/pages/:slug/unpublish` | Unpublish page |
-| `GET/POST` | `/cms/nav` | Nav tree / create item |
-| `PATCH` | `/cms/nav/reorder` | Bulk reorder |
-| `PATCH/DELETE` | `/cms/nav/:id` | Update / delete nav item |
-| `GET` | `/cms/settings` | All settings |
-| `PUT/DELETE` | `/cms/settings/:key` | Upsert / delete setting |
+> Always run `npx prisma generate` before building the backend after a schema change.
 
 ---
 
-## Production checklist
+## Production / operations
 
-- [ ] Generate strong secrets: `openssl rand -hex 32` for each JWT secret
-- [ ] Switch `DATABASE_URL` to a PostgreSQL connection string
-- [ ] Set `NODE_ENV=production` and add `SENDGRID_API_KEY`
-- [ ] Set `CORS_ORIGIN` to the production domain(s)
-- [ ] Set `PORTAL_BASE_URL` and `ADMIN_BASE_URL` to production URLs
-- [ ] Run `npm run db:seed` once to create the initial SUPER_ADMIN, then change the password immediately
-- [ ] Deploy behind HTTPS (the httpOnly cookies require a secure context in production)
-- [ ] Set `NODE_ENV=production` for the portal and admin apps — auth cookies are only marked `secure` when it is set
+Deployment, environment variables, PM2, nginx, updates, backups, and troubleshooting are
+documented in **[INSTRUCTIONS.md](./INSTRUCTIONS.md)**. The short version:
 
+```bash
+git pull origin main
+npm install --prefix backend && npm install
+cd backend && npx prisma migrate deploy && npx prisma generate && cd ..
+npm run build --prefix backend
+npm run build --workspace apps/web
+npm run build --workspace apps/portal
+npm run build --workspace apps/admin
+pm2 restart ecosystem.config.js && pm2 save
+```
