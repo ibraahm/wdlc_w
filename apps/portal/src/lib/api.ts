@@ -90,6 +90,15 @@ export async function apiRefresh(refreshToken: string): Promise<AuthResult> {
   return handleResponse(res);
 }
 
+export async function apiGoogleLogin(credential: string): Promise<AuthResult> {
+  const res = await safeFetch(`${API}/portal/auth/google`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ credential }),
+  });
+  return handleResponse(res);
+}
+
 export async function apiLogout(accessToken: string, refreshToken: string): Promise<void> {
   await safeFetch(`${API}/portal/auth/logout`, {
     method: 'POST',

@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 import {
   apiLogin,
     apiLogout,
+  apiGoogleLogin,
   apiForgotPassword,
   apiResetPassword,
   apiChangePassword,
@@ -35,6 +36,17 @@ export async function loginAction(
     return { error: err instanceof Error ? err.message : 'Login failed.' };
   }
 
+  redirect('/dashboard');
+}
+
+export async function googleLoginAction(credential: string): Promise<{ error?: string }> {
+  if (!credential) return { error: 'Missing Google credential.' };
+  try {
+    const result = await apiGoogleLogin(credential);
+    await setSessionCookies(result.accessToken, result.refreshToken, result.agent);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Google sign-in failed.' };
+  }
   redirect('/dashboard');
 }
 

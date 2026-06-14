@@ -11,6 +11,7 @@ import {
   AgentChangePasswordDto,
   VerifyEmailDto,
   ResendVerifyDto,
+  GoogleLoginDto,
 } from './dto/portal-auth.dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -45,6 +46,15 @@ export class PortalAuthController {
   @Post('refresh')
   refresh(@Body() dto: AgentRefreshDto, @Req() req: Request) {
     return this.auth.refresh(dto.refreshToken, req.ip, req.headers['user-agent']);
+  }
+
+  // Google sign-in: authenticates an already-approved account via a Google ID
+  // token. No human-verification needed — the token is a cryptographic proof.
+  @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
+  @Post('google')
+  google(@Body() dto: GoogleLoginDto, @Req() req: Request) {
+    return this.auth.loginWithGoogle(dto.credential, req.ip, req.headers['user-agent']);
   }
 
   @Public()

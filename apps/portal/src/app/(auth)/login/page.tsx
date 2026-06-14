@@ -4,6 +4,7 @@ import { useFormState, useFormStatus } from 'react-dom';
 import Link from 'next/link';
 import { loginAction } from '@/lib/actions';
 import MathChallengeField from '@/components/MathChallengeField';
+import GoogleSignInButton from '@/components/GoogleSignInButton';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -22,6 +23,8 @@ export default function LoginPage() {
       <p className="auth-title">Sign in to your account</p>
 
       {state?.error && <div className="auth-error" style={{ marginBottom: '20px' }}>{state.error}</div>}
+
+      <GoogleSignInButton />
 
       <form action={action} className="auth-form">
         <div className="auth-field">
