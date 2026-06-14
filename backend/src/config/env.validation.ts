@@ -63,6 +63,7 @@ export const envValidationSchema = Joi.object({
   // Google sign-in for the agent portal (optional). When unset, the feature is
   // disabled end-to-end and password login is unaffected.
   GOOGLE_CLIENT_ID: Joi.string().allow('').optional(),
+  ADMIN_GOOGLE_CLIENT_ID: Joi.string().allow('').optional(),
 })
   // Require that the admin & agent portals end up with usable, distinct secrets
   // in production: either both per-portal secrets, or a shared JWT_SECRET.

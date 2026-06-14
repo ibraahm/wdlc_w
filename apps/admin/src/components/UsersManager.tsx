@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import type { AdminUser, RegionalOffice } from '@/lib/api';
-import { createUserAction, setUserActiveAction } from '@/lib/actions';
+import { inviteUserAction, setUserActiveAction } from '@/lib/actions';
 
 const ROLES = ['SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR', 'REGIONAL_OFFICER'];
 const ROLE_LABEL: Record<string, string> = {
@@ -97,14 +97,16 @@ export default function UsersManager({ initialUsers, offices = [] }: UsersManage
     const fd = new FormData(e.currentTarget);
     const form = e.currentTarget;
     startTransition(async () => {
-      const result = await createUserAction(fd);
+      // Invite-only: the user sets their own password via an emailed link and
+      // can also sign in with Google. No password is set by the admin.
+      const result = await inviteUserAction(fd);
       if (result.ok) {
         setShowAdd(false);
         form.reset();
-        // Reload to get the new user from server
+        setNewRole('EDITOR');
         window.location.reload();
       } else {
-        setAddError(result.error ?? 'Create failed');
+        setAddError(result.error ?? 'Invite failed');
       }
     });
   }
@@ -121,7 +123,7 @@ export default function UsersManager({ initialUsers, offices = [] }: UsersManage
             onClick={() => setShowAdd((v) => !v)}
             className="px-4 py-2 bg-primary text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors"
           >
-            {showAdd ? 'Cancel' : 'Add user'}
+            {showAdd ? 'Cancel' : 'Invite user'}
           </button>
         </div>
 
@@ -182,19 +184,6 @@ export default function UsersManager({ initialUsers, offices = [] }: UsersManage
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Password *
-                </label>
-                <input
-                  name="password"
-                  type="password"
-                  required
-                  minLength={8}
-                  placeholder="Min. 8 characters"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-              <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Role</label>
                 <select
                   name="role"
@@ -228,6 +217,10 @@ export default function UsersManager({ initialUsers, offices = [] }: UsersManage
               </div>
             )}
 
+            <p className="rounded-lg bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-800">
+              We&apos;ll email this person a secure link to set their own password. They can also sign in with Google using this email — no password is set by you.
+            </p>
+
             {addError && (
               <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
                 {addError}
@@ -240,7 +233,7 @@ export default function UsersManager({ initialUsers, offices = [] }: UsersManage
                 disabled={isPending}
                 className="px-6 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
               >
-                {isPending ? 'Creating...' : 'Create user'}
+                {isPending ? 'Sending…' : 'Send invitation'}
               </button>
               <button
                 type="button"

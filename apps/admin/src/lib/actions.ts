@@ -57,6 +57,8 @@ import {
   apiCreateRegionalOffice,
   apiUpdateRegionalOffice,
   apiDeleteRegionalOffice,
+  apiInviteUser,
+  apiGoogleLogin,
 } from './api';
 import type { Partner, NetworkCountry, NavItemInput, CourseInput, ResourceInput, Completion, CourseWithCurriculum, SectionInput, LessonInput, SearchResult, RegionalOfficeInput } from './api';
 import { getSession, setSessionCookies, clearSessionCookies, clearMustChangePassword } from './auth';
@@ -890,4 +892,36 @@ export async function deleteRegionalOfficeAction(id: string): Promise<{ ok: bool
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };
   }
+}
+
+// ---------------------------------------------------------------------------
+// Invite admin user + Google sign-in
+// ---------------------------------------------------------------------------
+
+export async function inviteUserAction(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiInviteUser(session.accessToken, {
+      email: formData.get('email') as string,
+      name: formData.get('name') as string,
+      role: (formData.get('role') as string) || undefined,
+      regionalOfficeId: (formData.get('regionalOfficeId') as string) || undefined,
+    });
+    revalidatePath('/users');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Invite failed' };
+  }
+}
+
+export async function googleLoginAction(credential: string): Promise<{ error?: string }> {
+  if (!credential) return { error: 'Missing Google credential.' };
+  try {
+    const result = await apiGoogleLogin(credential);
+    await setSessionCookies(result.accessToken, result.refreshToken, result.user);
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Google sign-in failed.' };
+  }
+  redirect('/dashboard');
 }

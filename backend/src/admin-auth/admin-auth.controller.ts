@@ -11,6 +11,8 @@ import {
   AdminChangePasswordDto,
   AdminSetActiveDto,
   SetUserRegionDto,
+  AdminInviteUserDto,
+  AdminGoogleLoginDto,
 } from './dto/admin-auth.dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -51,6 +53,13 @@ export class AdminAuthController {
   }
 
   @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
+  @Post('google')
+  google(@Body() dto: AdminGoogleLoginDto, @Req() req: Request) {
+    return this.auth.loginWithGoogle(dto.credential, req.ip, req.headers['user-agent']);
+  }
+
+  @Public()
   @Throttle({ default: { ttl: 300_000, limit: 3 } })
   @Post('forgot-password')
   forgotPassword(@Body() dto: AdminForgotPasswordDto) {
@@ -88,6 +97,12 @@ export class AdminAuthController {
   @Get('users')
   listUsers() {
     return this.auth.listUsers();
+  }
+
+  @Roles('SUPER_ADMIN')
+  @Post('users/invite')
+  inviteUser(@Body() dto: AdminInviteUserDto, @CurrentUser('id') id: string) {
+    return this.auth.inviteUser(dto, id);
   }
 
   @Roles('SUPER_ADMIN')

@@ -1228,3 +1228,24 @@ export async function apiDeleteRegionalOffice(accessToken: string, id: string): 
   const res = await authFetch(`/admin/regional-offices/${id}`, accessToken, { method: 'DELETE' });
   await handleResponse<void>(res);
 }
+
+// ---------------------------------------------------------------------------
+// Invite + Google sign-in (admin)
+// ---------------------------------------------------------------------------
+
+export async function apiInviteUser(
+  accessToken: string,
+  data: { email: string; name: string; role?: string; regionalOfficeId?: string },
+): Promise<AdminUser> {
+  const res = await authFetch('/admin/auth/users/invite', accessToken, { method: 'POST', body: JSON.stringify(data) });
+  return handleResponse<AdminUser>(res);
+}
+
+export async function apiGoogleLogin(credential: string): Promise<AuthResult> {
+  const res = await fetch(`${API}/admin/auth/google`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ credential }),
+  });
+  return handleResponse<AuthResult>(res);
+}

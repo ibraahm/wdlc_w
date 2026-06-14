@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { loginAction } from '@/lib/actions';
 import MathChallengeField from '@/components/MathChallengeField';
+import GoogleSignInButton from '@/components/GoogleSignInButton';
 
 export default function LoginPage() {
   const [error, setError] = useState('');
@@ -24,6 +25,8 @@ export default function LoginPage() {
       <p className="auth-title">Sign in to Admin</p>
 
       {error && <div className="auth-error" style={{ marginBottom: '20px' }}>{error}</div>}
+
+      <GoogleSignInButton />
 
       <form onSubmit={handleSubmit} className="auth-form">
         <div className="auth-field">
