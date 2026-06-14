@@ -8,6 +8,9 @@ import {
   apiForgotPassword,
   apiResetPassword,
   apiChangePassword,
+  apiSubmitQuiz,
+  apiAckResource,
+  type QuizResult,
 } from './api';
 import { revalidatePath } from 'next/cache';
 import { setSessionCookies, clearSessionCookies } from './auth';
@@ -114,5 +117,34 @@ export async function changePasswordAction(
     return { ok: true };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Password change failed.' };
+  }
+}
+
+// ── Training ────────────────────────────────────────────────────────────────
+
+export async function submitQuizAction(
+  slug: string,
+  answers: number[],
+): Promise<{ result?: QuizResult; error?: string }> {
+  const accessToken = cookies().get('pat')?.value;
+  if (!accessToken) return { error: 'Not authenticated.' };
+  try {
+    const result = await apiSubmitQuiz(accessToken, slug, answers);
+    revalidatePath('/training');
+    return { result };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Could not submit quiz.' };
+  }
+}
+
+export async function ackResourceAction(id: string): Promise<{ ok?: boolean; error?: string }> {
+  const accessToken = cookies().get('pat')?.value;
+  if (!accessToken) return { error: 'Not authenticated.' };
+  try {
+    await apiAckResource(accessToken, id);
+    revalidatePath('/resources');
+    return { ok: true };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Could not acknowledge.' };
   }
 }

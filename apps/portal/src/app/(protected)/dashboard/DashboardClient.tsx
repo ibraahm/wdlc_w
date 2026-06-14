@@ -66,6 +66,8 @@ export default function DashboardClient({ agent }: { agent: Agent }) {
       <ComplianceChecklist agent={agent} />
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px', marginTop: '4px' }}>
+        <QuickLink href="/training" title="Training & Courses" desc="Take your assigned courses and complete the quizzes." />
+        <QuickLink href="/resources" title="Resources" desc="Reference documents, forms, and compliance materials." />
         <QuickLink href="/settings" title="Account Settings" desc="View your account details and change your password." />
       </div>
     </div>

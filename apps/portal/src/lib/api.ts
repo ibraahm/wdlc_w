@@ -137,3 +137,89 @@ export async function apiChangePassword(
   });
   return handleResponse(res);
 }
+
+// ── Training / LMS ──────────────────────────────────────────────────────────
+
+export type CourseSummary = {
+  id: string;
+  slug: string;
+  title: string;
+  category: string;
+  description?: string;
+  passingScore: number;
+  questionCount: number;
+  completed: boolean;
+  bestScore: number | null;
+  completedAt: string | null;
+};
+
+export type QuizQuestion = { i: number; q: string; options: string[] };
+
+export type CourseDetail = {
+  id: string;
+  slug: string;
+  title: string;
+  category: string;
+  description?: string;
+  contentHtml: string;
+  passingScore: number;
+  questions: QuizQuestion[];
+  lastAttempt: { score: number; passed: boolean; completedAt: string } | null;
+};
+
+export type QuizResult = {
+  score: number;
+  passed: boolean;
+  passingScore: number;
+  correct: number;
+  total: number;
+  results: { i: number; correct: boolean }[];
+};
+
+export type ResourceItem = {
+  id: string;
+  title: string;
+  category: string;
+  description?: string;
+  url: string;
+  acknowledged: boolean;
+};
+
+function authHeaders(accessToken: string): HeadersInit {
+  return { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` };
+}
+
+export async function apiCourses(accessToken: string): Promise<CourseSummary[]> {
+  const res = await safeFetch(`${API}/portal/training/courses`, { headers: authHeaders(accessToken), cache: 'no-store' });
+  return handleResponse(res);
+}
+
+export async function apiCourse(accessToken: string, slug: string): Promise<CourseDetail> {
+  const res = await safeFetch(`${API}/portal/training/courses/${encodeURIComponent(slug)}`, {
+    headers: authHeaders(accessToken),
+    cache: 'no-store',
+  });
+  return handleResponse(res);
+}
+
+export async function apiSubmitQuiz(accessToken: string, slug: string, answers: number[]): Promise<QuizResult> {
+  const res = await safeFetch(`${API}/portal/training/courses/${encodeURIComponent(slug)}/submit`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({ answers }),
+  });
+  return handleResponse(res);
+}
+
+export async function apiResources(accessToken: string): Promise<ResourceItem[]> {
+  const res = await safeFetch(`${API}/portal/training/resources`, { headers: authHeaders(accessToken), cache: 'no-store' });
+  return handleResponse(res);
+}
+
+export async function apiAckResource(accessToken: string, id: string): Promise<{ acknowledged: boolean }> {
+  const res = await safeFetch(`${API}/portal/training/resources/${encodeURIComponent(id)}/ack`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+  });
+  return handleResponse(res);
+}

@@ -900,3 +900,148 @@ export async function apiVerifyBranchUser(accessToken: string, userId: string): 
   const res = await authFetch(`/admin/agent-dd/users/${userId}/verify`, accessToken, { method: 'POST' });
   await handleResponse<void>(res);
 }
+
+// ---------------------------------------------------------------------------
+// Training / LMS — courses, quizzes, resources, reporting
+// ---------------------------------------------------------------------------
+
+export type QuizQuestion = { q: string; options: string[]; answer: number };
+
+export type Course = {
+  id: string;
+  slug: string;
+  title: string;
+  category: string;
+  description?: string | null;
+  contentHtml: string;
+  questions: string; // JSON string of QuizQuestion[]
+  passingScore: number;
+  audience: string; // ALL | STATE | AGENT
+  targetStates?: string | null;
+  targetBranches?: string | null;
+  status: string; // DRAFT | PUBLISHED
+  order: number;
+  questionCount?: number;
+  passedCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type CourseInput = {
+  title: string;
+  slug?: string;
+  category: string;
+  description?: string;
+  contentHtml: string;
+  questions: QuizQuestion[];
+  passingScore: number;
+  audience: string;
+  targetStates?: string;
+  targetBranches?: string;
+  status: string;
+  order?: number;
+};
+
+export type Resource = {
+  id: string;
+  title: string;
+  category: string;
+  description?: string | null;
+  url: string;
+  audience: string;
+  targetStates?: string | null;
+  targetBranches?: string | null;
+  status: string;
+  order: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type ResourceInput = {
+  title: string;
+  category: string;
+  description?: string;
+  url: string;
+  audience: string;
+  targetStates?: string;
+  targetBranches?: string;
+  status: string;
+  order?: number;
+};
+
+export type Completion = {
+  id: string;
+  completedAt: string;
+  score: number;
+  passed: boolean;
+  attempt: number;
+  branchCode?: string | null;
+  agentState?: string | null;
+  course: { title: string; slug: string; category: string; passingScore: number };
+  agent: { firstName: string; lastName: string; email: string; role: string; branchCode?: string | null };
+};
+
+export type TrainingReport = {
+  courses: { id: string; title: string; slug: string; category: string; passedLearners: number }[];
+  byState: { state: string; completions: number }[];
+  byBranch: { branchCode: string; completions: number }[];
+};
+
+export async function apiListCourses(accessToken: string): Promise<Course[]> {
+  const res = await authFetch('/admin/training/courses', accessToken);
+  return handleResponse<Course[]>(res);
+}
+
+export async function apiCreateCourse(accessToken: string, data: CourseInput): Promise<Course> {
+  const res = await authFetch('/admin/training/courses', accessToken, { method: 'POST', body: JSON.stringify(data) });
+  return handleResponse<Course>(res);
+}
+
+export async function apiUpdateCourse(accessToken: string, id: string, data: Partial<CourseInput>): Promise<Course> {
+  const res = await authFetch(`/admin/training/courses/${id}`, accessToken, { method: 'PATCH', body: JSON.stringify(data) });
+  return handleResponse<Course>(res);
+}
+
+export async function apiDeleteCourse(accessToken: string, id: string): Promise<void> {
+  const res = await authFetch(`/admin/training/courses/${id}`, accessToken, { method: 'DELETE' });
+  await handleResponse<void>(res);
+}
+
+export async function apiListTrainingResources(accessToken: string): Promise<Resource[]> {
+  const res = await authFetch('/admin/training/resources', accessToken);
+  return handleResponse<Resource[]>(res);
+}
+
+export async function apiCreateResource(accessToken: string, data: ResourceInput): Promise<Resource> {
+  const res = await authFetch('/admin/training/resources', accessToken, { method: 'POST', body: JSON.stringify(data) });
+  return handleResponse<Resource>(res);
+}
+
+export async function apiUpdateResource(accessToken: string, id: string, data: Partial<ResourceInput>): Promise<Resource> {
+  const res = await authFetch(`/admin/training/resources/${id}`, accessToken, { method: 'PATCH', body: JSON.stringify(data) });
+  return handleResponse<Resource>(res);
+}
+
+export async function apiDeleteResource(accessToken: string, id: string): Promise<void> {
+  const res = await authFetch(`/admin/training/resources/${id}`, accessToken, { method: 'DELETE' });
+  await handleResponse<void>(res);
+}
+
+export async function apiTrainingCompletions(
+  accessToken: string,
+  filter: { state?: string; branchCode?: string; courseId?: string; passedOnly?: boolean } = {},
+): Promise<Completion[]> {
+  const params = new URLSearchParams();
+  if (filter.state) params.set('state', filter.state);
+  if (filter.branchCode) params.set('branchCode', filter.branchCode);
+  if (filter.courseId) params.set('courseId', filter.courseId);
+  if (filter.passedOnly) params.set('passedOnly', 'true');
+  const qs = params.toString();
+  const res = await authFetch(`/admin/training/completions${qs ? `?${qs}` : ''}`, accessToken);
+  return handleResponse<Completion[]>(res);
+}
+
+export async function apiTrainingReport(accessToken: string): Promise<TrainingReport> {
+  const res = await authFetch('/admin/training/report', accessToken);
+  return handleResponse<TrainingReport>(res);
+}

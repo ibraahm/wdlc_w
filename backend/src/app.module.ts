@@ -13,6 +13,7 @@ import { AdminAuthModule } from './admin-auth/admin-auth.module';
 import { PortalAuthModule } from './portal-auth/portal-auth.module';
 import { CmsModule } from './cms/cms.module';
 import { AgentsModule } from './agents/agents.module';
+import { TrainingModule } from './training/training.module';
 import { HealthModule } from './health/health.module';
 
 @Module({
@@ -67,6 +68,7 @@ import { HealthModule } from './health/health.module';
     PortalAuthModule,
     CmsModule,
     AgentsModule,
+    TrainingModule,
     HealthModule,
   ],
   providers: [

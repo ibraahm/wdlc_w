@@ -39,8 +39,15 @@ import {
   apiUpdateNavItem,
   apiDeleteNavItem,
   apiReorderNav,
+  apiCreateCourse,
+  apiUpdateCourse,
+  apiDeleteCourse,
+  apiCreateResource,
+  apiUpdateResource,
+  apiDeleteResource,
+  apiTrainingCompletions,
 } from './api';
-import type { Partner, NetworkCountry, NavItemInput } from './api';
+import type { Partner, NetworkCountry, NavItemInput, CourseInput, ResourceInput, Completion } from './api';
 import { getSession, setSessionCookies, clearSessionCookies, clearMustChangePassword } from './auth';
 
 // ---------------------------------------------------------------------------
@@ -647,5 +654,94 @@ export async function verifyBranchUserAction(userId: string): Promise<{ ok: bool
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Verify failed' };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Training / LMS — courses & resources
+// ---------------------------------------------------------------------------
+
+export async function createCourseAction(data: CourseInput): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiCreateCourse(session.accessToken, data);
+    revalidatePath('/training/courses');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Create failed' };
+  }
+}
+
+export async function updateCourseAction(id: string, data: Partial<CourseInput>): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiUpdateCourse(session.accessToken, id, data);
+    revalidatePath('/training/courses');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
+  }
+}
+
+export async function deleteCourseAction(id: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiDeleteCourse(session.accessToken, id);
+    revalidatePath('/training/courses');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };
+  }
+}
+
+export async function createResourceAction(data: ResourceInput): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiCreateResource(session.accessToken, data);
+    revalidatePath('/training/resources');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Create failed' };
+  }
+}
+
+export async function updateResourceAction(id: string, data: Partial<ResourceInput>): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiUpdateResource(session.accessToken, id, data);
+    revalidatePath('/training/resources');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
+  }
+}
+
+export async function deleteResourceAction(id: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiDeleteResource(session.accessToken, id);
+    revalidatePath('/training/resources');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };
+  }
+}
+
+export async function loadCompletionsAction(
+  filter: { state?: string; branchCode?: string; courseId?: string; passedOnly?: boolean },
+): Promise<{ rows?: Completion[]; error?: string }> {
+  const session = await getSession();
+  if (!session) return { error: 'Not authenticated' };
+  try {
+    const rows = await apiTrainingCompletions(session.accessToken, filter);
+    return { rows };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Load failed' };
   }
 }
