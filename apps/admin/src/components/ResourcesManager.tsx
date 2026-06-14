@@ -48,25 +48,41 @@ function ResourceForm({
         <input value={form.description || ''} onChange={(e) => set('description', e.target.value)} placeholder="What this document is" className={inputCls} />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div>
-          <label className={labelCls}>Assign to</label>
-          <select value={form.audience} onChange={(e) => set('audience', e.target.value)} className={inputCls}>
-            <option value="ALL">Everyone</option>
-            <option value="STATE">Specific state(s)</option>
-            <option value="AGENT">Specific agent(s)</option>
-          </select>
+      <div className="space-y-3">
+        <label className={labelCls} style={{ marginBottom: 0 }}>Who can see this resource</label>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {[
+            { value: 'ALL', label: 'Everyone', desc: 'All agents and tellers' },
+            { value: 'STATE', label: 'Certain states', desc: 'Only branches in chosen states' },
+            { value: 'AGENT', label: 'Certain agents', desc: 'Only specific branch codes' },
+          ].map((c) => {
+            const active = form.audience === c.value;
+            return (
+              <button
+                key={c.value}
+                type="button"
+                onClick={() => set('audience', c.value)}
+                className={`text-left rounded-lg border p-3 transition ${active ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-gray-200 hover:border-gray-300 bg-white'}`}
+              >
+                <div className="flex items-center gap-2">
+                  <span className={`w-3.5 h-3.5 rounded-full border-2 ${active ? 'border-blue-600 bg-blue-600' : 'border-gray-300'}`} />
+                  <span className="text-sm font-medium text-gray-900">{c.label}</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-1">{c.desc}</p>
+              </button>
+            );
+          })}
         </div>
         {form.audience === 'STATE' && (
-          <div className="md:col-span-2">
-            <label className={labelCls}>State codes (comma-separated)</label>
-            <input value={form.targetStates || ''} onChange={(e) => set('targetStates', e.target.value)} placeholder="GA, TX" className={inputCls} />
+          <div>
+            <label className={labelCls}>Which states? 2-letter codes, separated by commas.</label>
+            <input value={form.targetStates || ''} onChange={(e) => set('targetStates', e.target.value)} placeholder="e.g. GA, TX, FL" className={inputCls} />
           </div>
         )}
         {form.audience === 'AGENT' && (
-          <div className="md:col-span-2">
-            <label className={labelCls}>Branch codes (comma-separated)</label>
-            <input value={form.targetBranches || ''} onChange={(e) => set('targetBranches', e.target.value)} placeholder="uswdlc, abc123" className={inputCls} />
+          <div>
+            <label className={labelCls}>Which agents? Branch codes, separated by commas.</label>
+            <input value={form.targetBranches || ''} onChange={(e) => set('targetBranches', e.target.value)} placeholder="e.g. uswdlc, abc123" className={inputCls} />
           </div>
         )}
       </div>
