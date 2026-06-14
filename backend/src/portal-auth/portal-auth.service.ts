@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { OAuth2Client } from 'google-auth-library';
 import { addHours, addMinutes } from 'date-fns';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -26,6 +27,7 @@ import { AgentSignupDto, AgentChangePasswordDto } from './dto/portal-auth.dto';
 
 const OWNER_KEY = 'agentId';
 const agentSecret = () => process.env.AGENT_JWT_SECRET || process.env.JWT_SECRET;
+const googleClientId = () => process.env.GOOGLE_CLIENT_ID || '';
 const safeAgent = (a: any) => ({
   id: a.id,
   email: a.email,
@@ -147,6 +149,59 @@ export class PortalAuthService {
     await this.logHistory(agent.id, ip, ua, true);
     await this.audit.log({ action: 'agent.login.success', agentId: agent.id, ip, userAgent: ua });
     return { ...(await this.issueTokens(agent, ip, ua)), agent: safeAgent(agent) };
+  }
+
+  // ── Google sign-in ───────────────────────────────────────────────────────────
+  // Google is used only as an *identity proof* for accounts that already exist
+  // and are approved. It never creates accounts and never bypasses the agent
+  // lifecycle — a money-transmitter portal cannot let arbitrary Google users in.
+  // Disabled entirely unless GOOGLE_CLIENT_ID is configured.
+  async loginWithGoogle(credential: string, ip?: string, ua?: string) {
+    const clientId = googleClientId();
+    if (!clientId) throw new BadRequestException('Google sign-in is not enabled');
+    if (!credential) throw new BadRequestException('Missing Google credential');
+
+    // Verify the ID token's signature, audience, issuer and expiry with Google.
+    let email: string | undefined;
+    let emailVerified = false;
+    try {
+      const client = new OAuth2Client(clientId);
+      const ticket = await client.verifyIdToken({ idToken: credential, audience: clientId });
+      const payload = ticket.getPayload();
+      email = payload?.email?.toLowerCase();
+      emailVerified = payload?.email_verified === true;
+    } catch {
+      throw new UnauthorizedException('Could not verify Google sign-in');
+    }
+
+    if (!email || !emailVerified) {
+      throw new UnauthorizedException('Your Google email is not verified');
+    }
+
+    const agent = await this.prisma.agentUser.findUnique({ where: { email } });
+    if (!agent) {
+      await this.audit.log({ action: 'agent.login.google.no_account', entity: 'AgentUser', after: { email }, ip, userAgent: ua });
+      throw new ForbiddenException('No portal account is linked to this Google email. Contact World Direct Link.');
+    }
+
+    if (isLocked(agent.lockedUntil)) {
+      await this.logHistory(agent.id, ip, ua, false, 'LOCKED');
+      throw new UnauthorizedException('Account temporarily locked — try again later');
+    }
+    if (!agent.active || agent.status === 'SUSPENDED') {
+      await this.logHistory(agent.id, ip, ua, false, 'ACCOUNT_INACTIVE');
+      throw new ForbiddenException('Account is not active — contact support');
+    }
+
+    // Google has proven mailbox control, so mark the email verified, clear any
+    // lockout, and record the login — mirroring a successful password login.
+    await this.prisma.agentUser.update({
+      where: { id: agent.id },
+      data: { ...CLEAR_LOCKOUT, emailVerified: true, lastLoginAt: new Date() },
+    });
+    await this.logHistory(agent.id, ip, ua, true);
+    await this.audit.log({ action: 'agent.login.google.success', agentId: agent.id, ip, userAgent: ua });
+    return { ...(await this.issueTokens(agent, ip, ua)), agent: safeAgent({ ...agent, emailVerified: true }) };
   }
 
   // ── Token issuance ──────────────────────────────────────────────────────────

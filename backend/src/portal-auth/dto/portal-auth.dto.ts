@@ -101,3 +101,10 @@ export class ResendVerifyDto {
   @IsEmail()
   email: string;
 }
+
+export class GoogleLoginDto {
+  // The Google Identity Services ID token (a signed JWT). Verified server-side.
+  @IsString()
+  @MinLength(20)
+  credential: string;
+}
