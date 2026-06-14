@@ -1,9 +1,9 @@
-import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
-import type { Request } from 'express';
+import { Body, Controller, Get, Param, Post, Req, Res, UseGuards } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { PortalJwtAuthGuard } from '../portal-auth/portal-jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { TrainingService } from './training.service';
-import { SubmitQuizDto } from './dto/training.dto';
+import { SubmitQuizDto, SetLanguageDto } from './dto/training.dto';
 
 // Agent/teller-facing training portal. All routes require a valid portal JWT.
 @UseGuards(PortalJwtAuthGuard)
@@ -21,6 +21,11 @@ export class TrainingPortalController {
     return this.training.getCourseForAgent(agentId, slug);
   }
 
+  @Post('lessons/:lessonId/complete')
+  completeLesson(@CurrentUser('id') agentId: string, @Param('lessonId') lessonId: string) {
+    return this.training.markLessonComplete(agentId, lessonId);
+  }
+
   @Post('courses/:slug/submit')
   submit(
     @CurrentUser('id') agentId: string,
@@ -32,6 +37,22 @@ export class TrainingPortalController {
       ip: req.ip,
       userAgent: req.headers['user-agent'],
     });
+  }
+
+  @Get('courses/:slug/certificate')
+  async certificate(@CurrentUser('id') agentId: string, @Param('slug') slug: string, @Res() res: Response) {
+    const { pdf, filename } = await this.training.getCertificate(agentId, slug);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': pdf.length,
+    });
+    res.end(pdf);
+  }
+
+  @Post('language')
+  setLanguage(@CurrentUser('id') agentId: string, @Body() dto: SetLanguageDto) {
+    return this.training.setLanguage(agentId, dto.language);
   }
 
   @Get('resources')

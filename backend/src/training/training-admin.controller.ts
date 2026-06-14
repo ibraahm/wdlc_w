@@ -4,7 +4,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { TrainingService } from './training.service';
-import { UpsertCourseDto, UpsertResourceDto } from './dto/training.dto';
+import { UpsertCourseDto, UpsertResourceDto, UpsertSectionDto, UpsertLessonDto } from './dto/training.dto';
 
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
 @Controller('admin/training')
@@ -40,6 +40,44 @@ export class TrainingAdminController {
   @Delete('courses/:id')
   deleteCourse(@Param('id') id: string, @CurrentUser('id') adminId: string) {
     return this.training.adminDeleteCourse(id, adminId);
+  }
+
+  // ── Curriculum: sections ────────────────────────────────────────────────────
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')
+  @Post('courses/:courseId/sections')
+  createSection(@Param('courseId') courseId: string, @Body() dto: UpsertSectionDto, @CurrentUser('id') adminId: string) {
+    return this.training.adminCreateSection(courseId, dto, adminId);
+  }
+
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')
+  @Patch('sections/:id')
+  updateSection(@Param('id') id: string, @Body() dto: UpsertSectionDto, @CurrentUser('id') adminId: string) {
+    return this.training.adminUpdateSection(id, dto, adminId);
+  }
+
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')
+  @Delete('sections/:id')
+  deleteSection(@Param('id') id: string, @CurrentUser('id') adminId: string) {
+    return this.training.adminDeleteSection(id, adminId);
+  }
+
+  // ── Curriculum: lessons ─────────────────────────────────────────────────────
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')
+  @Post('sections/:sectionId/lessons')
+  createLesson(@Param('sectionId') sectionId: string, @Body() dto: UpsertLessonDto, @CurrentUser('id') adminId: string) {
+    return this.training.adminCreateLesson(sectionId, dto, adminId);
+  }
+
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')
+  @Patch('lessons/:id')
+  updateLesson(@Param('id') id: string, @Body() dto: UpsertLessonDto, @CurrentUser('id') adminId: string) {
+    return this.training.adminUpdateLesson(id, dto, adminId);
+  }
+
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')
+  @Delete('lessons/:id')
+  deleteLesson(@Param('id') id: string, @CurrentUser('id') adminId: string) {
+    return this.training.adminDeleteLesson(id, adminId);
   }
 
   // ── Resources ──────────────────────────────────────────────────────────────

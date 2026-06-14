@@ -921,7 +921,13 @@ export type Course = {
   targetBranches?: string | null;
   status: string; // DRAFT | PUBLISHED
   order: number;
+  language: string;
+  translationGroup?: string | null;
+  dueAt?: string | null;
+  requireLessons?: boolean;
   questionCount?: number;
+  sectionCount?: number;
+  lessonCount?: number;
   passedCount?: number;
   createdAt?: string;
   updatedAt?: string;
@@ -940,7 +946,34 @@ export type CourseInput = {
   targetBranches?: string;
   status: string;
   order?: number;
+  language?: string;
+  translationGroup?: string;
+  dueAt?: string | null;
+  requireLessons?: boolean;
 };
+
+export type Lesson = {
+  id: string;
+  sectionId: string;
+  title: string;
+  order: number;
+  contentHtml: string;
+  videoUrl?: string | null;
+  durationMinutes?: number | null;
+};
+
+export type Section = {
+  id: string;
+  courseId: string;
+  title: string;
+  order: number;
+  lessons: Lesson[];
+};
+
+export type CourseWithCurriculum = Course & { sections: Section[] };
+
+export type LessonInput = { title: string; order?: number; contentHtml?: string; videoUrl?: string; durationMinutes?: number | null };
+export type SectionInput = { title: string; order?: number };
 
 export type Resource = {
   id: string;
@@ -982,7 +1015,7 @@ export type Completion = {
 };
 
 export type TrainingReport = {
-  courses: { id: string; title: string; slug: string; category: string; passedLearners: number }[];
+  courses: { id: string; title: string; slug: string; category: string; passedLearners: number; dueAt?: string | null; overdue?: boolean }[];
   byState: { state: string; completions: number }[];
   byBranch: { branchCode: string; completions: number }[];
 };
@@ -1004,6 +1037,41 @@ export async function apiUpdateCourse(accessToken: string, id: string, data: Par
 
 export async function apiDeleteCourse(accessToken: string, id: string): Promise<void> {
   const res = await authFetch(`/admin/training/courses/${id}`, accessToken, { method: 'DELETE' });
+  await handleResponse<void>(res);
+}
+
+export async function apiGetCourse(accessToken: string, id: string): Promise<CourseWithCurriculum> {
+  const res = await authFetch(`/admin/training/courses/${id}`, accessToken);
+  return handleResponse<CourseWithCurriculum>(res);
+}
+
+export async function apiCreateSection(accessToken: string, courseId: string, data: SectionInput): Promise<Section> {
+  const res = await authFetch(`/admin/training/courses/${courseId}/sections`, accessToken, { method: 'POST', body: JSON.stringify(data) });
+  return handleResponse<Section>(res);
+}
+
+export async function apiUpdateSection(accessToken: string, id: string, data: Partial<SectionInput>): Promise<Section> {
+  const res = await authFetch(`/admin/training/sections/${id}`, accessToken, { method: 'PATCH', body: JSON.stringify(data) });
+  return handleResponse<Section>(res);
+}
+
+export async function apiDeleteSection(accessToken: string, id: string): Promise<void> {
+  const res = await authFetch(`/admin/training/sections/${id}`, accessToken, { method: 'DELETE' });
+  await handleResponse<void>(res);
+}
+
+export async function apiCreateLesson(accessToken: string, sectionId: string, data: LessonInput): Promise<Lesson> {
+  const res = await authFetch(`/admin/training/sections/${sectionId}/lessons`, accessToken, { method: 'POST', body: JSON.stringify(data) });
+  return handleResponse<Lesson>(res);
+}
+
+export async function apiUpdateLesson(accessToken: string, id: string, data: Partial<LessonInput>): Promise<Lesson> {
+  const res = await authFetch(`/admin/training/lessons/${id}`, accessToken, { method: 'PATCH', body: JSON.stringify(data) });
+  return handleResponse<Lesson>(res);
+}
+
+export async function apiDeleteLesson(accessToken: string, id: string): Promise<void> {
+  const res = await authFetch(`/admin/training/lessons/${id}`, accessToken, { method: 'DELETE' });
   await handleResponse<void>(res);
 }
 

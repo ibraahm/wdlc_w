@@ -73,7 +73,11 @@ export default function TrainingReports({
             {report.courses.length === 0 ? <p className="text-sm text-gray-400">No published courses.</p> :
               report.courses.map((c) => (
                 <div key={c.id} className="flex justify-between text-sm">
-                  <span className="text-gray-700 truncate pr-2">{c.title}</span>
+                  <span className="text-gray-700 truncate pr-2">
+                    {c.title}
+                    {c.overdue && <span className="ml-1 text-xs font-semibold text-red-600">• overdue</span>}
+                    {c.dueAt && !c.overdue && <span className="ml-1 text-xs text-gray-400">• due {new Date(c.dueAt).toLocaleDateString()}</span>}
+                  </span>
                   <span className="font-semibold text-gray-900">{c.passedLearners}</span>
                 </div>
               ))}
