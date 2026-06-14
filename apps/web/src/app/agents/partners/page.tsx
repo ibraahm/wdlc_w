@@ -6,7 +6,7 @@ export async function generateMetadata() {
   const page = await getCmsPage('agents/partners');
   return cmsMetadata(page, {
     title: 'Partners | World Direct Link',
-    description: 'World Direct Link partners — coming soon.',
+    description: 'World Direct Link partners - coming soon.',
   });
 }
 

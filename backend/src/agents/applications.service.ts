@@ -124,7 +124,7 @@ export class ApplicationsService {
 
     const updated = await this.prisma.agentApplication.update({ where: { id }, data: { status } });
 
-    // Audit every transition (previously unlogged — compliance gap).
+    // Audit every transition (previously unlogged - compliance gap).
     await this.audit.log({
       action: 'agent.application.status.change',
       adminId,

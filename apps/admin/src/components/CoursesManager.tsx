@@ -120,7 +120,7 @@ function QuizBuilder({ questions, onChange }: { questions: QuizQuestion[]; onCha
     <div className="space-y-3">
       {questions.length === 0 && (
         <p className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded p-3">
-          No questions yet. Add at least one to give this course a quiz — or leave it empty for a read-only course with no test.
+          No questions yet. Add at least one to give this course a quiz - or leave it empty for a read-only course with no test.
         </p>
       )}
       {questions.map((q, qi) => (
@@ -199,11 +199,11 @@ function CourseForm({
         </div>
       </Section>
 
-      <Section step={2} title="Overview" hint="A short intro shown above the curriculum. Use the buttons to format — no coding needed.">
+      <Section step={2} title="Overview" hint="A short intro shown above the curriculum. Use the buttons to format - no coding needed.">
         <RichTextEditor value={form.contentHtml} onChange={(html) => set('contentHtml', html)} />
       </Section>
 
-      <Section step={3} title="Curriculum" hint="Sections and video/text lessons — the Udemy-style course outline.">
+      <Section step={3} title="Curriculum" hint="Sections and video/text lessons - the Udemy-style course outline.">
         {courseId ? (
           <CurriculumEditor courseId={courseId} />
         ) : (
@@ -253,8 +253,8 @@ function CourseForm({
           <div>
             <label className={labelCls}>Status</label>
             <select value={form.status} onChange={(e) => set('status', e.target.value)} className={inputCls}>
-              <option value="DRAFT">Draft — hidden</option>
-              <option value="PUBLISHED">Published — visible</option>
+              <option value="DRAFT">Draft - hidden</option>
+              <option value="PUBLISHED">Published - visible</option>
             </select>
           </div>
           <div>

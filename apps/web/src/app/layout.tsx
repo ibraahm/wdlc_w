@@ -9,7 +9,7 @@ import { getCmsSetting } from '@/lib/cms';
 
 export const metadata: Metadata = {
   title: {
-    default: `${company.legalName} — ${company.tagline}`,
+    default: `${company.legalName} - ${company.tagline}`,
     template: `%s | ${company.shortName}`,
   },
   description:

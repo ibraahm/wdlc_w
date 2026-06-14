@@ -89,14 +89,14 @@ export class PortalAuthService {
     const agent = await this.prisma.agentUser.findUnique({ where: { emailVerifyToken: hashToken(token) } });
     if (!agent) throw new BadRequestException('Invalid verification token');
     if (agent.emailVerifyExpiry && agent.emailVerifyExpiry < new Date()) {
-      throw new BadRequestException('Verification token expired — please request a new one');
+      throw new BadRequestException('Verification token expired - please request a new one');
     }
     await this.prisma.agentUser.update({
       where: { id: agent.id },
       data: { emailVerified: true, active: true, emailVerifyToken: null, emailVerifyExpiry: null },
     });
     await this.audit.log({ action: 'agent.email_verified', agentId: agent.id });
-    return { ok: true, message: 'Email verified — you can now sign in.' };
+    return { ok: true, message: 'Email verified - you can now sign in.' };
   }
 
   async resendVerification(email: string) {
@@ -129,11 +129,11 @@ export class PortalAuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Credentials are correct — the account-state messages below require the
+    // Credentials are correct - the account-state messages below require the
     // right password to reach, so they cannot be used for enumeration.
     if (isLocked(agent.lockedUntil)) {
       await this.logHistory(agent.id, ip, ua, false, 'LOCKED');
-      throw new UnauthorizedException('Account temporarily locked — try again later');
+      throw new UnauthorizedException('Account temporarily locked - try again later');
     }
 
     if (!agent.emailVerified) {
@@ -142,7 +142,7 @@ export class PortalAuthService {
     }
     if (!agent.active || agent.status === 'SUSPENDED') {
       await this.logHistory(agent.id, ip, ua, false, 'ACCOUNT_INACTIVE');
-      throw new ForbiddenException('Account is not active — contact support');
+      throw new ForbiddenException('Account is not active - contact support');
     }
 
     await this.prisma.agentUser.update({ where: { id: agent.id }, data: { ...CLEAR_LOCKOUT, lastLoginAt: new Date() } });
@@ -154,7 +154,7 @@ export class PortalAuthService {
   // ── Google sign-in ───────────────────────────────────────────────────────────
   // Google is used only as an *identity proof* for accounts that already exist
   // and are approved. It never creates accounts and never bypasses the agent
-  // lifecycle — a money-transmitter portal cannot let arbitrary Google users in.
+  // lifecycle - a money-transmitter portal cannot let arbitrary Google users in.
   // Disabled entirely unless GOOGLE_CLIENT_ID is configured.
   async loginWithGoogle(credential: string, ip?: string, ua?: string) {
     const clientId = googleClientId();
@@ -186,15 +186,15 @@ export class PortalAuthService {
 
     if (isLocked(agent.lockedUntil)) {
       await this.logHistory(agent.id, ip, ua, false, 'LOCKED');
-      throw new UnauthorizedException('Account temporarily locked — try again later');
+      throw new UnauthorizedException('Account temporarily locked - try again later');
     }
     if (!agent.active || agent.status === 'SUSPENDED') {
       await this.logHistory(agent.id, ip, ua, false, 'ACCOUNT_INACTIVE');
-      throw new ForbiddenException('Account is not active — contact support');
+      throw new ForbiddenException('Account is not active - contact support');
     }
 
     // Google has proven mailbox control, so mark the email verified, clear any
-    // lockout, and record the login — mirroring a successful password login.
+    // lockout, and record the login - mirroring a successful password login.
     await this.prisma.agentUser.update({
       where: { id: agent.id },
       data: { ...CLEAR_LOCKOUT, emailVerified: true, lastLoginAt: new Date() },
@@ -261,7 +261,7 @@ export class PortalAuthService {
     await this.prisma.agentUser.update({
       where: { id: agent.id },
       // Completing the emailed setup/reset link proves mailbox control, so the
-      // account is verified and activated — the agent can sign in immediately.
+      // account is verified and activated - the agent can sign in immediately.
       data: {
         passwordHash,
         emailVerified: true,

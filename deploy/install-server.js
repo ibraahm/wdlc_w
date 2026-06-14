@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * WDLC browser installer — temporary /installation endpoint.
+ * WDLC browser installer - temporary /installation endpoint.
  *
  *   node deploy/install-server.js            # listens on :3000
  *   node deploy/install-server.js --port 8080
@@ -8,7 +8,7 @@
  * Serves a one-page setup form at /installation, protected by a one-time key
  * printed to the terminal. On submit it writes the env files, installs
  * dependencies, migrates + seeds the database, builds all four apps, and
- * smoke-tests the backend — streaming progress to the browser.
+ * smoke-tests the backend - streaming progress to the browser.
  *
  * After a SUCCESSFUL install it:
  *   - writes deploy/.installed (the installer refuses to ever run again)
@@ -16,7 +16,7 @@
  *   - DELETES itself plus deploy/setup.sh and deploy/generate-env.sh
  *   - exits, freeing the port for the real web app
  *
- * Zero npm dependencies — plain Node http/crypto/fs/child_process.
+ * Zero npm dependencies - plain Node http/crypto/fs/child_process.
  */
 'use strict';
 
@@ -103,7 +103,7 @@ async function smokeTest(res) {
   const candidates = ['dist/main.js', 'dist/src/main.js'];
   const entry = candidates.find((c) => fs.existsSync(path.join(ROOT, 'backend', c)));
   if (!entry) {
-    throw new Error('Backend build produced no main.js under dist/ — the build step failed; scroll up for the compiler error.');
+    throw new Error('Backend build produced no main.js under dist/ - the build step failed; scroll up for the compiler error.');
   }
   const child = spawn('node', [entry], {
     cwd: path.join(ROOT, 'backend'),
@@ -121,7 +121,7 @@ async function smokeTest(res) {
   child.kill();
   if (!ready) {
     res.write('\nBackend failed to start. Its output was:\n' + log.slice(-3000) + '\n');
-    throw new Error('Backend smoke test failed — see the output above (often the database password/host, or a missing build).');
+    throw new Error('Backend smoke test failed - see the output above (often the database password/host, or a missing build).');
   }
   res.write('Backend boots and reaches the database. ✔\n');
 }
@@ -152,21 +152,21 @@ function pageHtml() {
 <h1>WDLC installation</h1>
 <p>Fill this in once. When it finishes, this page <b>deletes itself</b> and your real website takes over this address.</p>
 <form id="f">
- <h2>1 — Website addresses</h2>
+ <h2>1 - Website addresses</h2>
  <label>Main domain</label><input name="base" id="base" value="worlddirectlink.com">
  <label>Public website</label><input name="web" id="web">
  <label>Agent portal</label><input name="portal" id="portal">
  <label>Admin panel</label><input name="admin" id="admin">
- <small>Suggestions update as you type the main domain — edit any of them.</small>
+ <small>Suggestions update as you type the main domain - edit any of them.</small>
 
- <h2>2 — Database (PostgreSQL)</h2>
+ <h2>2 - Database (PostgreSQL)</h2>
  <div class="row"><div><label>Host</label><input name="dbhost" value="localhost"></div>
  <div><label>Port</label><input name="dbport" value="5432"></div></div>
  <div class="row"><div><label>Database name</label><input name="dbname" value="wdlc"></div>
  <div><label>Username</label><input name="dbuser" value="postgres"></div></div>
  <label>Password</label><input name="dbpass" type="password">
 
- <h2>3 — Your admin account</h2>
+ <h2>3 - Your admin account</h2>
  <label>Email</label><input name="adminemail" value="info@worlddirectlink.com">
  <label>Password (leave empty = generate a strong one)</label><input name="adminpass" type="password">
 
@@ -217,28 +217,28 @@ async function install(form, res) {
     SEED_ADMIN_PASSWORD: adminPass,
   };
 
-  res.write('Step 1/6 — Writing configuration files (security keys generated)…\n');
+  res.write('Step 1/6 - Writing configuration files (security keys generated)…\n');
   writeEnvFiles(vars);
   res.write('  done ✔\n');
 
-  res.write('\nStep 2/6 — Installing dependencies (slowest step, please wait)…\n');
+  res.write('\nStep 2/6 - Installing dependencies (slowest step, please wait)…\n');
   await run('npm install', ROOT, res, 'npm install (apps)');
   await run('npm install --prefix backend', ROOT, res, 'npm install (backend)');
 
-  res.write('\nStep 3/6 — Preparing the database…\n');
+  res.write('\nStep 3/6 - Preparing the database…\n');
   await run('npx prisma generate && npx prisma migrate deploy', path.join(ROOT, 'backend'), res, 'database migrations');
   await run('npm run db:seed', path.join(ROOT, 'backend'), res, 'create admin account + starter content');
 
-  res.write('\nStep 4/6 — Building the four apps for production…\n');
+  res.write('\nStep 4/6 - Building the four apps for production…\n');
   await run('npm run --prefix backend build', ROOT, res, 'build backend');
   await run('npm run --workspace=apps/web build', ROOT, res, 'build public website');
   await run('npm run --workspace=apps/portal build', ROOT, res, 'build agent portal');
   await run('npm run --workspace=apps/admin build', ROOT, res, 'build admin panel');
 
-  res.write('\nStep 5/6 — Verifying everything is connected…\n');
+  res.write('\nStep 5/6 - Verifying everything is connected…\n');
   await smokeTest(res);
 
-  res.write('\nStep 6/6 — Cleaning up: removing the installer…\n');
+  res.write('\nStep 6/6 - Cleaning up: removing the installer…\n');
   fs.writeFileSync(MARKER, new Date().toISOString() + '\n');
 
   res.write('\n══════════════════════════════════════════\n');
@@ -247,7 +247,7 @@ async function install(form, res) {
   res.write(`  Admin login:    ${vars.SEED_ADMIN_EMAIL}\n`);
   if (generatedPw) {
     res.write(`  Admin password: ${adminPass}\n`);
-    res.write('  ↑ SAVE THIS NOW — it is shown only this once.\n');
+    res.write('  ↑ SAVE THIS NOW - it is shown only this once.\n');
   }
   res.write(`  Admin panel:    ${admin}\n`);
 
@@ -258,7 +258,7 @@ async function install(form, res) {
       const c = spawn('bash', ['-c', 'command -v pm2']);
       c.on('close', (code) => r(code === 0));
     });
-    if (!havePm2) res.write('\n  (pm2 not found — start the apps manually, see deploy/DEPLOYMENT.md)\n');
+    if (!havePm2) res.write('\n  (pm2 not found - start the apps manually, see deploy/DEPLOYMENT.md)\n');
   }
   if (havePm2) {
     res.write('\n  Starting your apps with pm2 in 5 seconds…\n');
@@ -316,7 +316,7 @@ const server = http.createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no' });
       install(new URLSearchParams(body), res).catch((err) => {
         res.write(`\n✘ FAILED: ${err.message}\n`);
-        res.write('Fix the problem and submit the form again — progress so far is kept.\n');
+        res.write('Fix the problem and submit the form again - progress so far is kept.\n');
         res.end();
         running = false;
       });
@@ -332,7 +332,7 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('  Open ONE of these in your browser:');
   console.log(`    https://<your-web-domain>/installation?key=${KEY}   (if nginx already points here)`);
   for (const ip of localIPs()) console.log(`    http://${ip}:${PORT}/installation?key=${KEY}`);
-  console.log('\n  The ?key= part is required — it stops strangers from finding this page.');
+  console.log('\n  The ?key= part is required - it stops strangers from finding this page.');
   console.log('  After a successful install this program deletes itself.\n');
 });
 server.on('error', (e) => {

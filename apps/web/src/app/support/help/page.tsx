@@ -41,7 +41,7 @@ const faqs = [
   },
   {
     q: 'How do I track a transfer?',
-    a: 'Use your transaction ID — found on your receipt — at our Track Transfer page, or call 800-939-7185 for immediate help.',
+    a: 'Use your transaction ID - found on your receipt - at our Track Transfer page, or call 800-939-7185 for immediate help.',
   },
   {
     q: 'Why might my recipient get less than I sent?',

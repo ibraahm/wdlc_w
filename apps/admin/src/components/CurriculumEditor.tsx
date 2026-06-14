@@ -32,11 +32,11 @@ function LessonForm({ initial, busy, onSubmit, onCancel }: {
         </div>
       </div>
       <div>
-        <label className={labelCls}>Video link (YouTube, Vimeo, or Loom) — optional</label>
+        <label className={labelCls}>Video link (YouTube, Vimeo, or Loom) - optional</label>
         <input value={form.videoUrl || ''} onChange={(e) => set('videoUrl', e.target.value)} placeholder="https://www.youtube.com/watch?v=…" className={inputCls} />
       </div>
       <div>
-        <label className={labelCls}>Lesson text — optional</label>
+        <label className={labelCls}>Lesson text - optional</label>
         <RichTextEditor value={form.contentHtml || ''} onChange={(html) => set('contentHtml', html)} placeholder="Write the lesson notes here…" />
       </div>
       <div className="flex gap-2 justify-end">

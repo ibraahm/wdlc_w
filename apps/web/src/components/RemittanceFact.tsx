@@ -4,19 +4,19 @@ import { useEffect, useState } from 'react';
 
 // Widely-reported facts about the impact of remittances (World Bank / UN IFAD /
 // World Bank "Migration & Development Brief"). Phrased as general, well-known
-// context — not World Direct Link figures.
+// context - not World Direct Link figures.
 const FACTS: { stat: string; text: string }[] = [
   {
     stat: '$650B+',
-    text: 'Migrants send more than $650 billion home to family in low- and middle-income countries each year — more than these countries receive in foreign direct investment.',
+    text: 'Migrants send more than $650 billion home to family in low- and middle-income countries each year - more than these countries receive in foreign direct investment.',
   },
   {
     stat: '~800M',
-    text: 'About one in nine people worldwide — roughly 800 million — are supported by money sent home by a family member working abroad.',
+    text: 'About one in nine people worldwide - roughly 800 million - are supported by money sent home by a family member working abroad.',
   },
   {
     stat: '50%+',
-    text: 'Most remittances are spent on essentials: food, housing, school fees, and healthcare — often more than half goes directly to a family’s basic needs.',
+    text: 'Most remittances are spent on essentials: food, housing, school fees, and healthcare - often more than half goes directly to a family’s basic needs.',
   },
   {
     stat: 'June 16',
@@ -28,11 +28,11 @@ const FACTS: { stat: string; text: string }[] = [
   },
   {
     stat: '$4B+',
-    text: 'Diaspora remittances are Kenya’s largest single source of foreign exchange — sending home more than the country earns from tea, coffee, or tourism.',
+    text: 'Diaspora remittances are Kenya’s largest single source of foreign exchange - sending home more than the country earns from tea, coffee, or tourism.',
   },
   {
     stat: '~35%',
-    text: 'In Somalia, money sent home by the diaspora is estimated to make up roughly a third of the entire economy — among the highest reliance on remittances anywhere in the world.',
+    text: 'In Somalia, money sent home by the diaspora is estimated to make up roughly a third of the entire economy - among the highest reliance on remittances anywhere in the world.',
   },
   {
     stat: '2007',
@@ -40,11 +40,11 @@ const FACTS: { stat: string; text: string }[] = [
   },
   {
     stat: '$1B+',
-    text: 'Remittances rank among Uganda’s top foreign-exchange earners, with the diaspora sending home over a billion dollars a year — rivaling the country’s coffee exports.',
+    text: 'Remittances rank among Uganda’s top foreign-exchange earners, with the diaspora sending home over a billion dollars a year - rivaling the country’s coffee exports.',
   },
   {
     stat: '~8%',
-    text: 'Sending money to sub-Saharan Africa is still the most expensive in the world — averaging close to 8% in fees — so every reduction in cost means more reaching families across East Africa.',
+    text: 'Sending money to sub-Saharan Africa is still the most expensive in the world - averaging close to 8% in fees - so every reduction in cost means more reaching families across East Africa.',
   },
 ];
 
@@ -60,7 +60,7 @@ export default function RemittanceFact() {
 
   return (
     <div
-      aria-label="Did you know — about remittances"
+      aria-label="Did you know - about remittances"
       style={{
         position: 'relative',
         height: 'clamp(320px, 42vw, 520px)',

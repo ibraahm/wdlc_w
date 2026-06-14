@@ -1,7 +1,7 @@
 /**
  * One-time content migration: moves the previously hard-coded page copy into
  * CMS blocks so pages render from the CMS and are editable in the admin Puck
- * editor. Safe & idempotent — it only writes blocks for a page whose blocks are
+ * editor. Safe & idempotent - it only writes blocks for a page whose blocks are
  * still empty, so it never overwrites content authored in the admin.
  *
  * Run:  npx ts-node prisma/seed-content.ts
@@ -29,7 +29,7 @@ const content: Record<string, Block[]> = {
 <h2>Use of this website</h2>
 <p>This website is provided by ${legalName} for informational purposes. By accessing or using this site, you agree to these terms. We reserve the right to update this page at any time; continued use constitutes acceptance of any changes.</p>
 <h2>Money transmission services</h2>
-<p>Money transfer services are governed by the terms and conditions disclosed to you at the time of your transaction — including the pre-payment disclosure and receipt you receive from your authorized delegate. This website does not constitute an offer or agreement to transmit funds.</p>
+<p>Money transfer services are governed by the terms and conditions disclosed to you at the time of your transaction - including the pre-payment disclosure and receipt you receive from your authorized delegate. This website does not constitute an offer or agreement to transmit funds.</p>
 <h2>Licensing</h2>
 <p>${legalName} is a licensed money transmitter. NMLS ID #${nmls}. Money transmission is offered only in states where ${shortName} holds an active license. See our <a href="/licenses">Licenses &amp; Registrations</a> page for current license details.</p>
 <h2>Limitation of liability</h2>

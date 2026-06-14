@@ -3,7 +3,7 @@ import * as bcrypt from 'bcrypt';
 /**
  * A valid bcrypt hash (cost 12) of a random throwaway string. Used to run a
  * real comparison when the supplied account doesn't exist, so login response
- * timing is the same whether or not the email is registered — closing a
+ * timing is the same whether or not the email is registered - closing a
  * user-enumeration side channel. No password will ever match it.
  */
 const DUMMY_HASH = '$2b$12$jw100mR6HRnPlTgCMK2sk.JtkqDvb6k2aAbDplMLg/36UeNn6LICi';

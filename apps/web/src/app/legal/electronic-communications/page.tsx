@@ -39,8 +39,8 @@ export default async function ElectronicCommunicationsPage() {
                 <h2>Your consent</h2>
                 <p>
                   You consent to receive communications, agreements, disclosures, and notices
-                  (&ldquo;Communications&rdquo;) from us electronically — by email, by messages within our
-                  portals, or by posting to this website — rather than on paper. Your consent applies to the
+                  (&ldquo;Communications&rdquo;) from us electronically - by email, by messages within our
+                  portals, or by posting to this website - rather than on paper. Your consent applies to the
                   Communications associated with the request, account, or service for which you provide it.
                 </p>
 

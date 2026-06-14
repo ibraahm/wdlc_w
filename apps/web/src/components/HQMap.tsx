@@ -1,12 +1,12 @@
 /**
  * Embedded Google Map for World Direct Link HQ.
- * Uses Google's keyless `output=embed` map — free, no API key required.
+ * Uses Google's keyless `output=embed` map - free, no API key required.
  * Address: 5405 Memorial Drive, Suite A104, Stone Mountain, GA 30083
  */
 const HQ_QUERY = '5405 Memorial Drive, Suite A104, Stone Mountain, GA 30083';
 
 export default function HQMap({
-  label = 'World Direct Link Corporate Headquarters — 5405 Memorial Drive, Stone Mountain, GA',
+  label = 'World Direct Link Corporate Headquarters - 5405 Memorial Drive, Stone Mountain, GA',
   height = 340,
 }: {
   label?: string;

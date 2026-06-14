@@ -1,4 +1,4 @@
-# WDLC — Operations & Deployment Guide
+# WDLC - Operations & Deployment Guide
 
 Practical runbook for deploying and running the WDLC platform on a Linux server.
 For an overview of the codebase, see [README.md](./README.md).
@@ -37,7 +37,7 @@ SQL
 ## 2. Environment files
 
 These are **not** in git. They must exist before building/starting. Keep a secure backup
-(e.g. `/root/wdlc-env-backup/`) — re-cloning the repo does **not** restore them.
+(e.g. `/root/wdlc-env-backup/`) - re-cloning the repo does **not** restore them.
 
 ### `backend/.env`
 
@@ -46,7 +46,7 @@ These are **not** in git. They must exist before building/starting. Keep a secur
 | `DATABASE_URL` | ✅ | `postgresql://wdlc_user:PASS@localhost:5432/wdlc?schema=public` (URL-encode special chars) |
 | `NODE_ENV` | ✅ | `production` |
 | `PORT` | – | default `4000` |
-| `ADMIN_JWT_SECRET` | ✅ | `openssl rand -hex 32` — must differ from agent secret |
+| `ADMIN_JWT_SECRET` | ✅ | `openssl rand -hex 32` - must differ from agent secret |
 | `AGENT_JWT_SECRET` | ✅ | `openssl rand -hex 32` |
 | `JWT_SECRET` | – | shared fallback if the two above aren't set |
 | `CORS_ORIGIN` | ✅ | comma-separated prod origins (web/portal/admin domains) |
@@ -72,7 +72,7 @@ These are **not** in git. They must exist before building/starting. Keep a secur
 | `NEXT_PUBLIC_ADMIN_URL` | portal | "admin sign-in" link target |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | portal | same value as backend `GOOGLE_CLIENT_ID` (see §7) |
 
-> `NEXT_PUBLIC_*` values are baked in at **build time** — rebuild the app after changing them.
+> `NEXT_PUBLIC_*` values are baked in at **build time** - rebuild the app after changing them.
 
 ---
 
@@ -164,7 +164,7 @@ cat /proc/$pid/environ | tr '\0' '\n' | grep -Ei 'DATABASE_URL|JWT|SECRET|SMTP|S
 ```
 
 Or from PM2's saved dump: `grep -ao '"DATABASE_URL":"[^"]*"' ~/.pm2/dump.pm2`.
-Lost JWT/verification secrets can be regenerated (`openssl rand -hex 32`) — this only logs
+Lost JWT/verification secrets can be regenerated (`openssl rand -hex 32`) - this only logs
 everyone out. `DATABASE_URL` must match the existing Postgres credentials to keep your data.
 
 ---
@@ -190,7 +190,7 @@ server {
 }
 ```
 
-Repeat for web (`:3000`) and admin (`:3002`). The API is **not** exposed publicly — the apps
+Repeat for web (`:3000`) and admin (`:3002`). The API is **not** exposed publicly - the apps
 reach it on `127.0.0.1:4000`. Use certbot for HTTPS; the `X-Forwarded-For` header lets the API
 record the real client IP on e-signed applications.
 
@@ -216,7 +216,7 @@ email). It never creates accounts.
 ## 8. Training / LMS workflow (admin)
 
 1. **Admin → Training → Courses → New Course.** Fill the steps: details, overview, save.
-2. Reopen the course to build the **Curriculum** — add sections, then lessons (paste a
+2. Reopen the course to build the **Curriculum** - add sections, then lessons (paste a
    YouTube/Vimeo/Loom link and/or write text).
 3. Add **quiz** questions (mark the correct answer), set the pass mark, optionally require all
    lessons before the quiz.
@@ -241,7 +241,7 @@ Courses/resources are **DRAFT** until you publish them.
 | Emails not sending | Check `SMTP_*` (or SendGrid) in `backend/.env`; `pm2 logs wdlc-api` shows "SMTP ready" / errors. |
 | Portal map/iframe blocked | Web CSP is in `apps/web/next.config.mjs`; the portal has no CSP (video embeds work). |
 | Login says "verify your email" | Have the agent use the emailed setup link, or Admin → Active Agents → "Verify & activate". |
-| Changes to `NEXT_PUBLIC_*` not taking effect | Rebuild that app — public env vars are compiled in. |
+| Changes to `NEXT_PUBLIC_*` not taking effect | Rebuild that app - public env vars are compiled in. |
 
 Useful commands:
 

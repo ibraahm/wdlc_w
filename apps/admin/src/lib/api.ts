@@ -902,7 +902,7 @@ export async function apiVerifyBranchUser(accessToken: string, userId: string): 
 }
 
 // ---------------------------------------------------------------------------
-// Training / LMS — courses, quizzes, resources, reporting
+// Training / LMS - courses, quizzes, resources, reporting
 // ---------------------------------------------------------------------------
 
 export type QuizQuestion = { q: string; options: string[]; answer: number };

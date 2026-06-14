@@ -113,7 +113,7 @@ export default function NetworkManager({ countries }: { countries: NetworkCountr
             </div>
           </div>
 
-          {/* Mobile Money — providers */}
+          {/* Mobile Money - providers */}
           {hasMobile && (
             <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4 space-y-2">
               <label className="block text-xs font-semibold text-emerald-800 mb-2">Mobile Money providers</label>
@@ -132,7 +132,7 @@ export default function NetworkManager({ countries }: { countries: NetworkCountr
             </div>
           )}
 
-          {/* Cash Collection — partner name */}
+          {/* Cash Collection - partner name */}
           {hasCash && (
             <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
               <label className={labelCls + ' text-amber-800'}>Cash payout partner name</label>
@@ -145,7 +145,7 @@ export default function NetworkManager({ countries }: { countries: NetworkCountr
             </div>
           )}
 
-          {/* Bank Transfer — bank name */}
+          {/* Bank Transfer - bank name */}
           {hasBank && (
             <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
               <label className={labelCls + ' text-blue-800'}>Bank / financial institution name</label>

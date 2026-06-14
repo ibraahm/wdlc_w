@@ -244,7 +244,7 @@ export default function NavigationManager({ items }: { items: NavItem[] }) {
       {/* Items */}
       <div className="space-y-3">
         {forLoc.length === 0 && (
-          <p className="text-sm text-gray-400 italic">No items yet — add one below.</p>
+          <p className="text-sm text-gray-400 italic">No items yet - add one below.</p>
         )}
         {forLoc.map((item) => (
           <div key={item.id} className="space-y-2">

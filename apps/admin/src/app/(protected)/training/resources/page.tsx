@@ -23,7 +23,7 @@ export default async function TrainingResourcesPage() {
         <h1 className="text-2xl font-bold text-gray-900">Resource Management</h1>
         <p className="text-sm text-gray-500 mt-1">
           Reference documents and links for agents and tellers, with the same targeting as courses
-          (everyone, by state, or by agent). Portal users acknowledge each resource — an auditable
+          (everyone, by state, or by agent). Portal users acknowledge each resource - an auditable
           record that they opened it.
         </p>
       </div>

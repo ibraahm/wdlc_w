@@ -57,7 +57,7 @@ const HOME_CSS = `
 .wdl-blocks .wdl-sec[data-py="normal"]   { --section-y:clamp(64px,9vw,120px); }
 .wdl-blocks .wdl-sec[data-py="spacious"] { --section-y:clamp(96px,13vw,180px); }
 .wdl-blocks .wdl-sec[data-py] > section, .wdl-blocks .wdl-sec[data-py] > div { padding-top:var(--section-y); padding-bottom:var(--section-y); }
-/* Background override — neutralises the block's own background so the wrapper shows */
+/* Background override - neutralises the block's own background so the wrapper shows */
 .wdl-blocks .wdl-sec[data-bg] > section, .wdl-blocks .wdl-sec[data-bg] > div { background:transparent; }
 .wdl-blocks .wdl-sec[data-bg="white"]    { background:#fff; }
 .wdl-blocks .wdl-sec[data-bg="ivory"]    { background:var(--ivory); }
@@ -79,7 +79,7 @@ const HOME_CSS = `
 .wdl-blocks .wdl-headline { margin:0 0 24px; color:var(--navy); font-family:var(--font-heading); font-size:clamp(34px,4.4vw,56px); font-weight:400; line-height:1.12; letter-spacing:-.005em; }
 .wdl-blocks .wdl-body-text { margin:0 0 16px; color:var(--text-mid); font-size:clamp(15px,1.3vw,17px); line-height:1.78; max-width:62ch; }
 
-/* Hero — full-bleed; top padding clears the fixed utility bar (34px) + header (72px) */
+/* Hero - full-bleed; top padding clears the fixed utility bar (34px) + header (72px) */
 .wdl-hero { position:relative; min-height:calc(100vh - 106px); display:flex; align-items:center; overflow:hidden; background:linear-gradient(120deg,#fff 0%,#f6f4ee 100%); }
 .wdl-hero-bg { position:absolute; inset:0; background-size:cover; background-position:center; }
 .wdl-hero-overlay { position:absolute; inset:0; background:linear-gradient(110deg,rgba(255,255,255,.94) 0%,rgba(255,255,255,.82) 55%,rgba(250,250,247,.7) 100%); }
@@ -121,7 +121,7 @@ const HOME_CSS = `
 .wdl-stat-card .v { font-family:var(--font-heading); font-size:clamp(2rem,3.4vw,3rem); font-weight:500; line-height:1; margin-bottom:10px; color:var(--navy); }
 .wdl-stat-card .l { font-size:.78rem; color:#555; font-weight:600; text-transform:uppercase; letter-spacing:.06em; }
 
-/* Agent CTA — deep navy corporate band */
+/* Agent CTA - deep navy corporate band */
 .wdl-agent { background:radial-gradient(120% 140% at 0% 0%,#10294a 0%,var(--navy) 45%,var(--navy-deep) 100%); padding:var(--section-y) 0; color:#fff; }
 .wdl-agent .wdl-container { max-width:1040px; }
 .wdl-agent .wdl-headline { color:#fff; }
@@ -454,7 +454,7 @@ export default function BlockRenderer({ blocks }: { blocks: unknown }) {
       {normalised.map((block, i) => {
         const inner = renderBlock(block.type, block.props, i);
         if (inner === null) return null;
-        // Spacer has no design options — render bare.
+        // Spacer has no design options - render bare.
         if (block.type === 'Spacer') return <div key={i}>{inner}</div>;
         return (
           <LayoutWrap key={i} props={block.props}>

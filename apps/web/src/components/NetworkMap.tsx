@@ -324,7 +324,7 @@ export default function NetworkMap({ countries }: { countries: NetworkCountryDat
             img.setAttribute('href', flag);
             img.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', flag);
             // Stretch to the country's bounding box (then clipped to its borders)
-            // — reliable across browsers; the flag's colors always fill the shape.
+            // - reliable across browsers; the flag's colors always fill the shape.
             img.setAttribute('preserveAspectRatio', 'none');
             img.setAttribute('width', '1');
             img.setAttribute('height', '1');

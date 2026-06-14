@@ -380,7 +380,7 @@ export class DDService {
 
   // ── File-level mutations ────────────────────────────────────────────────────
   // The onboarding pipeline is strictly ordered: a file cannot reach a later
-  // step without completing the earlier ones (you can't get to step 2 — DD — or
+  // step without completing the earlier ones (you can't get to step 2 - DD - or
   // beyond without going through the application/review step first). Backward
   // moves, suspension, and termination remain available.
   private assertStageTransition(from: string, to: string) {
@@ -389,7 +389,7 @@ export class DDService {
 
     if (to === 'TERMINATED') return; // a file can always be offboarded
     if (from === 'TERMINATED') {
-      throw new BadRequestException('A terminated file cannot be reopened — create a new file');
+      throw new BadRequestException('A terminated file cannot be reopened - create a new file');
     }
     if (to === 'SUSPENDED') {
       if (from === 'DD_IN_PROGRESS' || from === 'ACTIVE') return;
@@ -405,7 +405,7 @@ export class DDService {
     if (fi === -1 || ti === -1) throw new BadRequestException('Invalid stage transition');
     if (ti > fi + 1) {
       throw new BadRequestException(
-        `Cannot skip ahead to ${to} — complete the ${PIPELINE[fi + 1]} step first`,
+        `Cannot skip ahead to ${to} - complete the ${PIPELINE[fi + 1]} step first`,
       );
     }
     // backward moves (ti < fi) and a single step forward (ti === fi + 1) are allowed
@@ -427,7 +427,7 @@ export class DDService {
   /**
    * Activation side effect: issue a portal login for the principal. Creates the
    * account from the linked application with an unusable password and emails a
-   * single-use 48h setup link. Idempotent — an existing account is re-linked.
+   * single-use 48h setup link. Idempotent - an existing account is re-linked.
    */
   private async provisionPortalAccount(file: { id: string; branchCode: string | null; applicationId: string | null }, adminId: string) {
     if (!file.applicationId || !file.branchCode) return;

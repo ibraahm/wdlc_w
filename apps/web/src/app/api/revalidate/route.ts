@@ -7,12 +7,12 @@ export async function POST(req: NextRequest) {
   if (!SECRET) {
     // Missing in production is a misconfiguration; in dev log a warning but allow if no secret set.
     if (process.env.NODE_ENV === 'production') {
-      console.error('REVALIDATE_SECRET env var is not set — revalidation endpoint is disabled');
+      console.error('REVALIDATE_SECRET env var is not set - revalidation endpoint is disabled');
       return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
     }
   }
 
-  // Accept token only via header (not query param — query params leak to access logs)
+  // Accept token only via header (not query param - query params leak to access logs)
   const token = req.headers.get('x-revalidate-token');
   if (SECRET && token !== SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

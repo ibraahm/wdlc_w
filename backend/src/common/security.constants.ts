@@ -3,7 +3,7 @@ export const LOCKOUT_MINUTES = 15;
 export const BCRYPT_ROUNDS = 12;
 
 // Access token lifetimes
-export const ADMIN_AT_EXPIRES = '15m';   // short — admin portal is sensitive
+export const ADMIN_AT_EXPIRES = '15m';   // short - admin portal is sensitive
 export const AGENT_AT_EXPIRES = '30m';
 
 // Refresh token lifetimes

@@ -13,7 +13,7 @@ function assertSecrets() {
     throw new Error('ADMIN_JWT_SECRET and AGENT_JWT_SECRET (or JWT_SECRET) must be set');
   }
   if (isProd && (placeholders.has(adminSecret) || placeholders.has(agentSecret))) {
-    throw new Error('Placeholder JWT secrets detected in production — set real values via environment variables');
+    throw new Error('Placeholder JWT secrets detected in production - set real values via environment variables');
   }
 }
 
@@ -36,7 +36,7 @@ async function bootstrap() {
   // Security headers
   app.use(helmet());
 
-  // Strict input validation — strips unknown props, blocks extras
+  // Strict input validation - strips unknown props, blocks extras
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -53,7 +53,7 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
 
   const port = parseInt(process.env.PORT || '4000', 10);
-  // Bind to loopback only — the API must never be reachable from the public
+  // Bind to loopback only - the API must never be reachable from the public
   // internet. The Next apps and nginx reach it on 127.0.0.1. Override with
   // BIND_HOST=0.0.0.0 only if you intentionally expose it (not recommended).
   const host = process.env.BIND_HOST || '127.0.0.1';

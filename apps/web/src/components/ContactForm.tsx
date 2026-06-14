@@ -14,7 +14,7 @@ const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 export default function ContactForm({
   fields,
   submitLabel = 'Submit',
-  successMessage = "Thanks — we've received your message and will respond shortly.",
+  successMessage = "Thanks - we've received your message and will respond shortly.",
   action = 'form_submit',
   /** CMS form slug to POST submissions to. When omitted the form is display-only. */
   formSlug,
@@ -66,7 +66,7 @@ export default function ContactForm({
         }
       } catch (err) {
         if ((err instanceof Error ? err.message : '').toLowerCase().includes('security')) {
-          void humanVerification.refresh(); // challenge is single-use — get a fresh one
+          void humanVerification.refresh(); // challenge is single-use - get a fresh one
           setError('Please answer the refreshed verification question and submit again.');
           setPending(false);
           return;

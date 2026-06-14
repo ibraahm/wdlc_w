@@ -62,7 +62,7 @@ export const builderForms: BuilderForm[] = [
     status: 'PUBLISHED',
     submitLabel: 'Submit application',
     successMessage:
-      'Thank you — your application has been received. Our agent onboarding team will be in touch shortly.',
+      'Thank you - your application has been received. Our agent onboarding team will be in touch shortly.',
     recaptcha: true,
     fields: [
       { id: 'f_contact', type: 'heading', name: 'h_contact', label: 'Business contact' },
@@ -92,7 +92,7 @@ export const builderForms: BuilderForm[] = [
     description: 'Single public contact form for general questions, tracking, refunds, claims, and agent support.',
     status: 'PUBLISHED',
     submitLabel: 'Send message',
-    successMessage: 'Thanks for reaching out — we will get back to you shortly.',
+    successMessage: 'Thanks for reaching out - we will get back to you shortly.',
     recaptcha: true,
     fields: [
       { id: 'c_name', type: 'text', name: 'name', label: 'Full Name', required: true, width: 'half' },

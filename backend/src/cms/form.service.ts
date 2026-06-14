@@ -81,7 +81,7 @@ export class FormService {
         fields: JSON.stringify(dto.fields ?? []),
         status: dto.status ?? 'DRAFT',
         submitLabel: dto.submitLabel ?? 'Submit',
-        successMessage: dto.successMessage ?? 'Thank you — your submission has been received.',
+        successMessage: dto.successMessage ?? 'Thank you - your submission has been received.',
         recaptcha: dto.recaptcha ?? true,
       },
     });

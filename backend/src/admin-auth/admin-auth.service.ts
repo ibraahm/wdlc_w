@@ -63,15 +63,15 @@ export class AdminAuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Credentials are correct — account-state messages below cannot be used for
+    // Credentials are correct - account-state messages below cannot be used for
     // enumeration since they require the right password to reach.
     if (isLocked(user.lockedUntil)) {
       await this.audit.log({ action: 'admin.login.locked', adminId: user.id, ip, userAgent: ua });
-      throw new UnauthorizedException('Account temporarily locked — try again later');
+      throw new UnauthorizedException('Account temporarily locked - try again later');
     }
     if (!user.active) {
       await this.audit.log({ action: 'admin.login.inactive', adminId: user.id, ip, userAgent: ua });
-      throw new UnauthorizedException('Account is not active — contact support');
+      throw new UnauthorizedException('Account is not active - contact support');
     }
 
     await this.prisma.adminUser.update({ where: { id: user.id }, data: { ...CLEAR_LOCKOUT, lastLoginAt: new Date() } });
@@ -161,7 +161,7 @@ export class AdminAuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
     const user = await this.prisma.adminUser.create({
-      // Password was set by another admin — require the user to change it on first login.
+      // Password was set by another admin - require the user to change it on first login.
       data: { email: dto.email, name: dto.name, passwordHash, role: dto.role ?? 'EDITOR', mustChangePassword: true },
     });
     await this.audit.log({

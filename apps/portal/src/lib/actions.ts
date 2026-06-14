@@ -61,7 +61,7 @@ export async function logoutAction(): Promise<void> {
     try {
       await apiLogout(accessToken, refreshToken);
     } catch {
-      // Best effort — clear cookies regardless
+      // Best effort - clear cookies regardless
     }
   }
 

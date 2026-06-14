@@ -104,7 +104,7 @@ export async function middleware(req: NextRequest) {
           return response;
         }
       } catch {
-        // Refresh failed — fall through to redirect
+        // Refresh failed - fall through to redirect
       }
     }
 
