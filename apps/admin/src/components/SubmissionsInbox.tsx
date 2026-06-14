@@ -15,6 +15,34 @@ const STATUS_COLOR: Record<string, string> = {
   CLOSED: 'bg-gray-200 text-gray-600',
 };
 
+// Service-level targets: how long an open case may sit before it's flagged.
+const SLA_HOURS: Record<string, number> = { NEW: 24, IN_PROGRESS: 72 };
+function slaState(s: WebsiteSubmission): 'ok' | 'soon' | 'breach' {
+  const status = s.status || 'NEW';
+  const limit = SLA_HOURS[status];
+  if (!limit) return 'ok'; // RESPONDED / CLOSED
+  const ageH = (Date.now() - new Date(s.createdAt).getTime()) / 3600000;
+  if (ageH >= limit) return 'breach';
+  if (ageH >= limit * 0.75) return 'soon';
+  return 'ok';
+}
+
+// Canned reply templates. {name} is replaced with the submitter's first name.
+const CANNED: { label: string; subjectSuffix?: string; body: string }[] = [
+  {
+    label: 'Acknowledge receipt',
+    body: 'Hello {name},\n\nThank you for contacting World Direct Link. We have received your message and a member of our team is reviewing it. We will follow up shortly.\n\nKind regards,\nWorld Direct Link',
+  },
+  {
+    label: 'Request more information',
+    body: 'Hello {name},\n\nThank you for reaching out. To help us assist you, could you please provide a few more details?\n\n- \n- \n\nOnce we have this, we will continue with your request.\n\nKind regards,\nWorld Direct Link',
+  },
+  {
+    label: 'Resolved / closing',
+    body: 'Hello {name},\n\nWe are glad to let you know your request has been resolved. If there is anything else we can help with, simply reply to this email.\n\nKind regards,\nWorld Direct Link',
+  },
+];
+
 function fmt(v: unknown): string {
   if (Array.isArray(v)) return v.map(fmt).join(', ');
   if (v === null || v === undefined || v === '') return '-';
@@ -28,6 +56,10 @@ function submitterEmail(d: Record<string, unknown>): string | null {
   const v = d.email ?? d.emailAddress ?? d.Email;
   return typeof v === 'string' && v.includes('@') ? v : null;
 }
+function submitterFirstName(d: Record<string, unknown>): string {
+  const v = fmt(d.firstName ?? d.name ?? d.fullName);
+  return v && v !== '-' ? v.split(' ')[0] : 'there';
+}
 function heading(d: Record<string, unknown>, fallback: string) {
   const name = fmt(d.name ?? d.fullName ?? d.firstName);
   const subj = fmt(d.subject ?? d.reason ?? d.topic);
@@ -35,35 +67,48 @@ function heading(d: Record<string, unknown>, fallback: string) {
 }
 function when(s: string) { return new Date(s).toLocaleString(); }
 
-export default function SubmissionsInbox({ rows }: { rows: Row[] }) {
+const SLA_BADGE = {
+  breach: { cls: 'bg-red-100 text-red-700', label: 'SLA breach' },
+  soon: { cls: 'bg-amber-100 text-amber-700', label: 'SLA due soon' },
+  ok: null,
+} as const;
+
+export default function SubmissionsInbox({ rows, currentUser }: { rows: Row[]; currentUser?: string }) {
   const router = useRouter();
   const [filter, setFilter] = useState<string>('ALL');
   const [selectedId, setSelectedId] = useState<string | null>(rows[0]?.submission.id ?? null);
 
-  const filtered = useMemo(
-    () => (filter === 'ALL' ? rows : rows.filter((r) => (r.submission.status || 'NEW') === filter)),
-    [rows, filter],
-  );
+  const filtered = useMemo(() => {
+    let list = filter === 'ALL' ? rows : filter === 'SLA'
+      ? rows.filter((r) => slaState(r.submission) === 'breach')
+      : rows.filter((r) => (r.submission.status || 'NEW') === filter);
+    // Surface SLA breaches first, then newest.
+    return [...list].sort((a, b) => {
+      const sa = slaState(a.submission) === 'breach' ? 0 : 1;
+      const sb = slaState(b.submission) === 'breach' ? 0 : 1;
+      if (sa !== sb) return sa - sb;
+      return new Date(b.submission.createdAt).getTime() - new Date(a.submission.createdAt).getTime();
+    });
+  }, [rows, filter]);
   const selected = rows.find((r) => r.submission.id === selectedId) ?? filtered[0] ?? null;
 
   const counts = useMemo(() => {
-    const c: Record<string, number> = { ALL: rows.length };
+    const c: Record<string, number> = { ALL: rows.length, SLA: rows.filter((r) => slaState(r.submission) === 'breach').length };
     for (const s of STATUSES) c[s] = rows.filter((r) => (r.submission.status || 'NEW') === s).length;
     return c;
   }, [rows]);
 
   return (
     <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
-      {/* List */}
       <div className="space-y-3">
         <div className="flex flex-wrap gap-1">
-          {(['ALL', ...STATUSES] as const).map((f) => (
+          {(['ALL', 'SLA', ...STATUSES] as const).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${filter === f ? 'bg-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${filter === f ? 'bg-navy text-white' : f === 'SLA' && counts.SLA > 0 ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
             >
-              {f === 'ALL' ? 'All' : f.replace('_', ' ')} ({counts[f] ?? 0})
+              {f === 'ALL' ? 'All' : f === 'SLA' ? 'SLA breach' : f.replace('_', ' ')} ({counts[f] ?? 0})
             </button>
           ))}
         </div>
@@ -72,6 +117,7 @@ export default function SubmissionsInbox({ rows }: { rows: Row[] }) {
           {filtered.map(({ form, submission }) => {
             const d = submission.data ?? {};
             const active = submission.id === selected?.submission.id;
+            const sla = SLA_BADGE[slaState(submission)];
             return (
               <button
                 key={submission.id}
@@ -85,38 +131,51 @@ export default function SubmissionsInbox({ rows }: { rows: Row[] }) {
                   </span>
                 </div>
                 <p className="mt-0.5 truncate text-xs text-gray-500">{form.name} · {when(submission.createdAt)}</p>
-                {submission.messages && submission.messages.length > 0 && (
-                  <p className="mt-0.5 text-[11px] text-gray-400">{submission.messages.length} message(s)</p>
-                )}
+                <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                  {sla && <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${sla.cls}`}>{sla.label}</span>}
+                  {submission.assignee && <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600">@{submission.assignee}</span>}
+                  {submission.messages && submission.messages.length > 0 && (
+                    <span className="text-[11px] text-gray-400">{submission.messages.length} msg</span>
+                  )}
+                </div>
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* Detail */}
-      {selected ? <Detail key={selected.submission.id} row={selected} onChange={() => router.refresh()} /> : (
+      {selected ? <Detail key={selected.submission.id} row={selected} currentUser={currentUser} onChange={() => router.refresh()} /> : (
         <p className="text-sm text-gray-400">Select a submission.</p>
       )}
     </div>
   );
 }
 
-function Detail({ row, onChange }: { row: Row; onChange: () => void }) {
+function Detail({ row, currentUser, onChange }: { row: Row; currentUser?: string; onChange: () => void }) {
   const { form, submission } = row;
   const data = submission.data ?? {};
   const email = submitterEmail(data);
+  const firstName = submitterFirstName(data);
   const [pending, start] = useTransition();
   const [error, setError] = useState('');
   const [tab, setTab] = useState<'reply' | 'note'>('reply');
   const [subject, setSubject] = useState(`Re: ${form.name} - World Direct Link`);
   const [replyBody, setReplyBody] = useState('');
   const [noteBody, setNoteBody] = useState('');
+  const [assignee, setAssignee] = useState(submission.assignee ?? '');
+  const sla = SLA_BADGE[slaState(submission)];
 
   function setStatus(status: string) {
     setError('');
     start(async () => {
-      const res = await setSubmissionStatusAction(submission.id, status);
+      const res = await setSubmissionStatusAction(submission.id, status, submission.assignee ?? undefined);
+      if (res.ok) onChange(); else setError(res.error ?? 'Failed');
+    });
+  }
+  function saveAssignee(name: string) {
+    setError('');
+    start(async () => {
+      const res = await setSubmissionStatusAction(submission.id, submission.status || 'NEW', name);
       if (res.ok) onChange(); else setError(res.error ?? 'Failed');
     });
   }
@@ -134,15 +193,21 @@ function Detail({ row, onChange }: { row: Row; onChange: () => void }) {
       if (res.ok) { setNoteBody(''); onChange(); } else setError(res.error ?? 'Failed');
     });
   }
+  function applyCanned(idx: number) {
+    if (idx < 0) return;
+    setReplyBody(CANNED[idx].body.replace(/\{name\}/g, firstName));
+  }
 
   const messages = submission.messages ?? [];
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5 space-y-5">
-      {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-gray-100 pb-4">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">{heading(data, form.name)}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-bold text-gray-900">{heading(data, form.name)}</h2>
+            {sla && <span className={`rounded px-2 py-0.5 text-[10px] font-bold ${sla.cls}`}>{sla.label}</span>}
+          </div>
           <p className="text-xs text-gray-500 mt-0.5">
             {form.name} · {when(submission.createdAt)}{email ? ` · ${email}` : ' · no email on file'}
           </p>
@@ -161,7 +226,24 @@ function Detail({ row, onChange }: { row: Row; onChange: () => void }) {
         </div>
       </div>
 
-      {/* Submitted fields */}
+      {/* Assignment */}
+      <div className="flex flex-wrap items-center gap-2 rounded-lg bg-gray-50 px-3 py-2">
+        <span className="text-xs font-semibold uppercase tracking-wide text-gray-400">Assigned to</span>
+        <input
+          value={assignee}
+          onChange={(e) => setAssignee(e.target.value)}
+          onBlur={() => { if (assignee !== (submission.assignee ?? '')) saveAssignee(assignee.trim()); }}
+          placeholder="Unassigned"
+          className="min-w-[160px] flex-1 rounded border border-gray-300 bg-white px-2 py-1 text-sm"
+        />
+        {currentUser && submission.assignee !== currentUser && (
+          <button onClick={() => { setAssignee(currentUser); saveAssignee(currentUser); }} disabled={pending}
+            className="rounded bg-navy px-2.5 py-1 text-xs font-semibold text-white hover:bg-navy/90 disabled:opacity-50">
+            Assign to me
+          </button>
+        )}
+      </div>
+
       <div className="grid gap-2 sm:grid-cols-2">
         {Object.entries(data).filter(([k]) => !k.startsWith('_')).map(([k, v]) => (
           <div key={k} className="rounded-lg bg-gray-50 px-3 py-2">
@@ -171,7 +253,6 @@ function Detail({ row, onChange }: { row: Row; onChange: () => void }) {
         ))}
       </div>
 
-      {/* Thread */}
       <div>
         <h3 className="text-sm font-semibold text-gray-900 mb-2">Case history</h3>
         {messages.length === 0 ? (
@@ -195,7 +276,6 @@ function Detail({ row, onChange }: { row: Row; onChange: () => void }) {
         )}
       </div>
 
-      {/* Compose */}
       <div className="rounded-lg border border-gray-200 p-3">
         <div className="mb-3 flex gap-2">
           <button onClick={() => setTab('reply')} className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${tab === 'reply' ? 'bg-navy text-white' : 'bg-gray-100 text-gray-600'}`}>Email reply</button>
@@ -204,9 +284,20 @@ function Detail({ row, onChange }: { row: Row; onChange: () => void }) {
         {tab === 'reply' ? (
           <div className="space-y-2">
             {!email && <p className="text-xs text-amber-700">No email address on this submission - you can&apos;t send a reply (use an internal note).</p>}
+            <div className="flex flex-wrap items-center gap-2">
+              <label className="text-xs text-gray-500">Canned reply:</label>
+              <select
+                onChange={(e) => { applyCanned(Number(e.target.value)); e.target.selectedIndex = 0; }}
+                className="rounded border border-gray-300 px-2 py-1 text-xs"
+                defaultValue=""
+              >
+                <option value="" disabled>Insert a template…</option>
+                {CANNED.map((c, i) => <option key={c.label} value={i}>{c.label}</option>)}
+              </select>
+            </div>
             <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject"
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
-            <textarea value={replyBody} onChange={(e) => setReplyBody(e.target.value)} rows={4} placeholder={`Write your reply to ${email ?? 'the submitter'}…`}
+            <textarea value={replyBody} onChange={(e) => setReplyBody(e.target.value)} rows={6} placeholder={`Write your reply to ${email ?? 'the submitter'}…`}
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
             <button onClick={sendReply} disabled={pending || !email || !replyBody.trim()}
               className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50">
