@@ -15,9 +15,10 @@ import { ApplicationsAdminController } from './applications-admin.controller';
 import { DDAdminController } from './dd-admin.controller';
 import { TellersService } from './tellers.service';
 import { TellersPublicController, TellersAdminController } from './tellers.controller';
+import { RegionalModule } from '../regional/regional.module';
 
 @Module({
-  imports: [PassportModule, AuditModule],
+  imports: [PassportModule, AuditModule, RegionalModule],
   controllers: [
     AgentsPublicController,
     AgentsAdminController,

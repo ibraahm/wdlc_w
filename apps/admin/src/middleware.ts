@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const API = process.env.API_URL || 'http://localhost:4000/api';
 const IS_PROD = process.env.NODE_ENV === 'production';
 
-const PROTECTED_PREFIXES = ['/dashboard', '/settings', '/users', '/partners', '/network', '/agents', '/applications', '/audit', '/news', '/submissions', '/navigation', '/agent-dd', '/agent-profile', '/branches', '/tellers', '/training', '/change-password'];
+const PROTECTED_PREFIXES = ['/dashboard', '/settings', '/users', '/partners', '/network', '/agents', '/applications', '/audit', '/news', '/submissions', '/navigation', '/agent-dd', '/agent-profile', '/branches', '/regional-offices', '/tellers', '/training', '/change-password'];
 const PUBLIC_PATHS = ['/login', '/forgot-password', '/reset-password'];
 
 function isProtected(pathname: string): boolean {
