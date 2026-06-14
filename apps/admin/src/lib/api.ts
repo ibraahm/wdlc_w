@@ -1113,3 +1113,36 @@ export async function apiTrainingReport(accessToken: string): Promise<TrainingRe
   const res = await authFetch('/admin/training/report', accessToken);
   return handleResponse<TrainingReport>(res);
 }
+
+// ---------------------------------------------------------------------------
+// Dashboard cockpit + global search
+// ---------------------------------------------------------------------------
+
+export type DashboardSummary = {
+  applications: { total: number; new: number; reviewing: number; approved: number; rejected: number; pending: number };
+  pipeline: { application: number; underReview: number; ddInProgress: number; active: number; suspended: number; terminated: number };
+  branches: { active: number; portalUsers: number; principals: number; tellers: number; unverifiedUsers: number };
+  dd: { expired: number; expiring: number; missing: number; reviewsDue: number };
+  tellerApplicationsPending: number;
+  submissionsOpen: number;
+  training: { coursesPublished: number; coursesPastDue: number; completionsTotal: number; completionsPassed: number };
+};
+
+export type SearchResult = {
+  type: 'Application' | 'DD file' | 'Portal user' | 'Teller app';
+  id: string;
+  title: string;
+  subtitle: string;
+  badge: string;
+  href: string;
+};
+
+export async function apiDashboardSummary(accessToken: string): Promise<DashboardSummary> {
+  const res = await authFetch('/admin/dashboard/summary', accessToken);
+  return handleResponse<DashboardSummary>(res);
+}
+
+export async function apiAdminSearch(accessToken: string, q: string): Promise<{ query: string; results: SearchResult[] }> {
+  const res = await authFetch(`/admin/search?q=${encodeURIComponent(q)}`, accessToken);
+  return handleResponse<{ query: string; results: SearchResult[] }>(res);
+}
