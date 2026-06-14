@@ -455,13 +455,12 @@ export async function setDDRiskAction(id: string, riskRating: string): Promise<{
 
 export async function recordDDReviewAction(
   id: string,
-  reviewedBy: string,
   nextReviewDueAt?: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const session = await getSession();
   if (!session) return { ok: false, error: 'Not authenticated' };
   try {
-    await apiRecordDDReview(session.accessToken, id, reviewedBy, nextReviewDueAt);
+    await apiRecordDDReview(session.accessToken, id, nextReviewDueAt);
     revalidatePath(`/agent-dd/${id}`);
     return { ok: true };
   } catch (err) {

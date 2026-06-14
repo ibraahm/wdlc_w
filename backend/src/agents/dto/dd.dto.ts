@@ -57,9 +57,12 @@ export class SetRiskDto {
 }
 
 export class RecordReviewDto {
+  // Reviewer is derived server-side from the signed-in admin; kept optional for
+  // backward compatibility but ignored in favour of the authenticated identity.
+  @IsOptional()
   @IsString()
   @MaxLength(200)
-  reviewedBy: string;
+  reviewedBy?: string;
 
   @IsOptional()
   @IsISO8601()

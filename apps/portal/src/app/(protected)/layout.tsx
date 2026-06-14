@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { logoutAction } from '@/lib/actions';
+import PortalNav from '@/components/PortalNav';
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
@@ -13,25 +14,21 @@ export default async function ProtectedLayout({ children }: { children: React.Re
 
   return (
     <div className="portal-layout">
+      <a href="#portal-main" className="portal-skip-link">Skip to content</a>
       <header className="portal-topbar">
-        <div className="portal-topbar-brand">
+        <a href="/dashboard" className="portal-topbar-brand" aria-label="World Direct Link Agent Portal — home">
           World Direct Link
-          <span>Agent Training Portal</span>
-        </div>
-        <nav className="portal-topbar-nav">
-          <a href="/dashboard">Dashboard</a>
-          <a href="/training">Training</a>
-          <a href="/resources">Resources</a>
-          <a href="/settings">Settings</a>
-        </nav>
+          <span>Agent Portal</span>
+        </a>
+        <PortalNav />
         <div className="portal-topbar-right">
-          <span className="portal-topbar-user">{agent.firstName} {agent.lastName}</span>
+          <span className="portal-topbar-user" title={agent.email}>{agent.firstName} {agent.lastName}</span>
           <form action={logoutAction}>
             <button type="submit" className="portal-logout-btn">Sign Out</button>
           </form>
         </div>
       </header>
-      <main>{children}</main>
+      <main id="portal-main">{children}</main>
     </div>
   );
 }
