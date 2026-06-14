@@ -128,6 +128,7 @@ export default function ApplicationsManager({
   const [expanded, setExpanded] = useState<string | null>(initialExpandedId ?? null);
   const [statusFilter, setStatusFilter] = useState<'ALL' | typeof STATUSES[number]>('ALL');
   const [query, setQuery] = useState('');
+  const [awaitingDdOnly, setAwaitingDdOnly] = useState(false);
 
   const counts = useMemo(() => {
     const next: Record<string, number> = { ALL: applications.length, NEW: 0, REVIEWING: 0, APPROVED: 0, REJECTED: 0 };
@@ -135,10 +136,17 @@ export default function ApplicationsManager({
     return next;
   }, [applications]);
 
+  // Approved leads that don't yet have a DD file opened - the onboarding gap.
+  const awaitingDdCount = useMemo(
+    () => applications.filter((a) => a.status === 'APPROVED' && !a.ddFile).length,
+    [applications],
+  );
+
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return applications.filter((app) => {
       if (statusFilter !== 'ALL' && app.status !== statusFilter) return false;
+      if (awaitingDdOnly && !(app.status === 'APPROVED' && !app.ddFile)) return false;
       if (!q) return true;
       return [
         fullName(app),
@@ -149,7 +157,7 @@ export default function ApplicationsManager({
         app.productsOffered,
       ].filter(Boolean).join(' ').toLowerCase().includes(q);
     });
-  }, [applications, query, statusFilter]);
+  }, [applications, query, statusFilter, awaitingDdOnly]);
 
   function changeStatus(id: string, status: string) {
     setError('');
@@ -203,6 +211,28 @@ export default function ApplicationsManager({
             onClick={() => setStatusFilter(status)}
           />
         ))}
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        <span className="self-center text-xs font-medium text-gray-400">Saved views:</span>
+        <button
+          onClick={() => { setAwaitingDdOnly(false); setStatusFilter('ALL'); }}
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${!awaitingDdOnly && statusFilter === 'ALL' ? 'bg-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+        >
+          All ({counts.ALL})
+        </button>
+        <button
+          onClick={() => { setStatusFilter('NEW'); setAwaitingDdOnly(false); }}
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${statusFilter === 'NEW' && !awaitingDdOnly ? 'bg-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+        >
+          Needs triage ({counts.NEW ?? 0})
+        </button>
+        <button
+          onClick={() => { setAwaitingDdOnly(true); setStatusFilter('ALL'); }}
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${awaitingDdOnly ? 'bg-navy text-white' : awaitingDdCount > 0 ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+        >
+          Awaiting DD file ({awaitingDdCount})
+        </button>
       </div>
 
       <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 md:flex-row md:items-center md:justify-between">

@@ -54,7 +54,7 @@ export default async function WebsiteSubmissionsPage() {
           description="Messages from the public contact, claim, and support forms will appear here."
         />
       ) : (
-        <SubmissionsInbox rows={rows} />
+        <SubmissionsInbox rows={rows} currentUser={session.user.name} />
       )}
     </div>
   );

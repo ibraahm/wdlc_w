@@ -97,9 +97,21 @@ export default function DDFilesManager({
   const [error, setError] = useState('');
   const [stageFilter, setStageFilter] = useState('');
   const [query, setQuery] = useState('');
+  const [view, setView] = useState<string>('all');
   const [showCreate, setShowCreate] = useState(false);
   const [name, setName] = useState('');
   const [entityType, setEntityType] = useState('BUSINESS');
+
+  // Saved views: one-click compound filters for the common compliance lenses.
+  const reviewDue = (f: DDFile) => !!f.nextReviewDueAt && new Date(f.nextReviewDueAt) < new Date();
+  const VIEWS: { id: string; label: string; test: (f: DDFile) => boolean }[] = [
+    { id: 'all', label: 'All', test: () => true },
+    { id: 'reviewsDue', label: 'Reviews due', test: reviewDue },
+    { id: 'highRiskActive', label: 'High-risk active', test: (f) => f.riskRating === 'HIGH' && f.stage === 'ACTIVE' },
+    { id: 'nonCompliant', label: 'Non-compliant', test: (f) => f.compliant === false },
+    { id: 'suspended', label: 'Suspended', test: (f) => f.stage === 'SUSPENDED' },
+  ];
+  const activeView = VIEWS.find((v) => v.id === view) ?? VIEWS[0];
 
   const stageCounts = useMemo(() => {
     const counts: Record<string, number> = { ALL: initialFiles.length };
@@ -108,13 +120,22 @@ export default function DDFilesManager({
     return counts;
   }, [initialFiles]);
 
+  const viewCounts = useMemo(() => {
+    const c: Record<string, number> = {};
+    for (const v of VIEWS) c[v.id] = initialFiles.filter(v.test).length;
+    return c;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialFiles]);
+
   const files = useMemo(() => {
     const q = query.trim().toLowerCase();
     return initialFiles.filter((file) => {
+      if (!activeView.test(file)) return false;
       if (stageFilter && file.stage !== stageFilter) return false;
       return matchesQuery(file, q);
     });
-  }, [initialFiles, query, stageFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialFiles, query, stageFilter, view]);
 
   function create() {
     if (!name.trim()) {
@@ -146,6 +167,18 @@ export default function DDFilesManager({
           <Stat label="Reviews due" value={dashboard.reviewsDue} tone="blue" />
         </div>
       )}
+
+      <div className="flex flex-wrap gap-1.5">
+        {VIEWS.map((v) => (
+          <button
+            key={v.id}
+            onClick={() => setView(v.id)}
+            className={`rounded-full px-3 py-1 text-xs font-semibold transition ${view === v.id ? 'bg-navy text-white' : v.id === 'reviewsDue' && viewCounts[v.id] > 0 ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : v.id === 'nonCompliant' && viewCounts[v.id] > 0 ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          >
+            {v.label} ({viewCounts[v.id] ?? 0})
+          </button>
+        ))}
+      </div>
 
       <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
