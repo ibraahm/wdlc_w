@@ -5,6 +5,13 @@ import { useRouter } from 'next/navigation';
 import type { Course, CourseInput, QuizQuestion } from '@/lib/api';
 import { createCourseAction, updateCourseAction, deleteCourseAction } from '@/lib/actions';
 import RichTextEditor from './RichTextEditor';
+import CurriculumEditor from './CurriculumEditor';
+
+const LANGUAGES = [
+  { code: 'en', name: 'English' }, { code: 'es', name: 'Español' }, { code: 'fr', name: 'Français' },
+  { code: 'pt', name: 'Português' }, { code: 'zh', name: '中文' }, { code: 'ar', name: 'العربية' },
+  { code: 'vi', name: 'Tiếng Việt' }, { code: 'ht', name: 'Kreyòl' },
+];
 
 const inputCls = 'w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500';
 const labelCls = 'block text-xs font-medium text-gray-600 mb-1';
@@ -26,6 +33,7 @@ function Section({ step, title, hint, children }: { step: number; title: string;
 const EMPTY: CourseInput = {
   title: '', slug: '', category: 'General', description: '', contentHtml: '',
   questions: [], passingScore: 80, audience: 'ALL', targetStates: '', targetBranches: '', status: 'DRAFT', order: 0,
+  language: 'en', translationGroup: '', dueAt: null, requireLessons: false,
 };
 
 function parseQuestions(json: string): QuizQuestion[] {
@@ -156,10 +164,10 @@ function QuizBuilder({ questions, onChange }: { questions: QuizQuestion[]; onCha
 }
 
 function CourseForm({
-  initial, submitLabel, busy, onSubmit, onCancel,
+  initial, submitLabel, busy, onSubmit, onCancel, courseId,
 }: {
   initial: CourseInput; submitLabel: string; busy: boolean;
-  onSubmit: (data: CourseInput) => void; onCancel: () => void;
+  onSubmit: (data: CourseInput) => void; onCancel: () => void; courseId?: string;
 }) {
   const [form, setForm] = useState<CourseInput>(initial);
   function set<K extends keyof CourseInput>(key: K, value: CourseInput[K]) {
@@ -191,45 +199,72 @@ function CourseForm({
         </div>
       </Section>
 
-      <Section step={2} title="Lesson content" hint="What the agent reads before the quiz. Use the buttons to format — no coding needed.">
+      <Section step={2} title="Overview" hint="A short intro shown above the curriculum. Use the buttons to format — no coding needed.">
         <RichTextEditor value={form.contentHtml} onChange={(html) => set('contentHtml', html)} />
       </Section>
 
-      <Section step={3} title="Who can see this course" hint="Choose the audience. Most courses go to everyone.">
-        <AudienceFields
-          audience={form.audience}
-          targetStates={form.targetStates || ''}
-          targetBranches={form.targetBranches || ''}
-          onChange={(patch) => setForm((f) => ({ ...f, ...patch }))}
-        />
+      <Section step={3} title="Curriculum" hint="Sections and video/text lessons — the Udemy-style course outline.">
+        {courseId ? (
+          <CurriculumEditor courseId={courseId} />
+        ) : (
+          <p className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded p-3">
+            Save the course first, then reopen it to add sections and lessons (video + text).
+          </p>
+        )}
       </Section>
 
-      <Section step={4} title="Quiz" hint="Optional. Add questions to test understanding; mark the correct answer for each.">
+      <Section step={4} title="Language" hint="Offer the course in multiple languages. Use the same Translation group code across languages so agents can switch.">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div>
+            <label className={labelCls}>Course language</label>
+            <select value={form.language || 'en'} onChange={(e) => set('language', e.target.value)} className={inputCls}>
+              {LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.name}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>Translation group (optional)</label>
+            <input value={form.translationGroup || ''} onChange={(e) => set('translationGroup', e.target.value)} placeholder="e.g. bsa-aml-basics" className={inputCls} />
+            <p className="text-xs text-gray-400 mt-1">Same code on each language variant links them as one course.</p>
+          </div>
+        </div>
+      </Section>
+
+      <Section step={5} title="Quiz" hint="Optional. Add questions to test understanding; mark the correct answer for each.">
         <QuizBuilder questions={form.questions} onChange={(q) => set('questions', q)} />
         {form.questions.length > 0 && (
-          <div className="mt-3 max-w-xs">
-            <label className={labelCls}>Score needed to pass</label>
-            <div className="flex items-center gap-2">
-              <input type="number" min={1} max={100} value={form.passingScore} onChange={(e) => set('passingScore', Number(e.target.value))} className={inputCls} />
-              <span className="text-sm text-gray-500">%</span>
+          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
+            <div>
+              <label className={labelCls}>Score needed to pass</label>
+              <div className="flex items-center gap-2">
+                <input type="number" min={1} max={100} value={form.passingScore} onChange={(e) => set('passingScore', Number(e.target.value))} className={inputCls} />
+                <span className="text-sm text-gray-500">%</span>
+              </div>
             </div>
+            <label className="flex items-center gap-2 text-sm text-gray-700 self-end pb-2">
+              <input type="checkbox" checked={!!form.requireLessons} onChange={(e) => set('requireLessons', e.target.checked)} />
+              Require all lessons before the quiz
+            </label>
           </div>
         )}
       </Section>
 
-      <Section step={5} title="Publish" hint="Drafts are hidden from agents. Publish when it's ready.">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <Section step={6} title="Assignment & publish" hint="Set a deadline for compliance, then publish. Drafts stay hidden from agents.">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label className={labelCls}>Status</label>
             <select value={form.status} onChange={(e) => set('status', e.target.value)} className={inputCls}>
-              <option value="DRAFT">Draft — hidden from agents</option>
-              <option value="PUBLISHED">Published — visible in the portal</option>
+              <option value="DRAFT">Draft — hidden</option>
+              <option value="PUBLISHED">Published — visible</option>
             </select>
+          </div>
+          <div>
+            <label className={labelCls}>Complete-by date (optional)</label>
+            <input type="date" value={form.dueAt ? String(form.dueAt).slice(0, 10) : ''} onChange={(e) => set('dueAt', e.target.value || null)} className={inputCls} />
+            <p className="text-xs text-gray-400 mt-1">Overdue agents are flagged in reports.</p>
           </div>
           <div>
             <label className={labelCls}>Order in list</label>
             <input type="number" value={form.order ?? 0} onChange={(e) => set('order', Number(e.target.value))} className={inputCls} />
-            <p className="text-xs text-gray-400 mt-1">Lower numbers appear first.</p>
           </div>
         </div>
         {isPublishing && (
@@ -290,6 +325,8 @@ export default function CoursesManager({ courses }: { courses: Course[] }) {
       contentHtml: c.contentHtml, questions: parseQuestions(c.questions), passingScore: c.passingScore,
       audience: c.audience, targetStates: c.targetStates || '', targetBranches: c.targetBranches || '',
       status: c.status, order: c.order,
+      language: c.language || 'en', translationGroup: c.translationGroup || '',
+      dueAt: c.dueAt ?? null, requireLessons: !!c.requireLessons,
     };
   }
 
@@ -315,7 +352,7 @@ export default function CoursesManager({ courses }: { courses: Course[] }) {
         <div className="space-y-3">
           {courses.map((c) =>
             editingId === c.id ? (
-              <CourseForm key={c.id} initial={toInput(c)} submitLabel="Save Changes" busy={isPending} onSubmit={(d) => handleUpdate(c.id, d)} onCancel={() => setEditingId(null)} />
+              <CourseForm key={c.id} courseId={c.id} initial={toInput(c)} submitLabel="Save Changes" busy={isPending} onSubmit={(d) => handleUpdate(c.id, d)} onCancel={() => setEditingId(null)} />
             ) : (
               <div key={c.id} className="flex items-start gap-3 border border-gray-200 rounded-lg px-4 py-3 bg-white">
                 <div className="flex-1 min-w-0">
@@ -324,12 +361,14 @@ export default function CoursesManager({ courses }: { courses: Course[] }) {
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.status === 'PUBLISHED' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{c.status}</span>
                     <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium">{c.category}</span>
                     <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium">{AUDIENCE_LABEL[c.audience] ?? c.audience}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium uppercase">{c.language || 'en'}</span>
                   </div>
                   <div className="text-xs text-gray-400 mt-0.5 space-x-2">
                     <span>/{c.slug}</span>
+                    <span>· {c.sectionCount ?? 0} sections, {c.lessonCount ?? 0} lessons</span>
                     <span>· {c.questionCount ?? 0} questions</span>
-                    <span>· pass {c.passingScore}%</span>
                     <span>· {c.passedCount ?? 0} passed</span>
+                    {c.dueAt && <span>· due {new Date(c.dueAt).toLocaleDateString()}</span>}
                     {c.audience === 'STATE' && c.targetStates && <span>· {c.targetStates}</span>}
                     {c.audience === 'AGENT' && c.targetBranches && <span>· {c.targetBranches}</span>}
                   </div>

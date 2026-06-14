@@ -11,6 +11,8 @@ import {
   apiChangePassword,
   apiSubmitQuiz,
   apiAckResource,
+  apiCompleteLesson,
+  apiSetLanguage,
   type QuizResult,
 } from './api';
 import { revalidatePath } from 'next/cache';
@@ -146,6 +148,29 @@ export async function submitQuizAction(
     return { result };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Could not submit quiz.' };
+  }
+}
+
+export async function completeLessonAction(lessonId: string): Promise<{ ok?: boolean; error?: string }> {
+  const accessToken = cookies().get('pat')?.value;
+  if (!accessToken) return { error: 'Not authenticated.' };
+  try {
+    await apiCompleteLesson(accessToken, lessonId);
+    return { ok: true };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Could not save progress.' };
+  }
+}
+
+export async function setLanguageAction(language: string): Promise<{ ok?: boolean; error?: string }> {
+  const accessToken = cookies().get('pat')?.value;
+  if (!accessToken) return { error: 'Not authenticated.' };
+  try {
+    await apiSetLanguage(accessToken, language);
+    revalidatePath('/training');
+    return { ok: true };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Could not change language.' };
   }
 }
 

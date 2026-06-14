@@ -46,8 +46,15 @@ import {
   apiUpdateResource,
   apiDeleteResource,
   apiTrainingCompletions,
+  apiGetCourse,
+  apiCreateSection,
+  apiUpdateSection,
+  apiDeleteSection,
+  apiCreateLesson,
+  apiUpdateLesson,
+  apiDeleteLesson,
 } from './api';
-import type { Partner, NetworkCountry, NavItemInput, CourseInput, ResourceInput, Completion } from './api';
+import type { Partner, NetworkCountry, NavItemInput, CourseInput, ResourceInput, Completion, CourseWithCurriculum, SectionInput, LessonInput } from './api';
 import { getSession, setSessionCookies, clearSessionCookies, clearMustChangePassword } from './auth';
 
 // ---------------------------------------------------------------------------
@@ -727,6 +734,86 @@ export async function deleteResourceAction(id: string): Promise<{ ok: boolean; e
   try {
     await apiDeleteResource(session.accessToken, id);
     revalidatePath('/training/resources');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };
+  }
+}
+
+// ── Curriculum (sections & lessons) ─────────────────────────────────────────
+
+export async function getCourseCurriculumAction(courseId: string): Promise<{ course?: CourseWithCurriculum; error?: string }> {
+  const session = await getSession();
+  if (!session) return { error: 'Not authenticated' };
+  try {
+    const course = await apiGetCourse(session.accessToken, courseId);
+    return { course };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Load failed' };
+  }
+}
+
+export async function createSectionAction(courseId: string, data: SectionInput): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiCreateSection(session.accessToken, courseId, data);
+    revalidatePath('/training/courses');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Create failed' };
+  }
+}
+
+export async function updateSectionAction(id: string, data: Partial<SectionInput>): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiUpdateSection(session.accessToken, id, data);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
+  }
+}
+
+export async function deleteSectionAction(id: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiDeleteSection(session.accessToken, id);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };
+  }
+}
+
+export async function createLessonAction(sectionId: string, data: LessonInput): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiCreateLesson(session.accessToken, sectionId, data);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Create failed' };
+  }
+}
+
+export async function updateLessonAction(id: string, data: Partial<LessonInput>): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiUpdateLesson(session.accessToken, id, data);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
+  }
+}
+
+export async function deleteLessonAction(id: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiDeleteLesson(session.accessToken, id);
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };

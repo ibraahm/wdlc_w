@@ -89,11 +89,14 @@ model AgentUser {
   longitude           Float?
   showOnMap           Boolean   @default(false)
 
+  preferredLanguage   String?   @default("en")  // default course language in the portal
+
   refreshTokens       AgentRefreshToken[]
   loginHistory        AgentLoginHistory[]
   auditLogs           AuditLog[]
   completions         CourseCompletion[]
   resourceAcks        ResourceAck[]
+  lessonProgress      LessonProgress[]
 
   @@index([showOnMap, status])
 }
@@ -492,22 +495,78 @@ model Course {
   title         String
   category      String   @default("General")
   description   String?
-  contentHtml   String   @default("")   // lesson body (HTML)
+  contentHtml   String   @default("")   // overview / intro shown above the curriculum
   // JSON array: [{ "q": string, "options": string[], "answer": number }]
-  questions     String   @default("[]")
+  questions     String   @default("[]") // final assessment
   passingScore  Int      @default(80)   // percent required to pass the quiz
   audience      String   @default("ALL") // ALL | STATE | AGENT
   targetStates  String?                   // CSV of 2-letter state codes (audience=STATE)
   targetBranches String?                  // CSV of branch codes (audience=AGENT)
   status        String   @default("DRAFT") // DRAFT | PUBLISHED
   order         Int      @default(0)
+
+  // ── Corporate-LMS additions ────────────────────────────────────────────────
+  language        String    @default("en")  // ISO code: en, es, fr, …
+  translationGroup String?                   // links the same course across languages
+  dueAt           DateTime?                  // assignment deadline (overdue if unmet)
+  requireLessons  Boolean   @default(false)  // must finish all lessons before the quiz
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  sections      CourseSection[]
   completions   CourseCompletion[]
 
   @@index([status, order])
   @@index([category])
+  @@index([translationGroup])
+}
+
+// A curriculum section groups ordered lessons within a course (Udemy-style).
+model CourseSection {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title     String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lessons   Lesson[]
+
+  @@index([courseId, order])
+}
+
+// A single lesson: rich text and/or an embedded video (YouTube/Vimeo/Loom).
+model Lesson {
+  id              String   @id @default(cuid())
+  sectionId       String
+  section         CourseSection @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  title           String
+  order           Int      @default(0)
+  contentHtml     String   @default("")
+  videoUrl        String?                  // embed URL (validated/normalised in service)
+  durationMinutes Int?                     // optional, shown in the outline
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  progress        LessonProgress[]
+
+  @@index([sectionId, order])
+}
+
+// Per-lesson completion — powers progress %, "resume where you left off",
+// and the regulator-facing evidence that each lesson was viewed.
+model LessonProgress {
+  id          String    @id @default(cuid())
+  lessonId    String
+  lesson      Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  agentId     String
+  agent       AgentUser @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  completedAt DateTime  @default(now())
+
+  @@unique([lessonId, agentId])
+  @@index([agentId])
 }
 
 // Append-only audit record of a quiz attempt. The latest passing attempt

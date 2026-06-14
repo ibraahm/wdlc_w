@@ -155,25 +155,49 @@ export type CourseSummary = {
   title: string;
   category: string;
   description?: string;
+  language: string;
+  languages: string[];
   passingScore: number;
   questionCount: number;
+  lessonCount: number;
+  lessonsDone: number;
+  progressPct: number;
   completed: boolean;
   bestScore: number | null;
-  completedAt: string | null;
+  dueAt: string | null;
+  overdue: boolean;
 };
 
 export type QuizQuestion = { i: number; q: string; options: string[] };
 
-export type CourseDetail = {
+export type LessonView = {
   id: string;
+  title: string;
+  contentHtml: string;
+  videoUrl: string | null;
+  durationMinutes: number | null;
+  completed: boolean;
+};
+
+export type SectionView = { id: string; title: string; lessons: LessonView[] };
+
+export type CourseDetail = {
   slug: string;
   title: string;
   category: string;
   description?: string;
   contentHtml: string;
+  language: string;
+  languages: { slug: string; language: string }[];
   passingScore: number;
+  requireLessons: boolean;
+  dueAt: string | null;
+  sections: SectionView[];
+  lessonCount: number;
+  lessonsDone: number;
   questions: QuizQuestion[];
   lastAttempt: { score: number; passed: boolean; completedAt: string } | null;
+  certificateAvailable: boolean;
 };
 
 export type QuizResult = {
@@ -183,6 +207,7 @@ export type QuizResult = {
   correct: number;
   total: number;
   results: { i: number; correct: boolean }[];
+  certificateAvailable?: boolean;
 };
 
 export type ResourceItem = {
@@ -216,6 +241,23 @@ export async function apiSubmitQuiz(accessToken: string, slug: string, answers: 
     method: 'POST',
     headers: authHeaders(accessToken),
     body: JSON.stringify({ answers }),
+  });
+  return handleResponse(res);
+}
+
+export async function apiCompleteLesson(accessToken: string, lessonId: string): Promise<{ ok: boolean }> {
+  const res = await safeFetch(`${API}/portal/training/lessons/${encodeURIComponent(lessonId)}/complete`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+  });
+  return handleResponse(res);
+}
+
+export async function apiSetLanguage(accessToken: string, language: string): Promise<{ ok: boolean; language: string }> {
+  const res = await safeFetch(`${API}/portal/training/language`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+    body: JSON.stringify({ language }),
   });
   return handleResponse(res);
 }
