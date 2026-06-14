@@ -141,43 +141,78 @@ a { color: inherit; text-decoration: none; }
   min-height: 100svh;
   background: var(--cream);
 }
-.portal-topbar {
-  position: sticky; top: 0; z-index: 100;
-  height: 64px;
+
+/* ── Sidebar shell ──────────────────────────────────────────────────────── */
+.pshell { min-height: 100svh; background: var(--cream); display: flex; }
+
+.pshell-sidebar {
+  position: sticky; top: 0; align-self: flex-start;
+  height: 100svh; width: 264px; flex-shrink: 0;
   background: var(--navy);
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 clamp(20px, 4vw, 48px);
+  display: flex; flex-direction: column;
+  padding: 22px 16px;
 }
-.portal-topbar-brand {
-  font-family: var(--display);
-  font-size: 1.1rem;
-  font-weight: 300;
-  color: var(--ivory);
-  text-decoration: none;
-  flex-shrink: 0;
+.pshell-brand {
+  font-family: var(--display); font-size: 1.2rem; font-weight: 300;
+  color: var(--ivory); text-decoration: none; padding: 4px 8px 0; display: block;
 }
-.portal-topbar-brand span { color: var(--gold); margin-left: 6px; font-size: 0.52rem; letter-spacing: 0.24em; text-transform: uppercase; vertical-align: middle; }
-.portal-topbar-nav { display: flex; align-items: center; gap: 6px; margin-left: auto; margin-right: 20px; }
-/* Pill-style links with a clear active state and larger tap targets. */
-.portal-nav-link {
-  color: rgba(250, 250, 247, 0.72);
-  font-size: 0.85rem;
-  text-decoration: none;
-  padding: 8px 14px;
-  border-radius: 8px;
-  transition: color 0.15s, background 0.15s;
-  white-space: nowrap;
+.pshell-brand span { display: block; color: var(--gold); font-size: 0.55rem; letter-spacing: 0.26em; text-transform: uppercase; margin-top: 4px; }
+
+.pshell-nav { display: flex; flex-direction: column; gap: 4px; margin-top: 28px; }
+.pshell-link {
+  display: flex; align-items: center; gap: 13px;
+  padding: 13px 16px; border-radius: 10px;
+  color: rgba(250, 250, 247, 0.74); font-size: 0.98rem; text-decoration: none;
+  transition: background 0.15s, color 0.15s;
 }
-.portal-nav-link:hover { color: var(--ivory); background: rgba(250, 250, 247, 0.08); }
-.portal-nav-link.is-active { color: var(--navy); background: var(--gold); font-weight: 600; }
-.portal-nav-link:focus-visible,
-.portal-logout-btn:focus-visible,
-.portal-topbar-brand:focus-visible {
-  outline: 2px solid var(--gold);
-  outline-offset: 2px;
+.pshell-link:hover { background: rgba(250, 250, 247, 0.08); color: var(--ivory); }
+.pshell-link.is-active { background: var(--gold); color: var(--navy); font-weight: 600; }
+.pshell-link-icon { display: inline-flex; flex-shrink: 0; }
+
+.pshell-user {
+  margin-top: auto; padding-top: 16px; border-top: 1px solid rgba(250, 250, 247, 0.12);
+  display: flex; align-items: center; gap: 10px;
 }
-.portal-topbar-right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
-.portal-topbar-user { color: rgba(250, 250, 247, 0.65); font-size: 0.82rem; }
+.pshell-user-avatar {
+  width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+  background: var(--gold); color: var(--navy);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 0.82rem; text-transform: uppercase;
+}
+.pshell-user-meta { min-width: 0; flex: 1; }
+.pshell-user-name { color: var(--ivory); font-size: 0.85rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pshell-user-email { color: rgba(250, 250, 247, 0.5); font-size: 0.72rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pshell-logout {
+  margin-top: 6px; padding: 7px 12px; width: 100%;
+  border: 1px solid rgba(250, 250, 247, 0.2); border-radius: 8px;
+  background: transparent; color: rgba(250, 250, 247, 0.7);
+  font-size: 0.58rem; letter-spacing: 0.18em; text-transform: uppercase; cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+.pshell-logout:hover { border-color: rgba(250, 250, 247, 0.5); color: var(--ivory); }
+
+.pshell-main { flex: 1; min-width: 0; }
+
+/* Mobile top bar + drawer (hidden on desktop) */
+.pshell-mobilebar { display: none; }
+.pshell-hamburger { background: transparent; border: 0; color: var(--ivory); cursor: pointer; padding: 6px; display: inline-flex; }
+.pshell-brand-mobile { padding: 0; font-size: 1.05rem; }
+.pshell-brand-mobile span { display: inline-block; margin-left: 6px; margin-top: 0; }
+.pshell-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 140; }
+.pshell-drawer {
+  position: fixed; top: 0; left: 0; bottom: 0; z-index: 150;
+  width: min(82vw, 300px); background: var(--navy);
+  display: flex; flex-direction: column; padding: 18px 16px;
+  animation: pshellSlide 0.2s ease;
+}
+@keyframes pshellSlide { from { transform: translateX(-100%); } to { transform: none; } }
+.pshell-drawer-top { display: flex; align-items: flex-start; justify-content: space-between; }
+.pshell-drawer-close { background: transparent; border: 0; color: rgba(250,250,247,0.7); font-size: 1.1rem; cursor: pointer; padding: 4px 8px; }
+
+.pshell-link:focus-visible, .pshell-logout:focus-visible, .pshell-brand:focus-visible, .pshell-hamburger:focus-visible {
+  outline: 2px solid var(--gold); outline-offset: 2px;
+}
+
 /* Keyboard skip link - visible only when focused. */
 .portal-skip-link {
   position: absolute; left: 12px; top: -48px;
@@ -186,11 +221,15 @@ a { color: inherit; text-decoration: none; }
   z-index: 200; transition: top 0.15s;
 }
 .portal-skip-link:focus { top: 12px; }
-/* Mobile: let the bar wrap and the nav scroll horizontally instead of cramping. */
-@media (max-width: 640px) {
-  .portal-topbar { height: auto; flex-wrap: wrap; gap: 8px; padding: 10px 16px; }
-  .portal-topbar-nav { order: 3; width: 100%; margin: 4px 0 0; overflow-x: auto; gap: 4px; }
-  .portal-topbar-user { display: none; }
+
+@media (max-width: 900px) {
+  .pshell { flex-direction: column; }
+  .pshell-sidebar { display: none; }
+  .pshell-mobilebar {
+    display: flex; align-items: center; gap: 12px;
+    position: sticky; top: 0; z-index: 120;
+    height: 58px; padding: 0 16px; background: var(--navy);
+  }
 }
 .portal-logout-btn {
   padding: 8px 16px;
