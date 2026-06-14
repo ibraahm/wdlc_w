@@ -189,6 +189,25 @@ export class MailService {
     );
   }
 
+  sendAdminInvite(to: string, token: string, name: string) {
+    const base = process.env.ADMIN_BASE_URL || 'http://localhost:3002';
+    const link = `${base}/reset-password?token=${token}`;
+    return this.sendRaw(
+      to,
+      'You have been invited to the World Direct Link admin console',
+      emailLayout('Welcome to World Direct Link', `
+        <p>Hello ${name},</p>
+        <p>You have been invited to the <strong>World Direct Link</strong> admin console.
+        Click the button below to set your password. This link expires in <strong>48 hours</strong>.</p>
+        <p style="text-align:center;margin:32px 0">
+          <a href="${link}" style="background:#1a56db;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600">Set Your Password</a>
+        </p>
+        <p style="font-size:13px;color:#6b7280">Or copy this link: <a href="${link}">${link}</a></p>
+        <p style="font-size:13px;color:#6b7280">After setting your password you can also sign in with Google using this email address.</p>
+      `),
+    );
+  }
+
   sendAgentApplicationNotification(params: {
     to?: string;
     applicationId: string;

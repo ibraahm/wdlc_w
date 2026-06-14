@@ -7,7 +7,8 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { addMinutes } from 'date-fns';
+import { OAuth2Client } from 'google-auth-library';
+import { addMinutes, addHours } from 'date-fns';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { MailService } from '../common/mail.service';
@@ -25,6 +26,7 @@ import { AdminCreateUserDto } from './dto/admin-auth.dto';
 
 const OWNER_KEY = 'adminId';
 const adminSecret = () => process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET;
+const googleClientId = () => process.env.ADMIN_GOOGLE_CLIENT_ID || process.env.GOOGLE_CLIENT_ID || '';
 const publicUser = (u: { id: string; email: string; name: string; role: string; mustChangePassword?: boolean; regionalOfficeId?: string | null }) => ({
   id: u.id,
   email: u.email,
@@ -77,6 +79,40 @@ export class AdminAuthService {
 
     await this.prisma.adminUser.update({ where: { id: user.id }, data: { ...CLEAR_LOCKOUT, lastLoginAt: new Date() } });
     await this.audit.log({ action: 'admin.login.success', adminId: user.id, ip, userAgent: ua });
+    return { ...(await this.issueTokens(user, ip, ua)), user: publicUser(user) };
+  }
+
+  // ── Google sign-in ───────────────────────────────────────────────────────────
+  // Identity proof only: authenticates an existing, active admin by verified
+  // email. Never creates accounts. Disabled unless a Google client id is set.
+  async loginWithGoogle(credential: string, ip?: string, ua?: string) {
+    const clientId = googleClientId();
+    if (!clientId) throw new BadRequestException('Google sign-in is not enabled');
+    if (!credential) throw new BadRequestException('Missing Google credential');
+
+    let email: string | undefined;
+    let emailVerified = false;
+    try {
+      const client = new OAuth2Client(clientId);
+      const ticket = await client.verifyIdToken({ idToken: credential, audience: clientId });
+      const payload = ticket.getPayload();
+      email = payload?.email?.toLowerCase();
+      emailVerified = payload?.email_verified === true;
+    } catch {
+      throw new UnauthorizedException('Could not verify Google sign-in');
+    }
+    if (!email || !emailVerified) throw new UnauthorizedException('Your Google email is not verified');
+
+    const user = await this.prisma.adminUser.findUnique({ where: { email } });
+    if (!user) {
+      await this.audit.log({ action: 'admin.login.google.no_account', after: { email }, ip, userAgent: ua });
+      throw new ForbiddenException('No admin account is linked to this Google email.');
+    }
+    if (isLocked(user.lockedUntil)) throw new UnauthorizedException('Account temporarily locked - try again later');
+    if (!user.active) throw new UnauthorizedException('Account is not active - contact support');
+
+    await this.prisma.adminUser.update({ where: { id: user.id }, data: { ...CLEAR_LOCKOUT, lastLoginAt: new Date() } });
+    await this.audit.log({ action: 'admin.login.google.success', adminId: user.id, ip, userAgent: ua });
     return { ...(await this.issueTokens(user, ip, ua)), user: publicUser(user) };
   }
 
@@ -174,6 +210,32 @@ export class AdminAuthService {
       entityId: user.id,
       after: { email: user.email, role: user.role, regionalOfficeId },
     });
+    return publicUser(user);
+  }
+
+  // Invite: create the account with no usable password and email a one-time
+  // link so the user sets their own password (they can also use Google sign-in).
+  async inviteUser(dto: { email: string; name: string; role?: string; regionalOfficeId?: string }, actorId: string) {
+    const existing = await this.prisma.adminUser.findUnique({ where: { email: dto.email } });
+    if (existing) throw new ConflictException('Email already in use');
+
+    const passwordHash = await bcrypt.hash(generateToken(32), BCRYPT_ROUNDS); // unusable until set
+    const raw = generateToken(32);
+    const regionalOfficeId = dto.role === 'REGIONAL_OFFICER' ? (dto.regionalOfficeId ?? null) : null;
+    const user = await this.prisma.adminUser.create({
+      data: {
+        email: dto.email,
+        name: dto.name,
+        passwordHash,
+        role: dto.role ?? 'EDITOR',
+        regionalOfficeId,
+        mustChangePassword: false,
+        resetToken: hashToken(raw),
+        resetTokenExpiry: addHours(new Date(), 48),
+      },
+    });
+    void this.mail.sendAdminInvite(dto.email, raw, dto.name);
+    await this.audit.log({ action: 'admin.user.invite', adminId: actorId, entity: 'AdminUser', entityId: user.id, after: { email: user.email, role: user.role } });
     return publicUser(user);
   }
 

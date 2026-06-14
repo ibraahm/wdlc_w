@@ -46,6 +46,29 @@ export class SetUserRegionDto {
   regionalOfficeId?: string | null;
 }
 
+export class AdminInviteUserDto {
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  @MinLength(2)
+  name: string;
+
+  @IsOptional()
+  @IsIn(ADMIN_ROLES, { message: `role must be one of: ${ADMIN_ROLES.join(', ')}` })
+  role?: string;
+
+  @IsOptional()
+  @IsString()
+  regionalOfficeId?: string;
+}
+
+export class AdminGoogleLoginDto {
+  @IsString()
+  @MinLength(20)
+  credential: string;
+}
+
 export class AdminRefreshDto {
   @IsString()
   refreshToken: string;
