@@ -91,6 +91,15 @@ export default function CourseClient({ course }: { course: CourseDetail }) {
 
       {phase === 'quiz' && (
         <>
+          <div className="dash-card" style={{ position: 'sticky', top: '0', zIndex: 5, padding: '16px 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--muted)', marginBottom: '6px' }}>
+              <span>{answers.filter((a) => a !== null).length} of {course.questions.length} answered</span>
+              <span>Pass mark {course.passingScore}%</span>
+            </div>
+            <div style={{ height: '4px', background: 'var(--smoke)', borderRadius: '2px' }}>
+              <div style={{ height: '100%', width: `${(answers.filter((a) => a !== null).length / course.questions.length) * 100}%`, background: 'var(--gold)', borderRadius: '2px', transition: 'width 0.3s' }} />
+            </div>
+          </div>
           {error && <div className="auth-error" style={{ marginBottom: '16px' }}>{error}</div>}
           {course.questions.map((q, qi) => (
             <div key={q.i} className="dash-card">

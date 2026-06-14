@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { sanitizeLessonHtml } from './sanitize';
 
 // A quiz question as stored on the course.
 interface Question {
@@ -292,7 +293,7 @@ export class TrainingService {
         title: dto.title,
         category: dto.category || 'General',
         description: dto.description ?? null,
-        contentHtml: dto.contentHtml ?? '',
+        contentHtml: sanitizeLessonHtml(dto.contentHtml ?? ''),
         questions: typeof dto.questions === 'string' ? dto.questions : JSON.stringify(dto.questions ?? []),
         passingScore: dto.passingScore ?? 80,
         audience: dto.audience || 'ALL',
@@ -311,9 +312,10 @@ export class TrainingService {
     if (!existing) throw new NotFoundException('Course not found');
     this.validateCoursePayload(dto);
     const data: any = {};
-    for (const k of ['title', 'category', 'description', 'contentHtml', 'passingScore', 'audience', 'targetStates', 'targetBranches', 'status', 'order'] as const) {
+    for (const k of ['title', 'category', 'description', 'passingScore', 'audience', 'targetStates', 'targetBranches', 'status', 'order'] as const) {
       if (dto[k] !== undefined) data[k] = dto[k];
     }
+    if (dto.contentHtml !== undefined) data.contentHtml = sanitizeLessonHtml(dto.contentHtml);
     if (dto.questions !== undefined) {
       data.questions = typeof dto.questions === 'string' ? dto.questions : JSON.stringify(dto.questions);
     }
