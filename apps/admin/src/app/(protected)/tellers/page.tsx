@@ -23,7 +23,7 @@ export default async function TellersPage() {
         <h1 className="text-2xl font-bold text-gray-900">Teller Applications</h1>
         <p className="text-sm text-gray-500 mt-1">
           Branch employees applying to work under an existing agent. Verify the branch code
-          (correct it if needed), complete the background check, then approve — approval emails
+          (correct it if needed), complete the background check, then approve - approval emails
           the teller a one-time portal setup link.
         </p>
       </div>

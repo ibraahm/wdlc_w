@@ -31,7 +31,7 @@ export class HumanVerificationService {
   private readonly ttlMs = Number(process.env.HUMAN_VERIFICATION_TTL_SECONDS ?? '600') * 1000;
 
   // Replay/brute-force guard: nonce -> { exp, attempts, consumed }.
-  // In-memory by design — challenges are short-lived and single-instance
+  // In-memory by design - challenges are short-lived and single-instance
   // deployments are the norm here; worst case after a restart a token can be
   // replayed once within its TTL.
   private readonly seen = new Map<string, { exp: number; attempts: number; consumed: boolean }>();
@@ -152,7 +152,7 @@ export class HumanVerificationService {
     const expected = this.answerFor(payload);
     const ok = Number(normalized) === expected;
     if (ok) {
-      state.consumed = true; // single use — a correct token cannot be replayed
+      state.consumed = true; // single use - a correct token cannot be replayed
     } else {
       state.attempts += 1;
       this.logger.warn(`human verification answer incorrect: context=${context}`);

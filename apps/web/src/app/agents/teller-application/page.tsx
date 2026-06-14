@@ -13,7 +13,7 @@ export default function TellerApplicationPage() {
       <PageHero
         eyebrow="Agents & Partners"
         title="Teller Application"
-        subtitle="For employees of an existing World Direct Link agent branch. You will need your branch code — ask your agent principal."
+        subtitle="For employees of an existing World Direct Link agent branch. You will need your branch code - ask your agent principal."
       />
       <Section>
         <div className="max-w-2xl">

@@ -39,7 +39,7 @@ export class SettingController {
     return all.filter((s) => PUBLIC_SETTING_KEYS.has(s.key));
   }
 
-  // Public single-key read — restricted to allowlisted keys
+  // Public single-key read - restricted to allowlisted keys
   @Public()
   @Get(':key')
   async get(@Param('key') key: string) {

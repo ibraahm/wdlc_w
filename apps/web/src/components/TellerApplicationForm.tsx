@@ -26,7 +26,7 @@ export default function TellerApplicationForm() {
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!/^[a-z0-9]{6}$/.test(values.branchCode.trim().toLowerCase()))
-      return setError('Branch code must be 6 letters/digits (e.g. uswdlc) — ask your agent principal.');
+      return setError('Branch code must be 6 letters/digits (e.g. uswdlc) - ask your agent principal.');
     if (!values.firstName || !values.lastName || !values.email || !values.phone)
       return setError('Please complete all required fields.');
     if (!consent || !values.signatureName.trim())
@@ -64,7 +64,7 @@ export default function TellerApplicationForm() {
     return (
       <div className="rounded-xl border border-green-200 bg-green-50 px-5 py-6 text-green-800">
         <p className="font-medium">
-          Thank you — your teller application has been received. Our compliance team will run the
+          Thank you - your teller application has been received. Our compliance team will run the
           required checks and you will receive your portal access by email once approved.
         </p>
       </div>
@@ -76,7 +76,7 @@ export default function TellerApplicationForm() {
       <div>
         <label className="block text-sm font-bold text-primary-strong mb-1">Branch code *</label>
         <input value={values.branchCode} onChange={set('branchCode')} maxLength={6} placeholder="e.g. uswdlc" className={inputCls} />
-        <p className="text-xs text-muted mt-1">The 6-character code of the agent branch you work for. If unsure, ask your principal — compliance can correct it during review.</p>
+        <p className="text-xs text-muted mt-1">The 6-character code of the agent branch you work for. If unsure, ask your principal - compliance can correct it during review.</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div><label className="block text-sm font-bold text-primary-strong mb-1">First name *</label><input value={values.firstName} onChange={set('firstName')} className={inputCls} /></div>

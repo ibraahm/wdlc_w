@@ -17,7 +17,7 @@ export function sanitizeLessonHtml(dirty: string): string {
     allowedAttributes: {
       a: ['href', 'target', 'rel'],
     },
-    // Only http(s) and mailto links — blocks javascript:, data:, etc.
+    // Only http(s) and mailto links - blocks javascript:, data:, etc.
     allowedSchemes: ['http', 'https', 'mailto'],
     transformTags: {
       // Force safe link behaviour on every anchor.

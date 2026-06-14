@@ -14,7 +14,7 @@ const PLACEHOLDERS = [
   'change-me-agent-secret-openssl-rand-hex-32',
 ];
 
-// Each secret is OPTIONAL at the field level — the cross-field .custom() below
+// Each secret is OPTIONAL at the field level - the cross-field .custom() below
 // enforces that every portal ends up with a usable secret (per-portal OR the
 // shared JWT_SECRET fallback), matching assertSecrets() in main.ts. When a
 // secret IS provided in production it must be long and not a known placeholder.

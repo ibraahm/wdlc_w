@@ -164,7 +164,7 @@ export default function PartnersManager({ partners }: { partners: Partner[] }) {
                       {TYPE_LABELS[p.type] ?? p.type}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{p.region || '—'}</td>
+                  <td className="px-4 py-3 text-gray-500 text-xs">{p.region || '-'}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       {p.featured && <span className="rounded-full bg-amber-100 text-amber-700 px-2 py-0.5 text-[10px] font-semibold">Featured</span>}

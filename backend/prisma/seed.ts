@@ -9,7 +9,7 @@ const prisma = new PrismaClient();
 /**
  * Seed ledger: records which named seed steps have already run (stored as
  * SiteSetting keys prefixed `__seed__:`). Lets us add NEW seed data over time
- * without re-running — and therefore without overwriting — content that was
+ * without re-running - and therefore without overwriting - content that was
  * already seeded and possibly edited in the admin. Bump the `version` suffix
  * when a step's data genuinely needs to be re-applied.
  */
@@ -49,14 +49,14 @@ async function main() {
     tagline: 'A Quarter Century of Financial Excellence',
     nmlsId: '1119263',
     description: 'Licensed money transmitter headquartered in Stone Mountain, Georgia, serving diaspora families with reliable in-person money transfer services.',
-    // Public site maintenance switch — set to true in admin → Settings to show
+    // Public site maintenance switch - set to true in admin → Settings to show
     // the maintenance notice across the public site.
     maintenanceMode: false,
   };
   for (const [key, value] of Object.entries(settings)) {
     await prisma.siteSetting.upsert({
       where: { key },
-      // Seed defaults only on first creation — never clobber admin edits on re-seed.
+      // Seed defaults only on first creation - never clobber admin edits on re-seed.
       update: {},
       create: { key, value: JSON.stringify(value) },
     });
@@ -85,7 +85,7 @@ async function main() {
     await prisma.navItem.create({ data: { label: 'Licenses', href: '/licenses', location: 'HEADER', order: 2 } });
 
     await prisma.navItem.create({ data: { label: 'Services', href: '/services', location: 'HEADER', order: 3 } });
-    // Services children omitted from header dropdown to keep it clean — accessible via /services page
+    // Services children omitted from header dropdown to keep it clean - accessible via /services page
 
     const agents = await prisma.navItem.create({ data: { label: 'Agents & Partners', href: '/agents/become-an-agent', location: 'HEADER', order: 4 } });
     await prisma.navItem.createMany({ data: [
@@ -149,7 +149,7 @@ async function main() {
     { slug: 'home',                      title: 'Home',                                  description: 'Fast, affordable, and reliable money transfers for immigrant, refugee, and diaspora families.' },
     { slug: 'about',                     title: 'About World Direct Link',               description: 'Connecting communities with the people they love since 1999.' },
     { slug: 'licenses',                  title: 'Licenses & Regulatory Disclosures',     description: 'Licensed, registered, and verifiable. NMLS ID 1119263.' },
-    { slug: 'support/contact',             title: 'Contact Us',                            description: "We're here to help — reach our headquarters or send us a message." },
+    { slug: 'support/contact',             title: 'Contact Us',                            description: "We're here to help - reach our headquarters or send us a message." },
     { slug: 'services',                  title: 'Our Services',                          description: 'One link. Every way to deliver.' },
     { slug: 'services/send-money',       title: 'Send Money',                            description: 'Send money quickly and affordably at any authorized World Direct Link agent.' },
     { slug: 'services/cash-pickup',      title: 'Cash Pickup',                           description: 'Recipients can collect funds in U.S. dollars at a participating payout location.' },
@@ -175,8 +175,8 @@ async function main() {
     { slug: 'accessibility',             title: 'Accessibility Statement',               description: 'World Direct Link, Corp. is committed to digital accessibility for all users.' },
   ];
 
-  // Additive: only create pages that don't exist yet. Existing pages — including
-  // any edited in the admin (home blocks, copy, SEO) — are left untouched, so
+  // Additive: only create pages that don't exist yet. Existing pages - including
+  // any edited in the admin (home blocks, copy, SEO) - are left untouched, so
   // re-running the seed to add NEW pages never clobbers previously seeded ones.
   let createdPages = 0;
   for (const p of pages) {
@@ -245,7 +245,7 @@ async function main() {
         fields: JSON.stringify(f.fields),
         status: f.status,
         submitLabel: f.submitLabel ?? 'Submit',
-        successMessage: f.successMessage ?? 'Thank you — your submission has been received.',
+        successMessage: f.successMessage ?? 'Thank you - your submission has been received.',
         recaptcha: f.recaptcha ?? true,
       },
       create: {
@@ -255,7 +255,7 @@ async function main() {
         fields: JSON.stringify(f.fields),
         status: f.status,
         submitLabel: f.submitLabel ?? 'Submit',
-        successMessage: f.successMessage ?? 'Thank you — your submission has been received.',
+        successMessage: f.successMessage ?? 'Thank you - your submission has been received.',
         recaptcha: f.recaptcha ?? true,
       },
     });

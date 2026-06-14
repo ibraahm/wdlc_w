@@ -101,7 +101,7 @@ export class AgentsService {
         data.latitude = coords.latitude;
         data.longitude = coords.longitude;
       } else {
-        // Address could not be resolved — clear coords so it won't show a wrong pin.
+        // Address could not be resolved - clear coords so it won't show a wrong pin.
         data.latitude = null;
         data.longitude = null;
       }

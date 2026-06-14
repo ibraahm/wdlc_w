@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'World Direct Link Admin',
-  description: 'World Direct Link Corp — Admin Back-Office',
+  description: 'World Direct Link Corp - Admin Back-Office',
   robots: { index: false, follow: false },
 };
 

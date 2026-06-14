@@ -39,7 +39,7 @@ export default async function FraudPage() {
           items={[
             {
               q: 'Lottery, prize, or sweepstakes "fees"',
-              a: 'Scammers claim you have won a prize but demand an upfront payment for taxes or fees before you can collect — legitimate lotteries never require you to pay to receive winnings.',
+              a: 'Scammers claim you have won a prize but demand an upfront payment for taxes or fees before you can collect - legitimate lotteries never require you to pay to receive winnings.',
             },
             {
               q: 'Romance and online relationship requests',
@@ -51,7 +51,7 @@ export default async function FraudPage() {
             },
             {
               q: 'Job offers requiring upfront payment',
-              a: 'A "job" asks you to pay for training, equipment, or processing fees, or to forward funds you receive — a sign the position is not real.',
+              a: 'A "job" asks you to pay for training, equipment, or processing fees, or to forward funds you receive - a sign the position is not real.',
             },
             {
               q: 'Overpayment and check-refund schemes',

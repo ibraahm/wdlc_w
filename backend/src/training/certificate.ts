@@ -55,7 +55,7 @@ export async function buildCertificatePdf(data: CertificateData): Promise<Buffer
     doc.moveTo(120, footY).lineTo(330, footY).lineWidth(0.5).stroke('#999');
     doc.moveTo(W - 330, footY).lineTo(W - 120, footY).stroke('#999');
     doc.fillColor('#666').fontSize(9)
-      .text('World Direct Link, Corp. — NMLS #1119263', 120, footY + 6, { width: 210, align: 'center' });
+      .text('World Direct Link, Corp. - NMLS #1119263', 120, footY + 6, { width: 210, align: 'center' });
     doc.text(`Certificate ID: ${data.certificateId}`, W - 330, footY + 6, { width: 210, align: 'center' });
     if (data.branchCode) {
       doc.text(`Branch: ${data.branchCode}`, 0, footY + 22, { align: 'center' });

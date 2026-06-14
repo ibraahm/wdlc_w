@@ -1,7 +1,7 @@
 {
   "name": "wdlc-backend",
   "version": "1.0.0",
-  "description": "World Direct Link, Corp. — NestJS backend (CMS, auth, audit)",
+  "description": "World Direct Link, Corp. - NestJS backend (CMS, auth, audit)",
   "license": "UNLICENSED",
   "private": true,
   "scripts": {

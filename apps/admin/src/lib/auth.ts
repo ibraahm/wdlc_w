@@ -15,7 +15,7 @@ export type Session = {
 
 // Refresh tokens rotate on every use with reuse-detection on the backend. When
 // several server components render concurrently and all find an expired access
-// token, each would call apiRefresh() with the SAME refresh token — the first
+// token, each would call apiRefresh() with the SAME refresh token - the first
 // rotates it, the rest present a now-revoked token and trip reuse-detection,
 // logging the user out. Collapse concurrent refreshes for a given token into a
 // single in-flight promise so only one rotation happens per request burst.
@@ -70,7 +70,7 @@ export async function setSessionCookies(
 
   // cookies() is read-only during page/layout render; only Server Actions and
   // Route Handlers may mutate it. getSession() runs in both contexts, so guard
-  // the writes — a failed refresh-persist just means we refresh again next request.
+  // the writes - a failed refresh-persist just means we refresh again next request.
   try {
     cookieStore.set(AAT, accessToken, {
       httpOnly: true,
@@ -96,7 +96,7 @@ export async function setSessionCookies(
       maxAge: ACCESS_MAX_AGE,
     });
   } catch {
-    // read-only cookie context (render) — ignore
+    // read-only cookie context (render) - ignore
   }
 }
 
@@ -128,6 +128,6 @@ export async function clearSessionCookies(): Promise<void> {
     cookieStore.delete(ART);
     cookieStore.delete(AUSER);
   } catch {
-    // read-only cookie context (render) — ignore
+    // read-only cookie context (render) - ignore
   }
 }

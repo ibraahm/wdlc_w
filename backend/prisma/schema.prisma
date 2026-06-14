@@ -36,7 +36,7 @@ model AdminUser {
   auditLogs       AuditLog[]
 }
 
-// Refresh token per admin session — hashed, rotated on each use
+// Refresh token per admin session - hashed, rotated on each use
 model AdminRefreshToken {
   id          String    @id @default(cuid())
   tokenHash   String    @unique
@@ -169,7 +169,7 @@ model NavItem {
 
 // ─────────────────────────────────────────────
 // AGENT LOCATIONS  (bulk-imported via Excel / manual admin entry)
-// Separate from portal AgentUser accounts — no login required.
+// Separate from portal AgentUser accounts - no login required.
 // ─────────────────────────────────────────────
 model AgentLocation {
   id           String   @id @default(cuid())
@@ -263,7 +263,7 @@ model AgentDDFile {
   application     AgentApplication? @relation(fields: [applicationId], references: [id])
   applicationId   String?   @unique
 
-  branchCode      String?   @unique // 6-char agent ID, e.g. uswdlc — required before ACTIVE
+  branchCode      String?   @unique // 6-char agent ID, e.g. uswdlc - required before ACTIVE
   agentName       String
   entityType      String    @default("BUSINESS") // BUSINESS | INDIVIDUAL
   states          String?
@@ -384,7 +384,7 @@ model Form {
   fields         String   @default("[]")
   status         String   @default("DRAFT")
   submitLabel    String   @default("Submit")
-  successMessage String   @default("Thank you — your submission has been received.")
+  successMessage String   @default("Thank you - your submission has been received.")
   recaptcha      Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -456,7 +456,7 @@ model AuditLog {
 }
 
 // ─────────────────────────────────────────────
-// TELLER APPLICATIONS — employees of an existing agent branch. Background
+// TELLER APPLICATIONS - employees of an existing agent branch. Background
 // check + credentialing handled by compliance; approval issues a portal login.
 model TellerApplication {
   id            String   @id @default(cuid())
@@ -555,7 +555,7 @@ model Lesson {
   @@index([sectionId, order])
 }
 
-// Per-lesson completion — powers progress %, "resume where you left off",
+// Per-lesson completion - powers progress %, "resume where you left off",
 // and the regulator-facing evidence that each lesson was viewed.
 model LessonProgress {
   id          String    @id @default(cuid())

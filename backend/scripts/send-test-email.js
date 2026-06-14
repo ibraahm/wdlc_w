@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Standalone SMTP test — proves a real email leaves the server.
+ * Standalone SMTP test - proves a real email leaves the server.
  *   node backend/scripts/send-test-email.js recipient@example.com
  * Reads SMTP_* from backend/.env and sends a test message. No DB, no Nest.
  */
@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const nodemailer = require('nodemailer');
 
-// Minimal .env reader (SMTP_* only — avoids parsing complex URLs).
+// Minimal .env reader (SMTP_* only - avoids parsing complex URLs).
 const envPath = path.resolve(__dirname, '..', '.env');
 const env = {};
 for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
@@ -44,7 +44,7 @@ const secure = ['1', 'true', 'yes'].includes(String(env.SMTP_SECURE).toLowerCase
     const info = await t.sendMail({
       from: `"${env.SMTP_FROM_NAME || 'World Direct Link'}" <${env.SMTP_FROM_EMAIL || env.SMTP_USER}>`,
       to,
-      subject: 'World Direct Link — SMTP test',
+      subject: 'World Direct Link - SMTP test',
       text: 'This is a test email confirming outbound SMTP works.',
       html: '<p>This is a <strong>test email</strong> confirming outbound SMTP works.</p>',
     });

@@ -48,7 +48,7 @@ export default async function TrackPage() {
                   },
                 ]}
                 submitLabel="Check Status" action="track_transfer"
-                successMessage="Thanks — if your transaction is found, status details will be shown here. For immediate help, call 800-939-7185."
+                successMessage="Thanks - if your transaction is found, status details will be shown here. For immediate help, call 800-939-7185."
               />
             </div>
           </div>

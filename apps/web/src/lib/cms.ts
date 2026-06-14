@@ -26,7 +26,7 @@ export type CmsPage = {
   status: string;
 };
 
-// React cache() deduplicates calls with the same slug within a single request —
+// React cache() deduplicates calls with the same slug within a single request -
 // generateMetadata and the page component both call this but only one fetch fires.
 export const getCmsPage = cache(async (slug: string): Promise<CmsPage | null> => {
   try {

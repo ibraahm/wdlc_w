@@ -665,7 +665,7 @@ export async function verifyBranchUserAction(userId: string): Promise<{ ok: bool
 }
 
 // ---------------------------------------------------------------------------
-// Training / LMS — courses & resources
+// Training / LMS - courses & resources
 // ---------------------------------------------------------------------------
 
 export async function createCourseAction(data: CourseInput): Promise<{ ok: boolean; error?: string }> {

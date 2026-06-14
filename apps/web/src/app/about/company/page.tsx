@@ -25,7 +25,7 @@ export default function CompanyPage() {
       <PageHero
         eyebrow="About World Direct Link"
         title="A Private Company Built on Trust"
-        subtitle="Family-founded and independently operated since 1999 — we answer to our customers, not shareholders."
+        subtitle="Family-founded and independently operated since 1999 - we answer to our customers, not shareholders."
       >
         <ButtonOnDark href="/agents/become-an-agent">Become an Agent</ButtonOnDark>
         <Link
@@ -52,7 +52,7 @@ export default function CompanyPage() {
             <p>
               World Direct Link, Corp. is a privately held, family-founded money transmission business
               incorporated in Georgia on <strong>{company.foundedDisplay}</strong>. We have never taken
-              outside investment — every decision is made with the customer in mind, not a quarterly report.
+              outside investment - every decision is made with the customer in mind, not a quarterly report.
             </p>
             <p>
               We specialize in serving immigrant, refugee, and diaspora communities across the United States,
@@ -70,7 +70,7 @@ export default function CompanyPage() {
             rows={[
               { label: 'Legal name', value: company.legalName },
               { label: 'Founded', value: `${company.foundedDisplay} · ${company.foundedState}` },
-              { label: 'Ownership', value: 'Privately held — no public equity' },
+              { label: 'Ownership', value: 'Privately held - no public equity' },
               { label: 'NMLS ID', value: company.nmls },
               { label: 'FinCEN MSB', value: 'Registered Money Services Business' },
               { label: 'Headquarters', value: `${company.address.line1}, ${company.address.city}, ${company.address.state} ${company.address.zip}` },
@@ -88,12 +88,12 @@ export default function CompanyPage() {
             {
               icon: '🔒',
               heading: 'No Outside Investors',
-              body: 'Our margins go back into better service, lower fees, and compliance — not dividends or venture returns.',
+              body: 'Our margins go back into better service, lower fees, and compliance - not dividends or venture returns.',
             },
             {
               icon: '📞',
               heading: 'Direct Accountability',
-              body: 'When you have a problem, you reach a real person who has authority to fix it — not a call-center script.',
+              body: 'When you have a problem, you reach a real person who has authority to fix it - not a call-center script.',
             },
             {
               icon: '⚖️',

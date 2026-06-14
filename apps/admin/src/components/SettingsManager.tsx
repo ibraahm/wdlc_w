@@ -5,7 +5,7 @@ import type { Setting } from '@/lib/api';
 import { saveSettingsAction, addSettingAction } from '@/lib/actions';
 
 // Friendly metadata for known setting keys. Unknown keys still render with a
-// raw editor, so nothing is hidden — this only adds labels and help text.
+// raw editor, so nothing is hidden - this only adds labels and help text.
 const KNOWN: Record<string, { label: string; description: string }> = {
   siteName: { label: 'Site name', description: 'Brand name shown across the site.' },
   legalName: { label: 'Legal company name', description: 'Full registered entity name (used in footer / legal text).' },
@@ -29,7 +29,7 @@ function decode(raw: string): { text: string; wasJsonString: boolean } {
     const parsed = JSON.parse(raw);
     if (typeof parsed === 'string') return { text: parsed, wasJsonString: true };
   } catch {
-    /* not JSON — edit raw */
+    /* not JSON - edit raw */
   }
   return { text: raw, wasJsonString: false };
 }
@@ -164,7 +164,7 @@ export default function SettingsManager({ initialSettings }: { initialSettings: 
         <div className="flex items-center justify-between mb-4">
           <div>
             <h2 className="font-semibold text-gray-900 text-sm">Add a setting</h2>
-            <p className="text-xs text-gray-500 mt-0.5">Advanced — for keys the app reads by name.</p>
+            <p className="text-xs text-gray-500 mt-0.5">Advanced - for keys the app reads by name.</p>
           </div>
           {!showAdd && (
             <button onClick={() => setShowAdd(true)} className="text-sm text-primary hover:underline">

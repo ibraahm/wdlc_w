@@ -34,7 +34,7 @@ export class MailService {
           host: process.env.SMTP_HOST,
           port,
           secure, // true for 465; false for 587 (STARTTLS)
-          requireTLS: !secure, // force STARTTLS upgrade on 587 — many hosts (Yahoo) reject plain
+          requireTLS: !secure, // force STARTTLS upgrade on 587 - many hosts (Yahoo) reject plain
           auth: process.env.SMTP_USER
             ? {
                 user: process.env.SMTP_USER,
@@ -134,7 +134,7 @@ export class MailService {
     );
   }
 
-  /** Activation credential email — one-time setup link (48h) instead of a password. */
+  /** Activation credential email - one-time setup link (48h) instead of a password. */
   /** A staff reply to a public form submission (contact / claim / support). */
   sendSubmissionReply(to: string, subject: string, message: string) {
     const safe = message.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br/>');
@@ -157,7 +157,7 @@ export class MailService {
       'Your World Direct Link agent portal access',
       emailLayout('Welcome to World Direct Link', `
         <p>Hello ${firstName},</p>
-        <p>Your agent account has been approved. Your branch code is <strong>${branchCode}</strong> — keep it for all correspondence.</p>
+        <p>Your agent account has been approved. Your branch code is <strong>${branchCode}</strong> - keep it for all correspondence.</p>
         <p>Set your password to access the agent portal (training and resources). This link expires in <strong>48 hours</strong>.</p>
         <p style="text-align:center;margin:32px 0">
           <a href="${link}" style="background:#1a56db;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600">Set Up My Account</a>

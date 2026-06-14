@@ -67,7 +67,7 @@ export class RecordReviewDto {
 }
 
 export class SetBranchCodeDto {
-  // 6 lowercase alphanumeric characters, e.g. uswdlc — the agent's permanent ID.
+  // 6 lowercase alphanumeric characters, e.g. uswdlc - the agent's permanent ID.
   @Matches(/^[a-z0-9]{6}$/, { message: 'Branch code must be exactly 6 lowercase letters/digits (e.g. uswdlc)' })
   branchCode: string;
 }

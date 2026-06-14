@@ -1,5 +1,5 @@
 /**
- * Agent Due Diligence document catalog — the canonical 19-item checklist,
+ * Agent Due Diligence document catalog - the canonical 19-item checklist,
  * transcribed from the company's "Agent Due Diligence File Checklist"
  * (BSA/AML & MSB Compliance Program v6.40, board-approved 2025-10-10).
  *
@@ -31,7 +31,7 @@ export const DD_CATALOG: DDCatalogItem[] = [
   { code: 'r5', section: 'DOCUMENTATION', label: 'Valid government ID (per principal)', hasExpiry: true },
 
   // 2. COMPLIANCE DOCUMENTATION
-  { code: 'r6', section: 'COMPLIANCE', label: 'OFAC screening — all employees with transaction access', hasExpiry: true },
+  { code: 'r6', section: 'COMPLIANCE', label: 'OFAC screening - all employees with transaction access', hasExpiry: true },
   { code: 'r7', section: 'COMPLIANCE', label: 'Adverse media screening (per principal)', hasExpiry: true },
   { code: 'r8', section: 'COMPLIANCE', label: 'Background check and credit report (per principal)', hasExpiry: true },
   { code: 'r9', section: 'COMPLIANCE', label: 'BSA training (initial)', hasExpiry: true },
@@ -39,7 +39,7 @@ export const DD_CATALOG: DDCatalogItem[] = [
   { code: 'r11', section: 'COMPLIANCE', label: 'Anticipated volume form', hasExpiry: false },
 
   // 3. ONGOING DUE DILIGENCE
-  { code: 'r12', section: 'ONGOING', label: 'BSA training (periodic — annual)', hasExpiry: true },
+  { code: 'r12', section: 'ONGOING', label: 'BSA training (periodic - annual)', hasExpiry: true },
   { code: 'r13', section: 'ONGOING', label: 'AML acknowledgement renewal (annual)', hasExpiry: true },
   { code: 'r14', section: 'ONGOING', label: 'OFAC re-screen (annual)', hasExpiry: true },
   { code: 'r15', section: 'ONGOING', label: 'Location verification (Google Maps)', hasExpiry: true },

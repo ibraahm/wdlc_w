@@ -68,7 +68,7 @@ export default function FormRenderer({ form }: { form: CmsForm }) {
       setDone(true);
     } catch (err) {
       if ((err instanceof Error ? err.message : '').toLowerCase().includes('security')) {
-        void humanVerification.refresh(); // challenge is single-use — get a fresh one
+        void humanVerification.refresh(); // challenge is single-use - get a fresh one
       }
       setError(err instanceof Error ? err.message : 'Submission failed');
     } finally {

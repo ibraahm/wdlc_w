@@ -43,7 +43,7 @@ export default async function BecomeAnAgentPage() {
       <Section>
         <div className="grid lg:grid-cols-5 gap-10 items-start">
 
-          {/* Form — left, larger column */}
+          {/* Form - left, larger column */}
           <div className="lg:col-span-3" id="apply">
             <h2 className="text-xl font-bold text-gray-900 mb-1">Agent Application</h2>
             <p className="text-sm text-gray-500 mb-6">
@@ -57,16 +57,16 @@ export default async function BecomeAnAgentPage() {
             />
           </div>
 
-          {/* Benefits sidebar — right */}
+          {/* Benefits sidebar - right */}
           <div className="lg:col-span-2 space-y-6 lg:sticky lg:top-8">
             <div className="rounded-xl border border-[#d9e0e8] bg-white p-6 space-y-4">
               <h3 className="font-bold text-gray-900">Why partner with WDL?</h3>
               <ul className="space-y-3 text-sm text-gray-700">
                 {[
-                  { icon: '💰', text: 'Earn commissions on every transfer — no upfront fees' },
+                  { icon: '💰', text: 'Earn commissions on every transfer - no upfront fees' },
                   { icon: '🏘️', text: 'Serve your community with a trusted brand since 1999' },
                   { icon: '🎓', text: 'Setup, marketing, training, and ongoing support included' },
-                  { icon: '⚙️', text: 'Simple system — no complex hardware required' },
+                  { icon: '⚙️', text: 'Simple system - no complex hardware required' },
                   { icon: '📞', text: 'Dedicated onboarding team and ongoing support' },
                 ].map(({ icon, text }) => (
                   <li key={text} className="flex gap-3">

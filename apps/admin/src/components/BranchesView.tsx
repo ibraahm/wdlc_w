@@ -12,7 +12,7 @@ const STAGE_COLOR: Record<string, string> = {
 };
 
 function fmtDate(v?: string | null) {
-  return v ? new Date(v).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+  return v ? new Date(v).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
 }
 
 function UserChip({ u }: { u: BranchUser }) {
@@ -115,7 +115,7 @@ function BranchCard({ b }: { b: AgentBranch }) {
 
       <div className="mt-4">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
-          Portal users — {principals.length} principal{principals.length === 1 ? '' : 's'}, {tellers.length} teller{tellers.length === 1 ? '' : 's'}
+          Portal users - {principals.length} principal{principals.length === 1 ? '' : 's'}, {tellers.length} teller{tellers.length === 1 ? '' : 's'}
         </p>
         {b.users.length === 0 ? (
           <p className="rounded-lg border border-dashed border-gray-300 px-3 py-3 text-sm text-gray-400">

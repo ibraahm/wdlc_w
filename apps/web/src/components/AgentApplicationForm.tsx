@@ -189,7 +189,7 @@ function AddressAutocomplete({
           setOpen(usResults.length > 0);
         }
       } catch {
-        /* aborted or network error — manual entry still works */
+        /* aborted or network error - manual entry still works */
       } finally {
         if (abortRef.current === ctrl) setLoading(false);
       }
@@ -211,7 +211,7 @@ function AddressAutocomplete({
 
   function pick(r: NominatimResult) {
     const a = r.address;
-    // Nominatim may match at street level and omit the house number — keep the
+    // Nominatim may match at street level and omit the house number - keep the
     // number the user already typed so "123 Main St" doesn't become "Main St".
     const typedNumber = value.trim().match(/^\d+[a-zA-Z]?/)?.[0];
     const houseNumber = a.house_number || typedNumber;
@@ -720,7 +720,7 @@ export default function AgentApplicationForm({
       if (!res.ok) {
         const message: string = data.error || data.message || 'Submission failed. Please review the form and try again.';
         if (res.status === 403 || message.toLowerCase().includes('security')) {
-          // Challenges are single-use — fetch a fresh question for the retry.
+          // Challenges are single-use - fetch a fresh question for the retry.
           void loadHumanChallenge();
         }
         setError(message);
@@ -748,7 +748,7 @@ export default function AgentApplicationForm({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <p className="font-medium">
-            Thank you — your {isBusiness ? 'business' : 'individual'} application has been received.
+            Thank you - your {isBusiness ? 'business' : 'individual'} application has been received.
             Our agent onboarding team will be in touch shortly.
           </p>
         </div>
@@ -793,7 +793,7 @@ export default function AgentApplicationForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Type pill — tap to restart */}
+      {/* Type pill - tap to restart */}
       <div className="flex items-center gap-2 text-sm">
         <span className="text-gray-500">Applying as:</span>
         <button
@@ -975,7 +975,7 @@ export default function AgentApplicationForm({
               <YesNo name="declinedBefore" value={declinedBefore} onChange={setDeclinedBefore} />
             </Field>
             {declinedBefore && (
-              <Field label="If Yes — Explain" required>
+              <Field label="If Yes - Explain" required>
                 <input value={declinedExplain} onChange={(e) => setDeclinedExplain(e.target.value)} className={inputCls} />
               </Field>
             )}

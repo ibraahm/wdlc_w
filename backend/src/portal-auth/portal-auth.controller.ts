@@ -29,7 +29,7 @@ export class PortalAuthController {
 
   // ── Public ────────────────────────────────────────────────────────────────
 
-  // Public signup removed — portal accounts are issued automatically when an
+  // Public signup removed - portal accounts are issued automatically when an
   // agent application is approved (or a teller application for a branch).
 
   @Public()
@@ -49,7 +49,7 @@ export class PortalAuthController {
   }
 
   // Google sign-in: authenticates an already-approved account via a Google ID
-  // token. No human-verification needed — the token is a cryptographic proof.
+  // token. No human-verification needed - the token is a cryptographic proof.
   @Public()
   @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @Post('google')

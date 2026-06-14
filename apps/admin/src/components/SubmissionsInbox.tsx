@@ -17,7 +17,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 function fmt(v: unknown): string {
   if (Array.isArray(v)) return v.map(fmt).join(', ');
-  if (v === null || v === undefined || v === '') return '—';
+  if (v === null || v === undefined || v === '') return '-';
   if (typeof v === 'object') return JSON.stringify(v);
   return String(v);
 }
@@ -31,7 +31,7 @@ function submitterEmail(d: Record<string, unknown>): string | null {
 function heading(d: Record<string, unknown>, fallback: string) {
   const name = fmt(d.name ?? d.fullName ?? d.firstName);
   const subj = fmt(d.subject ?? d.reason ?? d.topic);
-  return [name !== '—' ? name : null, subj !== '—' ? subj : null].filter(Boolean).join(' — ') || fallback;
+  return [name !== '-' ? name : null, subj !== '-' ? subj : null].filter(Boolean).join(' - ') || fallback;
 }
 function when(s: string) { return new Date(s).toLocaleString(); }
 
@@ -109,7 +109,7 @@ function Detail({ row, onChange }: { row: Row; onChange: () => void }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState('');
   const [tab, setTab] = useState<'reply' | 'note'>('reply');
-  const [subject, setSubject] = useState(`Re: ${form.name} — World Direct Link`);
+  const [subject, setSubject] = useState(`Re: ${form.name} - World Direct Link`);
   const [replyBody, setReplyBody] = useState('');
   const [noteBody, setNoteBody] = useState('');
 
@@ -203,7 +203,7 @@ function Detail({ row, onChange }: { row: Row; onChange: () => void }) {
         </div>
         {tab === 'reply' ? (
           <div className="space-y-2">
-            {!email && <p className="text-xs text-amber-700">No email address on this submission — you can&apos;t send a reply (use an internal note).</p>}
+            {!email && <p className="text-xs text-amber-700">No email address on this submission - you can&apos;t send a reply (use an internal note).</p>}
             <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject"
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm" />
             <textarea value={replyBody} onChange={(e) => setReplyBody(e.target.value)} rows={4} placeholder={`Write your reply to ${email ?? 'the submitter'}…`}

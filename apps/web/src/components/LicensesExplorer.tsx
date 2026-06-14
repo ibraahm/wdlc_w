@@ -194,7 +194,7 @@ export default function LicensesExplorer({
                               <div className="md:col-span-2 rounded-lg border-l-4 border-[#b8860b] bg-[#fcf8ec] px-4 py-3">
                                 <dt className="flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-[#9a6b00]">
                                   <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#b8860b] text-[10px] text-white">!</span>
-                                  Required consumer disclosure — {r.state}
+                                  Required consumer disclosure - {r.state}
                                 </dt>
                                 <dd className="mt-2 text-sm leading-relaxed text-gray-800">{r.disclosure}</dd>
                               </div>

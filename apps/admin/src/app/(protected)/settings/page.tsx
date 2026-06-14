@@ -32,7 +32,7 @@ export default async function SettingsPage() {
 
       <SettingsManager initialSettings={settings} />
 
-      {/* Your account — change password */}
+      {/* Your account - change password */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="font-semibold text-gray-900 text-sm mb-1">Your password</h2>
         <p className="text-xs text-gray-500 mb-4">
