@@ -26,6 +26,26 @@ const FACTS: { stat: string; text: string }[] = [
     stat: '7 of 10',
     text: 'A large share of remittances flows to rural areas, where these funds are a vital lifeline for households with the fewest financial options.',
   },
+  {
+    stat: '$4B+',
+    text: 'Diaspora remittances are Kenya’s largest single source of foreign exchange — sending home more than the country earns from tea, coffee, or tourism.',
+  },
+  {
+    stat: '~35%',
+    text: 'In Somalia, money sent home by the diaspora is estimated to make up roughly a third of the entire economy — among the highest reliance on remittances anywhere in the world.',
+  },
+  {
+    stat: '2007',
+    text: 'East Africa leads the world in mobile money: since Kenya’s M-Pesa launched in 2007, sending and receiving funds by phone has become the everyday way families get support.',
+  },
+  {
+    stat: '$1B+',
+    text: 'Remittances rank among Uganda’s top foreign-exchange earners, with the diaspora sending home over a billion dollars a year — rivaling the country’s coffee exports.',
+  },
+  {
+    stat: '~8%',
+    text: 'Sending money to sub-Saharan Africa is still the most expensive in the world — averaging close to 8% in fees — so every reduction in cost means more reaching families across East Africa.',
+  },
 ];
 
 export default function RemittanceFact() {
