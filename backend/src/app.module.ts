@@ -14,6 +14,7 @@ import { PortalAuthModule } from './portal-auth/portal-auth.module';
 import { CmsModule } from './cms/cms.module';
 import { AgentsModule } from './agents/agents.module';
 import { TrainingModule } from './training/training.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 import { HealthModule } from './health/health.module';
 
 @Module({
@@ -69,6 +70,7 @@ import { HealthModule } from './health/health.module';
     CmsModule,
     AgentsModule,
     TrainingModule,
+    DashboardModule,
     HealthModule,
   ],
   providers: [

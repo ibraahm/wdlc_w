@@ -53,8 +53,9 @@ import {
   apiCreateLesson,
   apiUpdateLesson,
   apiDeleteLesson,
+  apiAdminSearch,
 } from './api';
-import type { Partner, NetworkCountry, NavItemInput, CourseInput, ResourceInput, Completion, CourseWithCurriculum, SectionInput, LessonInput } from './api';
+import type { Partner, NetworkCountry, NavItemInput, CourseInput, ResourceInput, Completion, CourseWithCurriculum, SectionInput, LessonInput, SearchResult } from './api';
 import { getSession, setSessionCookies, clearSessionCookies, clearMustChangePassword } from './auth';
 
 // ---------------------------------------------------------------------------
@@ -830,5 +831,20 @@ export async function loadCompletionsAction(
     return { rows };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Load failed' };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Global search (admin header)
+// ---------------------------------------------------------------------------
+
+export async function adminSearchAction(q: string): Promise<{ results?: SearchResult[]; error?: string }> {
+  const session = await getSession();
+  if (!session) return { error: 'Not authenticated' };
+  try {
+    const { results } = await apiAdminSearch(session.accessToken, q);
+    return { results };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Search failed' };
   }
 }

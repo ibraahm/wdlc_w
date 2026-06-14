@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { logoutAction } from '@/lib/actions';
 import type { AdminUser } from '@/lib/api';
+import GlobalSearch from './GlobalSearch';
 
 type NavItem = { href: string; label: string; description: string };
 type NavGroup = { heading: string; items: NavItem[] };
@@ -203,6 +204,7 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
             </div>
           </div>
           <div className="admin-topbar-right">
+            <GlobalSearch />
             <a className="admin-topbar-link" href={PUBLIC_SITE_URL} target="_blank" rel="noopener noreferrer">
               View site
             </a>
