@@ -4,6 +4,7 @@ import { addHours } from 'date-fns';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { MailService } from '../common/mail.service';
+import { RegionalService } from '../regional/regional.service';
 import { generateToken, hashToken } from '../common/crypto.util';
 import { DD_CATALOG } from './dd-catalog';
 import { computeDocStatus } from './dd-status.util';
@@ -69,7 +70,8 @@ const APPLICATION_SELECT = {
 export class DDService {
   constructor(
     private prisma: PrismaService,
-    private audit: AuditService, private mail: MailService) {}
+    private audit: AuditService, private mail: MailService,
+    private regional: RegionalService) {}
 
   // ── Creation ────────────────────────────────────────────────────────────────
   /** Creates a DD file and seeds the catalog. Business-only docs become NA for individuals. */
@@ -111,13 +113,18 @@ export class DDService {
 
     const hasCapturedVolume = !!sourceApplication?.monthlyVolume || !!sourceApplication?.totalLocations;
 
+    // Auto-assign the regional office that covers the agent's (first) state.
+    const firstState = (states ?? '').split(',')[0]?.trim() || null;
+    const office = await this.regional.officeForState(firstState);
+
     const file = await this.prisma.agentDDFile.create({
       data: {
         applicationId: dto.applicationId ?? null,
         agentName,
         entityType,
         states,
-        regionalOffice: dto.regionalOffice ?? null,
+        regionalOfficeId: office?.id ?? null,
+        regionalOffice: dto.regionalOffice ?? (office ? `${office.name} (${office.code})` : null),
         // Step 2 (DD) is only reachable once step 1 (the application) is in hand.
         // Files opened from an application begin collecting documents; files
         // created manually start at the application step and must progress.

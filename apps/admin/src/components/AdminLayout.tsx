@@ -28,6 +28,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: '/applications', label: 'Applications', description: 'Review new agent leads' },
       { href: '/agent-dd', label: 'Due Diligence', description: 'Compliance files and review dates' },
       { href: '/branches', label: 'Active Agents', description: 'Live branches and their portal users' },
+      { href: '/regional-offices', label: 'Regional Offices', description: 'Offices, their states, and assigned agents' },
       { href: '/tellers', label: 'Teller Applications', description: 'Branch employee applications and credentialing' },
       { href: '/agents', label: 'Agent Locations', description: 'Published public map locations' },
       { href: '/partners', label: 'Partners', description: 'Correspondent and partner network' },

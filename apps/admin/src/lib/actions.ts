@@ -54,8 +54,11 @@ import {
   apiUpdateLesson,
   apiDeleteLesson,
   apiAdminSearch,
+  apiCreateRegionalOffice,
+  apiUpdateRegionalOffice,
+  apiDeleteRegionalOffice,
 } from './api';
-import type { Partner, NetworkCountry, NavItemInput, CourseInput, ResourceInput, Completion, CourseWithCurriculum, SectionInput, LessonInput, SearchResult } from './api';
+import type { Partner, NetworkCountry, NavItemInput, CourseInput, ResourceInput, Completion, CourseWithCurriculum, SectionInput, LessonInput, SearchResult, RegionalOfficeInput } from './api';
 import { getSession, setSessionCookies, clearSessionCookies, clearMustChangePassword } from './auth';
 
 // ---------------------------------------------------------------------------
@@ -845,5 +848,45 @@ export async function adminSearchAction(q: string): Promise<{ results?: SearchRe
     return { results };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Search failed' };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Regional offices
+// ---------------------------------------------------------------------------
+
+export async function createRegionalOfficeAction(data: RegionalOfficeInput): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiCreateRegionalOffice(session.accessToken, data);
+    revalidatePath('/regional-offices');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Create failed' };
+  }
+}
+
+export async function updateRegionalOfficeAction(id: string, data: RegionalOfficeInput): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiUpdateRegionalOffice(session.accessToken, id, data);
+    revalidatePath('/regional-offices');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
+  }
+}
+
+export async function deleteRegionalOfficeAction(id: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiDeleteRegionalOffice(session.accessToken, id);
+    revalidatePath('/regional-offices');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };
   }
 }

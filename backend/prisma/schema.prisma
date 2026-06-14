@@ -28,6 +28,8 @@ model AdminUser {
   lastLoginAt     DateTime?
   failedAttempts  Int       @default(0)
   lockedUntil     DateTime?
+  // For REGIONAL_OFFICER users: the office whose states scope their access.
+  regionalOfficeId String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -267,7 +269,13 @@ model AgentDDFile {
   agentName       String
   entityType      String    @default("BUSINESS") // BUSINESS | INDIVIDUAL
   states          String?
-  regionalOffice  String?
+  regionalOffice  String?   // human-readable label (kept for back-compat)
+  regionalOfficeId String?  // FK to RegionalOffice (auto-resolved from state)
+
+  // Branch hierarchy: PARENT (master agent) or AGENT (location). parentBranchId
+  // optionally rolls an agent branch up to a parent branch.
+  branchType      String    @default("AGENT") // PARENT | AGENT
+  parentBranchId  String?
 
   // APPLICATION | UNDER_REVIEW | DD_IN_PROGRESS | ACTIVE | SUSPENDED | TERMINATED | REJECTED
   stage           String    @default("DD_IN_PROGRESS")
@@ -285,6 +293,26 @@ model AgentDDFile {
 
   @@index([stage])
   @@index([nextReviewDueAt])
+  @@index([regionalOfficeId])
+}
+
+// ─────────────────────────────────────────────
+// REGIONAL OFFICES  (manage agents within one or more states)
+// A regional office has a unique code and a CSV of the states it covers.
+// Agents are auto-assigned to the office that covers their state.
+// ─────────────────────────────────────────────
+model RegionalOffice {
+  id        String   @id @default(cuid())
+  code      String   @unique          // e.g. "RO-SE"
+  name      String
+  states    String?                   // CSV of 2-letter state codes
+  contactEmail String?
+  contactPhone String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active])
 }
 
 model AgentDocument {

@@ -15,6 +15,7 @@ import { CmsModule } from './cms/cms.module';
 import { AgentsModule } from './agents/agents.module';
 import { TrainingModule } from './training/training.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { RegionalModule } from './regional/regional.module';
 import { HealthModule } from './health/health.module';
 
 @Module({
@@ -71,6 +72,7 @@ import { HealthModule } from './health/health.module';
     AgentsModule,
     TrainingModule,
     DashboardModule,
+    RegionalModule,
     HealthModule,
   ],
   providers: [

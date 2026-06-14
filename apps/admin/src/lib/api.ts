@@ -1170,3 +1170,48 @@ export async function apiAgentProfile(accessToken: string, ddFileId: string): Pr
   const res = await authFetch(`/admin/agent-profile/${ddFileId}`, accessToken);
   return handleResponse<AgentProfile>(res);
 }
+
+// ---------------------------------------------------------------------------
+// Regional offices
+// ---------------------------------------------------------------------------
+
+export type RegionalOffice = {
+  id: string;
+  code: string;
+  name: string;
+  states: string | null;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  active: boolean;
+  agentCount?: number;
+  createdAt?: string;
+};
+
+export type RegionalOfficeInput = {
+  code?: string;
+  name?: string;
+  states?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  active?: boolean;
+};
+
+export async function apiListRegionalOffices(accessToken: string): Promise<RegionalOffice[]> {
+  const res = await authFetch('/admin/regional-offices', accessToken);
+  return handleResponse<RegionalOffice[]>(res);
+}
+
+export async function apiCreateRegionalOffice(accessToken: string, data: RegionalOfficeInput): Promise<RegionalOffice> {
+  const res = await authFetch('/admin/regional-offices', accessToken, { method: 'POST', body: JSON.stringify(data) });
+  return handleResponse<RegionalOffice>(res);
+}
+
+export async function apiUpdateRegionalOffice(accessToken: string, id: string, data: RegionalOfficeInput): Promise<RegionalOffice> {
+  const res = await authFetch(`/admin/regional-offices/${id}`, accessToken, { method: 'PATCH', body: JSON.stringify(data) });
+  return handleResponse<RegionalOffice>(res);
+}
+
+export async function apiDeleteRegionalOffice(accessToken: string, id: string): Promise<void> {
+  const res = await authFetch(`/admin/regional-offices/${id}`, accessToken, { method: 'DELETE' });
+  await handleResponse<void>(res);
+}
