@@ -10,7 +10,7 @@ import {
 import { AdminJwtAuthGuard } from '../admin-auth/admin-jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { CurrentUser, AuthUser } from '../auth/decorators/current-user.decorator';
 
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
 @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')
@@ -18,9 +18,10 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 export class DDAdminController {
   constructor(private dd: DDService) {}
 
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'REGIONAL_OFFICER')
   @Get()
-  list(@Query('stage') stage?: string) {
-    return this.dd.list(stage);
+  list(@CurrentUser() user: AuthUser, @Query('stage') stage?: string) {
+    return this.dd.list(stage, user.id, user.role);
   }
 
   @Get('dashboard')
@@ -33,9 +34,10 @@ export class DDAdminController {
     return this.dd.listActiveBranches();
   }
 
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'REGIONAL_OFFICER')
   @Get(':id')
-  get(@Param('id') id: string) {
-    return this.dd.get(id);
+  get(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.dd.get(id, user.id, user.role);
   }
 
   @Post('users/:userId/resend-setup')

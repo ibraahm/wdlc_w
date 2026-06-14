@@ -10,6 +10,7 @@ import {
   AdminResetPasswordDto,
   AdminChangePasswordDto,
   AdminSetActiveDto,
+  SetUserRegionDto,
 } from './dto/admin-auth.dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -103,5 +104,15 @@ export class AdminAuthController {
     @CurrentUser('id') id: string,
   ) {
     return this.auth.setUserActive(targetId, dto.active, id);
+  }
+
+  @Roles('SUPER_ADMIN')
+  @Patch('users/:id/region')
+  setRegion(
+    @Param('id') targetId: string,
+    @Body() dto: SetUserRegionDto,
+    @CurrentUser('id') id: string,
+  ) {
+    return this.auth.setUserRegion(targetId, dto.regionalOfficeId ?? null, id);
   }
 }

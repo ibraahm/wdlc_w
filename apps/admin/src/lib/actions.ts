@@ -197,6 +197,7 @@ export async function createUserAction(
       name: formData.get('name') as string,
       password: formData.get('password') as string,
       role: (formData.get('role') as string) || undefined,
+      regionalOfficeId: (formData.get('regionalOfficeId') as string) || undefined,
     });
     revalidatePath('/users');
     return { ok: true };

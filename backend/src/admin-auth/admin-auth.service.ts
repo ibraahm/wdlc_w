@@ -25,12 +25,13 @@ import { AdminCreateUserDto } from './dto/admin-auth.dto';
 
 const OWNER_KEY = 'adminId';
 const adminSecret = () => process.env.ADMIN_JWT_SECRET || process.env.JWT_SECRET;
-const publicUser = (u: { id: string; email: string; name: string; role: string; mustChangePassword?: boolean }) => ({
+const publicUser = (u: { id: string; email: string; name: string; role: string; mustChangePassword?: boolean; regionalOfficeId?: string | null }) => ({
   id: u.id,
   email: u.email,
   name: u.name,
   role: u.role,
   mustChangePassword: !!u.mustChangePassword,
+  regionalOfficeId: u.regionalOfficeId ?? null,
 });
 
 @Injectable()
@@ -160,25 +161,34 @@ export class AdminAuthService {
     if (existing) throw new ConflictException('Email already in use');
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+    // A regional officer must be tied to an office; ignore the office for other roles.
+    const regionalOfficeId = dto.role === 'REGIONAL_OFFICER' ? (dto.regionalOfficeId ?? null) : null;
     const user = await this.prisma.adminUser.create({
       // Password was set by another admin - require the user to change it on first login.
-      data: { email: dto.email, name: dto.name, passwordHash, role: dto.role ?? 'EDITOR', mustChangePassword: true },
+      data: { email: dto.email, name: dto.name, passwordHash, role: dto.role ?? 'EDITOR', regionalOfficeId, mustChangePassword: true },
     });
     await this.audit.log({
       action: 'admin.user.create',
       adminId: actorId,
       entity: 'AdminUser',
       entityId: user.id,
-      after: { email: user.email, role: user.role },
+      after: { email: user.email, role: user.role, regionalOfficeId },
     });
     return publicUser(user);
   }
 
   async listUsers() {
     return this.prisma.adminUser.findMany({
-      select: { id: true, email: true, name: true, role: true, active: true, lastLoginAt: true, failedAttempts: true, lockedUntil: true },
+      select: { id: true, email: true, name: true, role: true, active: true, regionalOfficeId: true, lastLoginAt: true, failedAttempts: true, lockedUntil: true },
       orderBy: { createdAt: 'asc' },
     });
+  }
+
+  // Assign / move a user's regional office (and ensure role alignment).
+  async setUserRegion(targetId: string, regionalOfficeId: string | null, actorId: string) {
+    const user = await this.prisma.adminUser.update({ where: { id: targetId }, data: { regionalOfficeId } });
+    await this.audit.log({ action: 'admin.user.region.set', adminId: actorId, entityId: targetId, after: { regionalOfficeId } });
+    return { id: user.id, regionalOfficeId: user.regionalOfficeId };
   }
 
   async setUserActive(targetId: string, active: boolean, actorId: string) {

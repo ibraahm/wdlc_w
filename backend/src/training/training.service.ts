@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { sanitizeLessonHtml } from './sanitize';
+import { RegionalService } from '../regional/regional.service';
 import { normalizeVideoUrl } from './video.util';
 import { buildCertificatePdf } from './certificate';
 
@@ -35,7 +36,20 @@ type CourseWithCurriculum = {
 
 @Injectable()
 export class TrainingService {
-  constructor(private prisma: PrismaService, private audit: AuditService) {}
+  constructor(private prisma: PrismaService, private audit: AuditService, private regional: RegionalService) {}
+
+  // Branch codes a regional officer may see (null = unrestricted full admin).
+  private async scopedBranchCodes(adminId?: string, role?: string): Promise<string[] | null> {
+    if (!adminId) return null;
+    const scope = await this.regional.scopeForAdmin(adminId, role);
+    if (!scope) return null;
+    if (!scope.officeId) return [];
+    const files = await this.prisma.agentDDFile.findMany({
+      where: { regionalOfficeId: scope.officeId },
+      select: { branchCode: true },
+    });
+    return files.map((f) => f.branchCode).filter(Boolean) as string[];
+  }
 
   // ── Audience resolution ─────────────────────────────────────────────────
   private async resolveAudience(agentId: string): Promise<{ branchCode: string | null; states: string[]; language: string }> {
@@ -593,12 +607,15 @@ export class TrainingService {
   }
 
   // ── ADMIN: reporting / score tracking ────────────────────────────────────
-  async adminCompletions(filter: { state?: string; branchCode?: string; courseId?: string; passedOnly?: boolean }) {
+  async adminCompletions(filter: { state?: string; branchCode?: string; courseId?: string; passedOnly?: boolean }, adminId?: string, role?: string) {
     const where: any = {};
     if (filter.branchCode) where.branchCode = filter.branchCode;
     if (filter.courseId) where.courseId = filter.courseId;
     if (filter.passedOnly) where.passed = true;
     if (filter.state) where.agentState = { contains: filter.state.toUpperCase() };
+    // Region scoping: limit to the officer's office branches.
+    const scopedBranches = await this.scopedBranchCodes(adminId, role);
+    if (scopedBranches) where.branchCode = { in: scopedBranches.length ? scopedBranches : ['__none__'] };
     const rows = await this.prisma.courseCompletion.findMany({
       where, orderBy: { completedAt: 'desc' }, take: 1000,
       include: {
@@ -612,14 +629,15 @@ export class TrainingService {
     }));
   }
 
-  async adminReportSummary() {
+  async adminReportSummary(adminId?: string, role?: string) {
     const courses = await this.prisma.course.findMany({
       where: { status: 'PUBLISHED' },
       select: { id: true, title: true, slug: true, category: true, dueAt: true },
       orderBy: { order: 'asc' },
     });
+    const scopedBranches = await this.scopedBranchCodes(adminId, role);
     const completions = await this.prisma.courseCompletion.findMany({
-      where: { passed: true },
+      where: { passed: true, ...(scopedBranches ? { branchCode: { in: scopedBranches.length ? scopedBranches : ['__none__'] } } : {}) },
       select: { courseId: true, agentId: true, branchCode: true, agentState: true },
     });
     const byCourse = new Map<string, Set<string>>();

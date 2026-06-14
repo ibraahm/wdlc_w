@@ -1,10 +1,14 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import type { AdminUser } from '@/lib/api';
+import type { AdminUser, RegionalOffice } from '@/lib/api';
 import { createUserAction, setUserActiveAction } from '@/lib/actions';
 
-const ROLES = ['ADMIN', 'SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'CONTENT_EDITOR'];
+const ROLES = ['SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR', 'REGIONAL_OFFICER'];
+const ROLE_LABEL: Record<string, string> = {
+  SUPER_ADMIN: 'Super Admin', COMPLIANCE_OFFICER: 'Compliance Officer', MANAGER: 'Manager',
+  EDITOR: 'Editor', REGIONAL_OFFICER: 'Regional Officer',
+};
 
 interface UserRowProps {
   user: AdminUser;
@@ -73,12 +77,14 @@ function UserRow({ user, onToggle }: UserRowProps) {
 
 interface UsersManagerProps {
   initialUsers: AdminUser[];
+  offices?: RegionalOffice[];
 }
 
-export default function UsersManager({ initialUsers }: UsersManagerProps) {
+export default function UsersManager({ initialUsers, offices = [] }: UsersManagerProps) {
   const [users, setUsers] = useState<AdminUser[]>(initialUsers);
   const [showAdd, setShowAdd] = useState(false);
   const [addError, setAddError] = useState('');
+  const [newRole, setNewRole] = useState('EDITOR');
   const [isPending, startTransition] = useTransition();
 
   function handleToggle(id: string, active: boolean) {
@@ -192,16 +198,35 @@ export default function UsersManager({ initialUsers }: UsersManagerProps) {
                 <label className="block text-xs font-medium text-gray-700 mb-1">Role</label>
                 <select
                   name="role"
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   {ROLES.map((r) => (
                     <option key={r} value={r}>
-                      {r}
+                      {ROLE_LABEL[r] ?? r}
                     </option>
                   ))}
                 </select>
               </div>
             </div>
+
+            {newRole === 'REGIONAL_OFFICER' && (
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Regional office *</label>
+                <select
+                  name="regionalOfficeId"
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                >
+                  <option value="">Select an office…</option>
+                  {offices.map((o) => (
+                    <option key={o.id} value={o.id}>{o.code} — {o.name} ({o.states || 'no states'})</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-400 mt-1">The officer will only see agents, applications, and training in this office&apos;s states.</p>
+              </div>
+            )}
 
             {addError && (
               <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">

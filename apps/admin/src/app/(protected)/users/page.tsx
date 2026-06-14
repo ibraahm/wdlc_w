@@ -1,5 +1,5 @@
 import { getSession } from '@/lib/auth';
-import { apiListUsers } from '@/lib/api';
+import { apiListUsers, apiListRegionalOffices, type RegionalOffice } from '@/lib/api';
 import { redirect } from 'next/navigation';
 import UsersManager from '@/components/UsersManager';
 
@@ -23,10 +23,14 @@ export default async function UsersPage() {
   }
 
   let users: Awaited<ReturnType<typeof apiListUsers>> = [];
+  let offices: RegionalOffice[] = [];
   let fetchError = '';
 
   try {
-    users = await apiListUsers(session.accessToken);
+    [users, offices] = await Promise.all([
+      apiListUsers(session.accessToken),
+      apiListRegionalOffices(session.accessToken).catch(() => []),
+    ]);
   } catch (err) {
     fetchError = err instanceof Error ? err.message : 'Failed to load users';
   }
@@ -44,7 +48,7 @@ export default async function UsersPage() {
         </div>
       )}
 
-      <UsersManager initialUsers={users} />
+      <UsersManager initialUsers={users} offices={offices} />
     </div>
   );
 }

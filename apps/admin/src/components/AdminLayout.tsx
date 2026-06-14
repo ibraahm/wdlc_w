@@ -65,9 +65,16 @@ function normalizeRole(role: string) {
   return role.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+// Regional officers get a reduced, region-scoped menu.
+const OFFICER_HREFS = new Set(['/dashboard', '/applications', '/agent-dd', '/training/reports', '/change-password']);
+
 export default function AdminLayout({ children, user }: AdminLayoutProps) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const navGroups: NavGroup[] = user.role === 'REGIONAL_OFFICER'
+    ? NAV_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => OFFICER_HREFS.has(i.href)) })).filter((g) => g.items.length > 0)
+    : NAV_GROUPS;
 
   function isActive(href: string) {
     return pathname === href || pathname.startsWith(href + '/');
@@ -107,7 +114,7 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
 
   const renderNav = () => (
     <nav className="admin-nav" aria-label="Main navigation">
-      {NAV_GROUPS.map((group) => (
+      {navGroups.map((group) => (
         <div key={group.heading} className="admin-nav-group">
           <p className="admin-nav-heading">{group.heading}</p>
           {group.items.map((item) => {

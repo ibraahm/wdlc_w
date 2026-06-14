@@ -1,15 +1,41 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { RegionalService } from '../regional/regional.service';
 
 // Aggregated metrics for the admin CRM cockpit. One round-trip instead of the
-// frontend stitching together a dozen list endpoints.
+// frontend stitching together a dozen list endpoints. All queries are scoped to
+// a regional officer's office/states when applicable.
 @Injectable()
 export class DashboardService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService, private regional: RegionalService) {}
 
-  async summary() {
+  async summary(adminId?: string, role?: string) {
     const now = new Date();
-    const soon = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    const scope = adminId ? await this.regional.scopeForAdmin(adminId, role) : null;
+
+    // Build scoped WHERE clauses (empty = unrestricted, for full admins).
+    let appWhere: any = {};
+    let ddWhere: any = {};
+    let docWhere: any = {};
+    let userWhere: any = {};
+    let tellerStatus: any = { status: { in: ['NEW', 'UNDER_REVIEW'] } };
+    let completionWhere: any = {};
+    let scopedSubmissions = true;
+
+    if (scope) {
+      // Regional officer: limit to their office's branches/states.
+      const officeFiles = scope.officeId
+        ? await this.prisma.agentDDFile.findMany({ where: { regionalOfficeId: scope.officeId }, select: { branchCode: true } })
+        : [];
+      const branchCodes = officeFiles.map((f) => f.branchCode).filter(Boolean) as string[];
+      appWhere = scope.states.length ? { businessState: { in: scope.states } } : { id: '__none__' };
+      ddWhere = { regionalOfficeId: scope.officeId ?? '__none__' };
+      docWhere = { ddFile: { regionalOfficeId: scope.officeId ?? '__none__' } };
+      userWhere = branchCodes.length ? { branchCode: { in: branchCodes } } : { id: '__none__' };
+      tellerStatus = { status: { in: ['NEW', 'UNDER_REVIEW'] }, branchCode: branchCodes.length ? { in: branchCodes } : '__none__' };
+      completionWhere = branchCodes.length ? { branchCode: { in: branchCodes } } : { id: '__none__' };
+      scopedSubmissions = false; // submissions are not region-specific
+    }
 
     const [
       appsByStatus,
@@ -25,18 +51,18 @@ export class DashboardService {
       completionsTotal,
       completionsPassed,
     ] = await Promise.all([
-      this.prisma.agentApplication.groupBy({ by: ['status'], _count: { _all: true } }),
-      this.prisma.agentDDFile.groupBy({ by: ['stage'], _count: { _all: true } }),
-      this.prisma.agentDocument.groupBy({ by: ['status'], _count: { _all: true } }),
-      this.prisma.agentDDFile.count({ where: { nextReviewDueAt: { lt: now } } }),
-      this.prisma.agentUser.groupBy({ by: ['role'], _count: { _all: true } }),
-      this.prisma.agentUser.count({ where: { emailVerified: false } }),
-      this.prisma.tellerApplication.count({ where: { status: { in: ['NEW', 'UNDER_REVIEW'] } } }),
-      this.prisma.formSubmission.count({ where: { status: { in: ['NEW', 'IN_PROGRESS'] } } }),
+      this.prisma.agentApplication.groupBy({ by: ['status'], _count: { _all: true }, where: appWhere }),
+      this.prisma.agentDDFile.groupBy({ by: ['stage'], _count: { _all: true }, where: ddWhere }),
+      this.prisma.agentDocument.groupBy({ by: ['status'], _count: { _all: true }, where: docWhere }),
+      this.prisma.agentDDFile.count({ where: { ...ddWhere, nextReviewDueAt: { lt: now } } }),
+      this.prisma.agentUser.groupBy({ by: ['role'], _count: { _all: true }, where: userWhere }),
+      this.prisma.agentUser.count({ where: { ...userWhere, emailVerified: false } }),
+      this.prisma.tellerApplication.count({ where: tellerStatus }),
+      scopedSubmissions ? this.prisma.formSubmission.count({ where: { status: { in: ['NEW', 'IN_PROGRESS'] } } }) : Promise.resolve(0),
       this.prisma.course.count({ where: { status: 'PUBLISHED' } }),
       this.prisma.course.count({ where: { status: 'PUBLISHED', dueAt: { lt: now } } }),
-      this.prisma.courseCompletion.count(),
-      this.prisma.courseCompletion.count({ where: { passed: true } }),
+      this.prisma.courseCompletion.count({ where: completionWhere }),
+      this.prisma.courseCompletion.count({ where: { ...completionWhere, passed: true } }),
     ]);
 
     const countBy = (rows: { _count: { _all: number } }[], key: string, match: (r: any) => boolean) =>
@@ -45,10 +71,10 @@ export class DashboardService {
     const appStatus = (s: string) => appsByStatus.find((r) => r.status === s)?._count._all ?? 0;
     const stage = (s: string) => ddByStage.find((r) => r.stage === s)?._count._all ?? 0;
     const docStatus = (s: string) => docsByStatus.find((r) => r.status === s)?._count._all ?? 0;
-    const role = (r: string) => agentUsers.find((u) => u.role === r)?._count._all ?? 0;
+    const roleCount = (r: string) => agentUsers.find((u) => u.role === r)?._count._all ?? 0;
 
     const applicationsTotal = appsByStatus.reduce((n, r) => n + r._count._all, 0);
-    void countBy; void soon;
+    void countBy;
 
     return {
       applications: {
@@ -70,9 +96,9 @@ export class DashboardService {
       },
       branches: {
         active: stage('ACTIVE'),
-        portalUsers: role('PRINCIPAL') + role('TELLER'),
-        principals: role('PRINCIPAL'),
-        tellers: role('TELLER'),
+        portalUsers: roleCount('PRINCIPAL') + roleCount('TELLER'),
+        principals: roleCount('PRINCIPAL'),
+        tellers: roleCount('TELLER'),
         unverifiedUsers,
       },
       dd: {
@@ -94,7 +120,7 @@ export class DashboardService {
 
   // Agent 360: one record tying together the DD file, the originating
   // application, the branch's portal users, their training, and a timeline.
-  async agentProfile(ddFileId: string) {
+  async agentProfile(ddFileId: string, adminId?: string, role?: string) {
     const file = await this.prisma.agentDDFile.findUnique({
       where: { id: ddFileId },
       include: {
@@ -103,6 +129,10 @@ export class DashboardService {
       },
     });
     if (!file) return null;
+
+    // A regional officer may only open files belonging to their office.
+    const scope = adminId ? await this.regional.scopeForAdmin(adminId, role) : null;
+    if (scope && file.regionalOfficeId !== scope.officeId) return null;
 
     const users = file.branchCode
       ? await this.prisma.agentUser.findMany({
@@ -168,31 +198,47 @@ export class DashboardService {
     };
   }
 
-  // Cross-entity global search for the admin header.
-  async search(qRaw: string) {
+  // Cross-entity global search for the admin header (region-scoped for officers).
+  async search(qRaw: string, adminId?: string, role?: string) {
     const q = (qRaw || '').trim();
     if (q.length < 2) return { query: q, results: [] as SearchResult[] };
     const like = { contains: q, mode: 'insensitive' as const };
     const take = 6;
 
+    const scope = adminId ? await this.regional.scopeForAdmin(adminId, role) : null;
+    let appScope: any = {};
+    let ddScope: any = {};
+    let userScope: any = {};
+    let tellerScope: any = {};
+    if (scope) {
+      const officeFiles = scope.officeId
+        ? await this.prisma.agentDDFile.findMany({ where: { regionalOfficeId: scope.officeId }, select: { branchCode: true } })
+        : [];
+      const branchCodes = officeFiles.map((f) => f.branchCode).filter(Boolean) as string[];
+      appScope = scope.states.length ? { businessState: { in: scope.states } } : { id: '__none__' };
+      ddScope = { regionalOfficeId: scope.officeId ?? '__none__' };
+      userScope = branchCodes.length ? { branchCode: { in: branchCodes } } : { id: '__none__' };
+      tellerScope = branchCodes.length ? { branchCode: { in: branchCodes } } : { id: '__none__' };
+    }
+
     const [apps, ddFiles, users, tellers] = await Promise.all([
       this.prisma.agentApplication.findMany({
-        where: { OR: [{ firstName: like }, { lastName: like }, { company: like }, { email: like }, { businessCity: like }] },
+        where: { AND: [appScope, { OR: [{ firstName: like }, { lastName: like }, { company: like }, { email: like }, { businessCity: like }] }] },
         take, orderBy: { createdAt: 'desc' },
         select: { id: true, firstName: true, lastName: true, company: true, email: true, status: true, businessState: true },
       }),
       this.prisma.agentDDFile.findMany({
-        where: { OR: [{ agentName: like }, { branchCode: like }] },
+        where: { AND: [ddScope, { OR: [{ agentName: like }, { branchCode: like }] }] },
         take, orderBy: { updatedAt: 'desc' },
         select: { id: true, agentName: true, branchCode: true, stage: true },
       }),
       this.prisma.agentUser.findMany({
-        where: { OR: [{ firstName: like }, { lastName: like }, { email: like }, { branchCode: like }] },
+        where: { AND: [userScope, { OR: [{ firstName: like }, { lastName: like }, { email: like }, { branchCode: like }] }] },
         take, orderBy: { createdAt: 'desc' },
         select: { id: true, firstName: true, lastName: true, email: true, role: true, branchCode: true, status: true },
       }),
       this.prisma.tellerApplication.findMany({
-        where: { OR: [{ firstName: like }, { lastName: like }, { email: like }, { branchCode: like }] },
+        where: { AND: [tellerScope, { OR: [{ firstName: like }, { lastName: like }, { email: like }, { branchCode: like }] }] },
         take, orderBy: { createdAt: 'desc' },
         select: { id: true, firstName: true, lastName: true, email: true, branchCode: true, status: true },
       }),
