@@ -256,6 +256,7 @@ export default function DDFilesManager({
                       <Link href={`/agent-dd/${file.id}`} className="font-semibold text-gray-900 hover:text-navy hover:underline">
                         {file.agentName}
                       </Link>
+                      <Link href={`/agent-profile/${file.id}`} className="ml-2 text-xs text-gold hover:underline">360 view</Link>
                       <div className="mt-1 text-xs text-gray-500">
                         {ownerName(file) ? `Owner: ${ownerName(file)}` : file.entityType}
                         {file.states ? ` - ${file.states}` : ''}
