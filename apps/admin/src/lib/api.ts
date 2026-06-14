@@ -16,6 +16,7 @@ export type AdminUser = {
   role: string;
   active?: boolean;
   mustChangePassword?: boolean;
+  regionalOfficeId?: string | null;
 };
 
 export type AuthResult = {
@@ -137,13 +138,25 @@ export async function apiListUsers(accessToken: string): Promise<AdminUser[]> {
 
 export async function apiCreateUser(
   accessToken: string,
-  data: { email: string; name: string; password: string; role?: string },
+  data: { email: string; name: string; password: string; role?: string; regionalOfficeId?: string },
 ): Promise<AdminUser> {
   const res = await authFetch('/admin/auth/users', accessToken, {
     method: 'POST',
     body: JSON.stringify(data),
   });
   return handleResponse<AdminUser>(res);
+}
+
+export async function apiSetUserRegion(
+  accessToken: string,
+  id: string,
+  regionalOfficeId: string | null,
+): Promise<{ id: string; regionalOfficeId: string | null }> {
+  const res = await authFetch(`/admin/auth/users/${id}/region`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify({ regionalOfficeId }),
+  });
+  return handleResponse(res);
 }
 
 export async function apiSetUserActive(

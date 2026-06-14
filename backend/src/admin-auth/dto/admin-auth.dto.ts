@@ -1,6 +1,6 @@
 import { IsEmail, IsString, MinLength, IsOptional, IsIn, IsBoolean } from 'class-validator';
 
-export const ADMIN_ROLES = ['SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR'] as const;
+export const ADMIN_ROLES = ['SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR', 'REGIONAL_OFFICER'] as const;
 
 export class AdminLoginDto {
   @IsEmail()
@@ -34,6 +34,16 @@ export class AdminCreateUserDto {
   @IsOptional()
   @IsIn(ADMIN_ROLES, { message: `role must be one of: ${ADMIN_ROLES.join(', ')}` })
   role?: string;
+
+  @IsOptional()
+  @IsString()
+  regionalOfficeId?: string;
+}
+
+export class SetUserRegionDto {
+  @IsOptional()
+  @IsString()
+  regionalOfficeId?: string | null;
 }
 
 export class AdminRefreshDto {

@@ -9,6 +9,20 @@ const CSV = (v?: string | null): string[] =>
 export class RegionalService {
   constructor(private prisma: PrismaService, private audit: AuditService) {}
 
+  // Resolve a regional officer's data scope. Returns null for unrestricted
+  // (full admins). For a REGIONAL_OFFICER, returns their office id + the states
+  // they may see; an unassigned officer sees nothing (empty states).
+  async scopeForAdmin(adminId: string, role?: string): Promise<{ officeId: string | null; states: string[] } | null> {
+    if (role !== 'REGIONAL_OFFICER') return null;
+    const u = await this.prisma.adminUser.findUnique({ where: { id: adminId }, select: { regionalOfficeId: true } });
+    if (!u?.regionalOfficeId) return { officeId: null, states: [] };
+    const office = await this.prisma.regionalOffice.findUnique({
+      where: { id: u.regionalOfficeId },
+      select: { id: true, states: true },
+    });
+    return { officeId: office?.id ?? null, states: CSV(office?.states) };
+  }
+
   // Resolve the active office covering a given state (first match wins).
   async officeForState(state?: string | null): Promise<{ id: string; code: string; name: string } | null> {
     const st = (state ?? '').trim().toUpperCase();

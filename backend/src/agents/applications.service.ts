@@ -4,6 +4,7 @@ import { AuditService } from '../audit/audit.service';
 import { DDService } from './dd.service';
 import { CreateApplicationDto } from './dto/application.dto';
 import { MailService } from '../common/mail.service';
+import { RegionalService } from '../regional/regional.service';
 import { buildAgentApplicationPdf } from './application-pdf';
 
 const APPLICATION_STATUSES = ['NEW', 'REVIEWING', 'APPROVED', 'REJECTED'] as const;
@@ -17,6 +18,7 @@ export class ApplicationsService {
     private audit: AuditService,
     private dd: DDService,
     private mail: MailService,
+    private regional: RegionalService,
   ) {}
 
   async create(dto: CreateApplicationDto, ctx?: { ip?: string; userAgent?: string }) {
@@ -93,13 +95,18 @@ export class ApplicationsService {
     return { ok: true, id: app.id };
   }
 
-  listAll(status?: string) {
+  async listAll(status?: string, adminId?: string, role?: string) {
     if (status && !APPLICATION_STATUSES.includes(status as (typeof APPLICATION_STATUSES)[number])) {
       throw new BadRequestException('Invalid application status');
     }
 
+    const scope = adminId ? await this.regional.scopeForAdmin(adminId, role) : null;
+    const where: any = {};
+    if (status) where.status = status;
+    if (scope) where.businessState = scope.states.length ? { in: scope.states } : '__none__';
+
     return this.prisma.agentApplication.findMany({
-      where: status ? { status } : undefined,
+      where,
       include: {
         ddFile: {
           select: {

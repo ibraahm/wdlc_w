@@ -186,9 +186,13 @@ export class DDService {
   }
 
   // ── Reads ─────────────────────────────────────────────────────────────────
-  async list(stage?: string) {
+  async list(stage?: string, adminId?: string, role?: string) {
+    const scope = adminId ? await this.regional.scopeForAdmin(adminId, role) : null;
+    const where: any = {};
+    if (stage) where.stage = stage;
+    if (scope) where.regionalOfficeId = scope.officeId ?? '__none__';
     const files = await this.prisma.agentDDFile.findMany({
-      where: stage ? { stage } : undefined,
+      where,
       orderBy: { updatedAt: 'desc' },
       include: {
         documents: { select: { status: true } },
@@ -285,7 +289,7 @@ export class DDService {
     return { ok: true };
   }
 
-  async get(id: string) {
+  async get(id: string, adminId?: string, role?: string) {
     const file = await this.prisma.agentDDFile.findUnique({
       where: { id },
       include: {
@@ -294,6 +298,9 @@ export class DDService {
       },
     });
     if (!file) throw new NotFoundException('DD file not found');
+    // Regional officers may only open files within their office.
+    const scope = adminId ? await this.regional.scopeForAdmin(adminId, role) : null;
+    if (scope && file.regionalOfficeId !== scope.officeId) throw new NotFoundException('DD file not found');
     return file;
   }
 

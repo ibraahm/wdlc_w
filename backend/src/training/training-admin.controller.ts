@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } f
 import { AdminJwtAuthGuard } from '../admin-auth/admin-jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { CurrentUser, AuthUser } from '../auth/decorators/current-user.decorator';
 import { TrainingService } from './training.service';
 import { UpsertCourseDto, UpsertResourceDto, UpsertSectionDto, UpsertLessonDto } from './dto/training.dto';
 
@@ -12,7 +12,7 @@ export class TrainingAdminController {
   constructor(private training: TrainingService) {}
 
   // ── Courses ───────────────────────────────────────────────────────────────
-  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR')
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR', 'REGIONAL_OFFICER')
   @Get('courses')
   listCourses() {
     return this.training.adminListCourses();
@@ -113,9 +113,10 @@ export class TrainingAdminController {
   }
 
   // ── Reporting / score tracking ─────────────────────────────────────────────
-  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'REGIONAL_OFFICER')
   @Get('completions')
   completions(
+    @CurrentUser() user: AuthUser,
     @Query('state') state?: string,
     @Query('branchCode') branchCode?: string,
     @Query('courseId') courseId?: string,
@@ -126,12 +127,12 @@ export class TrainingAdminController {
       branchCode,
       courseId,
       passedOnly: passedOnly === 'true' || passedOnly === '1',
-    });
+    }, user.id, user.role);
   }
 
-  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'REGIONAL_OFFICER')
   @Get('report')
-  report() {
-    return this.training.adminReportSummary();
+  report(@CurrentUser() user: AuthUser) {
+    return this.training.adminReportSummary(user.id, user.role);
   }
 }
