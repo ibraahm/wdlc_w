@@ -573,11 +573,14 @@ export class DDService {
   async recordReview(id: string, dto: RecordReviewDto, adminId: string) {
     const file = await this.prisma.agentDDFile.findUnique({ where: { id } });
     if (!file) throw new NotFoundException('DD file not found');
+    // Reviewer is the signed-in admin (tamper-proof), date is stamped now.
+    const admin = await this.prisma.adminUser.findUnique({ where: { id: adminId }, select: { name: true, email: true } });
+    const reviewedBy = admin?.name || admin?.email || dto.reviewedBy || 'Unknown';
     const updated = await this.prisma.agentDDFile.update({
       where: { id },
       data: {
         lastReviewedAt: new Date(),
-        reviewedBy: dto.reviewedBy,
+        reviewedBy,
         nextReviewDueAt: dto.nextReviewDueAt ? new Date(dto.nextReviewDueAt) : file.nextReviewDueAt,
       },
     });
@@ -586,7 +589,7 @@ export class DDService {
       adminId,
       entity: 'AgentDDFile',
       entityId: id,
-      after: { reviewedBy: dto.reviewedBy, nextReviewDueAt: updated.nextReviewDueAt },
+      after: { reviewedBy, nextReviewDueAt: updated.nextReviewDueAt },
     });
     return updated;
   }

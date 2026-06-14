@@ -685,12 +685,12 @@ export async function apiSetDDRisk(accessToken: string, id: string, riskRating: 
 export async function apiRecordDDReview(
   accessToken: string,
   id: string,
-  reviewedBy: string,
   nextReviewDueAt?: string,
 ): Promise<DDFile> {
+  // Reviewer + date are stamped server-side from the signed-in admin.
   const res = await authFetch(`/admin/agent-dd/${id}/review`, accessToken, {
     method: 'PATCH',
-    body: JSON.stringify({ reviewedBy, nextReviewDueAt }),
+    body: JSON.stringify({ nextReviewDueAt }),
   });
   return handleResponse<DDFile>(res);
 }

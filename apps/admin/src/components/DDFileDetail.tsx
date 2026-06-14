@@ -135,15 +135,16 @@ function sectionProgress(docs: DDDocument[]) {
 export default function DDFileDetail({
   initialFile,
   canManageLifecycle,
+  currentUser,
 }: {
   initialFile: DDFile;
   canManageLifecycle: boolean;
+  currentUser?: string;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState('');
   const f = initialFile;
-  const [reviewer, setReviewer] = useState(f.reviewedBy ?? '');
   const [nextReview, setNextReview] = useState(f.nextReviewDueAt?.slice(0, 10) ?? '');
 
   const docs = f.documents ?? [];
@@ -347,13 +348,11 @@ export default function DDFileDetail({
 
         <div className="rounded-xl border border-gray-200 bg-white p-4">
           <p className="text-xs font-medium text-gray-500 mb-2">Periodic review</p>
-          <input
-            value={reviewer}
-            onChange={(e) => setReviewer(e.target.value)}
-            placeholder="Reviewed by"
-            disabled={isPending || !canManageLifecycle}
-            className="mb-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
+          <p className="mb-2 rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
+            Recording stamps <span className="font-semibold text-gray-800">{currentUser || 'you'}</span> as the reviewer and
+            today&apos;s date <span className="font-semibold text-gray-800">({formatDate(new Date().toISOString())})</span> automatically.
+          </p>
+          <label className="mb-1 block text-[11px] font-medium text-gray-500">Next review due (optional)</label>
           <input
             type="date"
             value={nextReview}
@@ -362,15 +361,15 @@ export default function DDFileDetail({
             className="mb-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
-            disabled={isPending || !canManageLifecycle || !reviewer.trim()}
-            onClick={() => run(() => recordDDReviewAction(f.id, reviewer.trim(), nextReview || undefined))}
+            disabled={isPending || !canManageLifecycle}
+            onClick={() => run(() => recordDDReviewAction(f.id, nextReview || undefined))}
             className="w-full rounded-lg bg-gray-900 px-3 py-2 text-xs font-semibold text-white hover:bg-gray-700 disabled:opacity-40"
           >
             Record review
           </button>
           {f.lastReviewedAt && (
             <p className="mt-2 text-xs text-gray-400">
-              Last: {formatDate(f.lastReviewedAt)}{f.reviewedBy ? ` - ${f.reviewedBy}` : ''}
+              Last reviewed {formatDate(f.lastReviewedAt)}{f.reviewedBy ? ` by ${f.reviewedBy}` : ''}
             </p>
           )}
         </div>
