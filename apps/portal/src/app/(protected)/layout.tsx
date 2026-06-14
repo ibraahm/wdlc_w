@@ -20,6 +20,8 @@ export default async function ProtectedLayout({ children }: { children: React.Re
         </div>
         <nav className="portal-topbar-nav">
           <a href="/dashboard">Dashboard</a>
+          <a href="/training">Training</a>
+          <a href="/resources">Resources</a>
           <a href="/settings">Settings</a>
         </nav>
         <div className="portal-topbar-right">

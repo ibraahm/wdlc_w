@@ -92,6 +92,8 @@ model AgentUser {
   refreshTokens       AgentRefreshToken[]
   loginHistory        AgentLoginHistory[]
   auditLogs           AuditLog[]
+  completions         CourseCompletion[]
+  resourceAcks        ResourceAck[]
 
   @@index([showOnMap, status])
 }
@@ -474,4 +476,94 @@ model TellerApplication {
 
   @@index([branchCode])
   @@index([status])
+}
+
+// ─────────────────────────────────────────────
+// TRAINING / LMS  (agent & teller courses, quizzes, resources)
+// Audience targeting: ALL | STATE | AGENT
+//   - ALL    → every active portal user
+//   - STATE  → users whose branch operates in any of targetStates (CSV of 2-letter codes)
+//   - AGENT  → users whose branchCode is in targetBranches (CSV of branch codes)
+// Completions are an append-only audit trail proving who took what, when, and the score.
+// ─────────────────────────────────────────────
+model Course {
+  id            String   @id @default(cuid())
+  slug          String   @unique
+  title         String
+  category      String   @default("General")
+  description   String?
+  contentHtml   String   @default("")   // lesson body (HTML)
+  // JSON array: [{ "q": string, "options": string[], "answer": number }]
+  questions     String   @default("[]")
+  passingScore  Int      @default(80)   // percent required to pass the quiz
+  audience      String   @default("ALL") // ALL | STATE | AGENT
+  targetStates  String?                   // CSV of 2-letter state codes (audience=STATE)
+  targetBranches String?                  // CSV of branch codes (audience=AGENT)
+  status        String   @default("DRAFT") // DRAFT | PUBLISHED
+  order         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  completions   CourseCompletion[]
+
+  @@index([status, order])
+  @@index([category])
+}
+
+// Append-only audit record of a quiz attempt. The latest passing attempt
+// proves completion; every attempt is retained for auditability.
+model CourseCompletion {
+  id          String    @id @default(cuid())
+  courseId    String
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  agentId     String
+  agent       AgentUser @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  branchCode  String?   // snapshot of the user's branch at completion time
+  agentState  String?   // snapshot of the user's resolved state(s) for reporting
+  score       Int       // percent
+  passed      Boolean
+  // JSON array of selected option indexes, parallel to course questions
+  answers     String    @default("[]")
+  attempt     Int       @default(1)
+  completedAt DateTime  @default(now())
+
+  @@index([courseId, agentId])
+  @@index([agentId])
+  @@index([branchCode])
+  @@index([passed, completedAt])
+}
+
+// A reference document / link surfaced to portal users, same audience targeting
+// as courses. Acknowledgement is an audit that the user opened/read it.
+model Resource {
+  id            String   @id @default(cuid())
+  title         String
+  category      String   @default("General")
+  description   String?
+  url           String                     // link to the document (Dropbox, PDF, etc.)
+  audience      String   @default("ALL")   // ALL | STATE | AGENT
+  targetStates  String?
+  targetBranches String?
+  status        String   @default("DRAFT") // DRAFT | PUBLISHED
+  order         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  acks          ResourceAck[]
+
+  @@index([status, order])
+  @@index([category])
+}
+
+model ResourceAck {
+  id             String    @id @default(cuid())
+  resourceId     String
+  resource       Resource  @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  agentId        String
+  agent          AgentUser @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  branchCode     String?
+  acknowledgedAt DateTime  @default(now())
+
+  @@unique([resourceId, agentId])
+  @@index([agentId])
 }
