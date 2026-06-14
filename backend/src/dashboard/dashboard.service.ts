@@ -92,6 +92,82 @@ export class DashboardService {
     };
   }
 
+  // Agent 360: one record tying together the DD file, the originating
+  // application, the branch's portal users, their training, and a timeline.
+  async agentProfile(ddFileId: string) {
+    const file = await this.prisma.agentDDFile.findUnique({
+      where: { id: ddFileId },
+      include: {
+        application: true,
+        documents: { orderBy: [{ section: 'asc' }, { code: 'asc' }] },
+      },
+    });
+    if (!file) return null;
+
+    const users = file.branchCode
+      ? await this.prisma.agentUser.findMany({
+          where: { branchCode: file.branchCode },
+          select: {
+            id: true, firstName: true, lastName: true, email: true, phone: true,
+            role: true, status: true, active: true, emailVerified: true, lastLoginAt: true, createdAt: true,
+          },
+          orderBy: [{ role: 'asc' }, { createdAt: 'asc' }],
+        })
+      : [];
+    const userIds = users.map((u) => u.id);
+
+    const completions = userIds.length
+      ? await this.prisma.courseCompletion.findMany({
+          where: { agentId: { in: userIds } },
+          orderBy: { completedAt: 'desc' },
+          take: 100,
+          include: { course: { select: { title: true, category: true, passingScore: true } } },
+        })
+      : [];
+
+    // Document status rollup.
+    const docCounts = { OK: 0, EXPIRING: 0, EXPIRED: 0, MISSING: 0, NA: 0 } as Record<string, number>;
+    for (const d of file.documents) docCounts[d.status] = (docCounts[d.status] ?? 0) + 1;
+
+    // Timeline: audit entries touching this file, its application, or its users.
+    const timelineIds = [file.id, file.applicationId, ...userIds].filter(Boolean) as string[];
+    const timeline = await this.prisma.auditLog.findMany({
+      where: { OR: [{ entityId: { in: timelineIds } }, { agentId: { in: userIds } }] },
+      orderBy: { createdAt: 'desc' },
+      take: 30,
+      include: {
+        admin: { select: { name: true, email: true } },
+        agent: { select: { firstName: true, lastName: true, email: true } },
+      },
+    });
+
+    return {
+      ddFile: {
+        id: file.id, agentName: file.agentName, branchCode: file.branchCode, entityType: file.entityType,
+        states: file.states, regionalOffice: file.regionalOffice, stage: file.stage, riskRating: file.riskRating,
+        onboardedAt: file.onboardedAt, lastReviewedAt: file.lastReviewedAt, reviewedBy: file.reviewedBy,
+        nextReviewDueAt: file.nextReviewDueAt,
+        documents: file.documents.map((d) => ({
+          code: d.code, section: d.section, label: d.label, present: d.present, status: d.status,
+          expiry: d.expiry, notes: d.notes, dropboxUrl: d.dropboxUrl,
+        })),
+        documentSummary: docCounts,
+        compliant: docCounts.EXPIRED === 0 && docCounts.MISSING === 0,
+      },
+      application: file.application,
+      users,
+      training: completions.map((c) => ({
+        id: c.id, courseTitle: c.course.title, category: c.course.category, score: c.score,
+        passed: c.passed, passingScore: c.course.passingScore, attempt: c.attempt, completedAt: c.completedAt,
+        agentId: c.agentId,
+      })),
+      timeline: timeline.map((t) => ({
+        id: t.id, action: t.action, createdAt: t.createdAt,
+        actor: t.admin?.name ?? t.admin?.email ?? (t.agent ? `${t.agent.firstName} ${t.agent.lastName}` : null),
+      })),
+    };
+  }
+
   // Cross-entity global search for the admin header.
   async search(qRaw: string) {
     const q = (qRaw || '').trim();
@@ -137,7 +213,7 @@ export class DashboardService {
         title: d.agentName,
         subtitle: d.branchCode ? `Branch ${d.branchCode}` : 'No branch code',
         badge: d.stage,
-        href: `/agent-dd/${d.id}`,
+        href: `/agent-profile/${d.id}`,
       })),
       ...users.map((u) => ({
         type: 'Portal user' as const,

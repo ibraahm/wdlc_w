@@ -1146,3 +1146,27 @@ export async function apiAdminSearch(accessToken: string, q: string): Promise<{ 
   const res = await authFetch(`/admin/search?q=${encodeURIComponent(q)}`, accessToken);
   return handleResponse<{ query: string; results: SearchResult[] }>(res);
 }
+
+// ---------------------------------------------------------------------------
+// Agent 360 record view
+// ---------------------------------------------------------------------------
+
+export type AgentProfile = {
+  ddFile: {
+    id: string; agentName: string; branchCode: string | null; entityType: string;
+    states: string | null; regionalOffice: string | null; stage: string; riskRating: string | null;
+    onboardedAt: string | null; lastReviewedAt: string | null; reviewedBy: string | null; nextReviewDueAt: string | null;
+    documents: { code: string; section: string; label: string; present: boolean; status: string; expiry: string | null; notes: string | null; dropboxUrl: string | null }[];
+    documentSummary: Record<string, number>;
+    compliant: boolean;
+  };
+  application: Record<string, any> | null;
+  users: { id: string; firstName: string; lastName: string; email: string; phone: string | null; role: string; status: string; active: boolean; emailVerified: boolean; lastLoginAt: string | null; createdAt: string }[];
+  training: { id: string; courseTitle: string; category: string; score: number; passed: boolean; passingScore: number; attempt: number; completedAt: string; agentId: string }[];
+  timeline: { id: string; action: string; createdAt: string; actor: string | null }[];
+};
+
+export async function apiAgentProfile(accessToken: string, ddFileId: string): Promise<AgentProfile> {
+  const res = await authFetch(`/admin/agent-profile/${ddFileId}`, accessToken);
+  return handleResponse<AgentProfile>(res);
+}
