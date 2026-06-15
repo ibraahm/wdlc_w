@@ -4,8 +4,6 @@ import { useState, type FormEvent } from 'react';
 import type { CmsForm, CmsFormField } from '@/lib/cms';
 import { HumanVerificationField, useHumanVerification } from './HumanVerification';
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
-
 const inputCls =
   'w-full rounded-lg border border-[#d9e0e8] bg-white px-3 py-2 text-ink focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none';
 
@@ -50,7 +48,7 @@ export default function FormRenderer({ form }: { form: CmsForm }) {
     }
 
     try {
-      const res = await fetch(`${API}/cms/forms/${form.slug}/submit`, {
+      const res = await fetch(`/api/form-submit/${form.slug}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         // Record the consent acknowledgement alongside the submission as evidence.

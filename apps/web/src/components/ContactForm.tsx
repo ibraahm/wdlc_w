@@ -9,7 +9,6 @@ export type Field =
   | { name: string; label: string; type: 'select'; options: string[]; required?: boolean; optional?: boolean }
   | { name: string; label: string; type: 'file'; required?: boolean; optional?: boolean };
 
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 
 export default function ContactForm({
   fields,
@@ -50,7 +49,7 @@ export default function ContactForm({
         if (el) data[field.name] = el.value;
       }
       try {
-        const res = await fetch(`${API}/cms/forms/${formSlug}/submit`, {
+        const res = await fetch(`/api/form-submit/${formSlug}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
