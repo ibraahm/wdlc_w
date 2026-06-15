@@ -354,6 +354,27 @@ model AgentRequestMessage {
   @@index([requestId, createdAt])
 }
 
+// ─────────────────────────────────────────────
+// RISK ASSESSMENTS  (compliance scoring per agent DD file)
+// factors is a JSON array: [{ key, label, rating }] where rating is 1|2|3
+// (Low/Medium/High). The overall rating is written back to AgentDDFile.riskRating.
+// ─────────────────────────────────────────────
+model RiskAssessment {
+  id               String   @id @default(cuid())
+  ddFileId         String
+  branchCode       String?
+  regionalOfficeId String?
+  factors          String   @default("[]")
+  score            Int                          // 0-100
+  rating           String                       // LOW | MEDIUM | HIGH
+  notes            String?
+  assessedBy       String?
+  createdAt        DateTime @default(now())
+
+  @@index([ddFileId, createdAt])
+  @@index([regionalOfficeId])
+}
+
 model AgentDocument {
   id          String      @id @default(cuid())
   ddFile      AgentDDFile @relation(fields: [ddFileId], references: [id], onDelete: Cascade)
