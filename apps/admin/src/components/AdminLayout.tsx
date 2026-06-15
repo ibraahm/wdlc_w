@@ -55,7 +55,21 @@ const NAV_GROUPS: NavGroup[] = [
 ];
 
 const ALL_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
-const PUBLIC_SITE_URL = process.env.NEXT_PUBLIC_WEB_URL || 'http://localhost:3000';
+
+// Public website URL. Prefer the build-time env; otherwise derive it from the
+// current host at runtime (strip a leading admin./secure./portal./www. label →
+// the apex domain) so it never points at localhost in production.
+function publicSiteUrl(): string {
+  if (process.env.NEXT_PUBLIC_WEB_URL) return process.env.NEXT_PUBLIC_WEB_URL;
+  if (typeof window !== 'undefined') {
+    const { protocol, hostname, port } = window.location;
+    const parts = hostname.split('.');
+    const apex = parts.length > 2 ? parts.slice(1).join('.') : hostname;
+    const isLocal = hostname === 'localhost' || /^\d+\.\d+\.\d+\.\d+$/.test(hostname);
+    return isLocal ? `${protocol}//${hostname}${port ? `:${port}` : ''}` : `${protocol}//${apex}`;
+  }
+  return '';
+}
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -72,6 +86,9 @@ const OFFICER_HREFS = new Set(['/dashboard', '/applications', '/agent-dd', '/req
 export default function AdminLayout({ children, user }: AdminLayoutProps) {
   const pathname = usePathname();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  // Resolve the public-site URL after mount (uses window when no env is set).
+  const [siteUrl, setSiteUrl] = useState(process.env.NEXT_PUBLIC_WEB_URL || '');
+  useEffect(() => { setSiteUrl(publicSiteUrl()); }, []);
 
   const navGroups: NavGroup[] = user.role === 'REGIONAL_OFFICER'
     ? NAV_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => OFFICER_HREFS.has(i.href)) })).filter((g) => g.items.length > 0)
@@ -214,9 +231,11 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
           </div>
           <div className="admin-topbar-right">
             <GlobalSearch />
-            <a className="admin-topbar-link" href={PUBLIC_SITE_URL} target="_blank" rel="noopener noreferrer">
-              View site
-            </a>
+            {siteUrl && (
+              <a className="admin-topbar-link" href={siteUrl} target="_blank" rel="noopener noreferrer">
+                View site
+              </a>
+            )}
             <span className="admin-role-chip">{normalizeRole(user.role)}</span>
             <form action={logoutAction}>
               <button type="submit" className="admin-logout-btn">Sign Out</button>
