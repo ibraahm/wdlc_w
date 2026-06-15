@@ -1249,3 +1249,35 @@ export async function apiGoogleLogin(credential: string): Promise<AuthResult> {
   });
   return handleResponse<AuthResult>(res);
 }
+
+// ---------------------------------------------------------------------------
+// Agent → office requests (admin / regional officer queue)
+// ---------------------------------------------------------------------------
+
+export type RequestAttachment = { name: string; url: string; kind?: string };
+export type RequestMessage = { id: string; authorType: string; authorName: string | null; body: string; createdAt: string };
+export type OfficeRequest = {
+  id: string; type: string; subject: string; details: string; status: string;
+  attachments: RequestAttachment[]; assignee: string | null; branchCode: string | null;
+  regionalOfficeId: string | null; createdAt: string; updatedAt: string;
+  agent?: { firstName: string; lastName: string; email: string } | null;
+  messages?: RequestMessage[];
+};
+
+export async function apiListOfficeRequests(accessToken: string, status?: string): Promise<OfficeRequest[]> {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+  const res = await authFetch(`/admin/requests${qs}`, accessToken);
+  return handleResponse<OfficeRequest[]>(res);
+}
+export async function apiGetOfficeRequest(accessToken: string, id: string): Promise<OfficeRequest> {
+  const res = await authFetch(`/admin/requests/${id}`, accessToken);
+  return handleResponse<OfficeRequest>(res);
+}
+export async function apiUpdateOfficeRequest(accessToken: string, id: string, data: { status?: string; assignee?: string }): Promise<OfficeRequest> {
+  const res = await authFetch(`/admin/requests/${id}`, accessToken, { method: 'PATCH', body: JSON.stringify(data) });
+  return handleResponse<OfficeRequest>(res);
+}
+export async function apiOfficeRequestMessage(accessToken: string, id: string, body: string): Promise<RequestMessage> {
+  const res = await authFetch(`/admin/requests/${id}/messages`, accessToken, { method: 'POST', body: JSON.stringify({ body }) });
+  return handleResponse<RequestMessage>(res);
+}

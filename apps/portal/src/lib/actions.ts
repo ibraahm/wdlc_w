@@ -13,6 +13,8 @@ import {
   apiAckResource,
   apiCompleteLesson,
   apiSetLanguage,
+  apiCreateRequest,
+  apiRequestMessage,
   type QuizResult,
 } from './api';
 import { revalidatePath } from 'next/cache';
@@ -183,5 +185,33 @@ export async function ackResourceAction(id: string): Promise<{ ok?: boolean; err
     return { ok: true };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Could not acknowledge.' };
+  }
+}
+
+// ── Agent requests to regional office ───────────────────────────────────────
+
+export async function createRequestAction(
+  data: { type: string; subject: string; details?: string; attachments?: { name: string; url: string }[] },
+): Promise<{ ok?: boolean; id?: string; error?: string }> {
+  const accessToken = cookies().get('pat')?.value;
+  if (!accessToken) return { error: 'Not authenticated.' };
+  try {
+    const r = await apiCreateRequest(accessToken, data);
+    revalidatePath('/requests');
+    return { ok: true, id: r.id };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Could not submit request.' };
+  }
+}
+
+export async function requestMessageAction(id: string, body: string): Promise<{ ok?: boolean; error?: string }> {
+  const accessToken = cookies().get('pat')?.value;
+  if (!accessToken) return { error: 'Not authenticated.' };
+  try {
+    await apiRequestMessage(accessToken, id, body);
+    revalidatePath(`/requests/${id}`);
+    return { ok: true };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Could not send message.' };
   }
 }

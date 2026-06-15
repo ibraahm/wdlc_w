@@ -315,6 +315,45 @@ model RegionalOffice {
   @@index([active])
 }
 
+// ─────────────────────────────────────────────
+// AGENT REQUESTS  (agent → regional office workflow)
+// type: RISK_ASSESSMENT | LOCATION_DD | CHECKLIST | PHOTOS | OTHER
+// status: OPEN | IN_REVIEW | NEEDS_INFO | APPROVED | REJECTED | CLOSED
+// attachments is a JSON array: [{ name, url, kind }] (hybrid: uploaded or linked)
+// ─────────────────────────────────────────────
+model AgentRequest {
+  id               String   @id @default(cuid())
+  agentId          String                       // AgentUser who raised it
+  branchCode       String?
+  regionalOfficeId String?                       // routed to this office
+  type             String   @default("OTHER")
+  subject          String
+  details          String   @default("")
+  status           String   @default("OPEN")
+  attachments      String   @default("[]")
+  assignee         String?                       // office staff handling it
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  messages         AgentRequestMessage[]
+
+  @@index([regionalOfficeId, status])
+  @@index([agentId])
+  @@index([branchCode])
+}
+
+model AgentRequestMessage {
+  id         String   @id @default(cuid())
+  requestId  String
+  request    AgentRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  authorType String   // agent | office
+  authorName String?
+  body       String
+  createdAt  DateTime @default(now())
+
+  @@index([requestId, createdAt])
+}
+
 model AgentDocument {
   id          String      @id @default(cuid())
   ddFile      AgentDDFile @relation(fields: [ddFileId], references: [id], onDelete: Cascade)
