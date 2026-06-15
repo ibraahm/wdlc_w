@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://worlddirectlink.com';
 
 // Static public routes. News posts and CMS forms are intentionally omitted -
 // add dynamic entries here if/when those need indexing.

@@ -1,4 +1,5 @@
-const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3002/login';
+// Admin/back-office lives at secure.worlddirectlink.com in production.
+const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL || 'https://secure.worlddirectlink.com/login';
 
 export default function AdminLoginPage() {
   return (

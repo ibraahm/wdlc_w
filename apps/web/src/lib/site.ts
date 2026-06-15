@@ -28,7 +28,10 @@ export const company = {
   complianceFax: '404-751-2809',
 } as const;
 
-export const PORTAL_URL = process.env.NEXT_PUBLIC_PORTAL_URL || 'http://localhost:3001';
+// Agent portal lives at portal.worlddirectlink.com in production. The env var
+// overrides this (e.g. http://localhost:3001 in dev), but the default is the
+// production URL so links never fall back to localhost on the live site.
+export const PORTAL_URL = process.env.NEXT_PUBLIC_PORTAL_URL || 'https://portal.worlddirectlink.com';
 
 export type NavNode = { label: string; href: string; children?: { label: string; href: string }[] };
 

@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   },
   description:
     'World Direct Link, Corp. is a licensed money transmitter serving immigrant, refugee, and diaspora families with fast, affordable, and reliable money transfers since 1999.',
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'https://worlddirectlink.com'),
   openGraph: { siteName: company.legalName, type: 'website' },
 };
 
