@@ -1281,3 +1281,22 @@ export async function apiOfficeRequestMessage(accessToken: string, id: string, b
   const res = await authFetch(`/admin/requests/${id}/messages`, accessToken, { method: 'POST', body: JSON.stringify({ body }) });
   return handleResponse<RequestMessage>(res);
 }
+
+// ---------------------------------------------------------------------------
+// Risk assessments (per DD file)
+// ---------------------------------------------------------------------------
+
+export type RiskFactor = { key: string; label: string; rating: number };
+export type RiskAssessment = {
+  id: string; ddFileId: string; factors: RiskFactor[]; score: number; rating: string;
+  notes: string | null; assessedBy: string | null; createdAt: string;
+};
+
+export async function apiListRiskAssessments(accessToken: string, ddFileId: string): Promise<RiskAssessment[]> {
+  const res = await authFetch(`/admin/agent-dd/${ddFileId}/risk-assessments`, accessToken);
+  return handleResponse<RiskAssessment[]>(res);
+}
+export async function apiCreateRiskAssessment(accessToken: string, ddFileId: string, data: { factors: RiskFactor[]; notes?: string }): Promise<RiskAssessment> {
+  const res = await authFetch(`/admin/agent-dd/${ddFileId}/risk-assessments`, accessToken, { method: 'POST', body: JSON.stringify(data) });
+  return handleResponse<RiskAssessment>(res);
+}

@@ -15,6 +15,7 @@ export default async function DDFileDetailPage({ params }: { params: { id: strin
   }
 
   const canManageLifecycle = ['SUPER_ADMIN', 'COMPLIANCE_OFFICER'].includes(session.user.role);
+  const canAssessRisk = ['SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'REGIONAL_OFFICER'].includes(session.user.role);
 
-  return <DDFileDetail initialFile={file} canManageLifecycle={canManageLifecycle} currentUser={session.user.name} />;
+  return <DDFileDetail initialFile={file} canManageLifecycle={canManageLifecycle} currentUser={session.user.name} canAssessRisk={canAssessRisk} />;
 }

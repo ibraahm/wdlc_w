@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { DDFile, DDDocument } from '@/lib/api';
 import { setDDBranchCodeAction } from '@/lib/actions';
+import RiskAssessmentPanel from './RiskAssessmentPanel';
 import {
   updateDDDocumentAction,
   setDDStageAction,
@@ -136,10 +137,12 @@ export default function DDFileDetail({
   initialFile,
   canManageLifecycle,
   currentUser,
+  canAssessRisk = false,
 }: {
   initialFile: DDFile;
   canManageLifecycle: boolean;
   currentUser?: string;
+  canAssessRisk?: boolean;
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -373,6 +376,8 @@ export default function DDFileDetail({
             </p>
           )}
         </div>
+
+        <RiskAssessmentPanel ddFileId={f.id} canAssess={canAssessRisk} />
       </div>
 
       {SECTIONS.map((section) => {

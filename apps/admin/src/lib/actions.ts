@@ -62,8 +62,10 @@ import {
   apiGetOfficeRequest,
   apiUpdateOfficeRequest,
   apiOfficeRequestMessage,
+  apiListRiskAssessments,
+  apiCreateRiskAssessment,
 } from './api';
-import type { Partner, NetworkCountry, NavItemInput, CourseInput, ResourceInput, Completion, CourseWithCurriculum, SectionInput, LessonInput, SearchResult, RegionalOfficeInput, OfficeRequest } from './api';
+import type { Partner, NetworkCountry, NavItemInput, CourseInput, ResourceInput, Completion, CourseWithCurriculum, SectionInput, LessonInput, SearchResult, RegionalOfficeInput, OfficeRequest, RiskAssessment, RiskFactor } from './api';
 import { getSession, setSessionCookies, clearSessionCookies, clearMustChangePassword } from './auth';
 
 // ---------------------------------------------------------------------------
@@ -964,5 +966,32 @@ export async function officeRequestMessageAction(id: string, body: string): Prom
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Send failed' };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Risk assessments
+// ---------------------------------------------------------------------------
+
+export async function loadRiskAssessmentsAction(ddFileId: string): Promise<{ rows?: RiskAssessment[]; error?: string }> {
+  const session = await getSession();
+  if (!session) return { error: 'Not authenticated' };
+  try {
+    const rows = await apiListRiskAssessments(session.accessToken, ddFileId);
+    return { rows };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Load failed' };
+  }
+}
+
+export async function createRiskAssessmentAction(ddFileId: string, factors: RiskFactor[], notes?: string): Promise<{ ok: boolean; rating?: string; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    const r = await apiCreateRiskAssessment(session.accessToken, ddFileId, { factors, notes });
+    revalidatePath(`/agent-dd/${ddFileId}`);
+    return { ok: true, rating: r.rating };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Save failed' };
   }
 }
