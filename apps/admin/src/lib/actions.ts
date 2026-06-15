@@ -59,8 +59,11 @@ import {
   apiDeleteRegionalOffice,
   apiInviteUser,
   apiGoogleLogin,
+  apiGetOfficeRequest,
+  apiUpdateOfficeRequest,
+  apiOfficeRequestMessage,
 } from './api';
-import type { Partner, NetworkCountry, NavItemInput, CourseInput, ResourceInput, Completion, CourseWithCurriculum, SectionInput, LessonInput, SearchResult, RegionalOfficeInput } from './api';
+import type { Partner, NetworkCountry, NavItemInput, CourseInput, ResourceInput, Completion, CourseWithCurriculum, SectionInput, LessonInput, SearchResult, RegionalOfficeInput, OfficeRequest } from './api';
 import { getSession, setSessionCookies, clearSessionCookies, clearMustChangePassword } from './auth';
 
 // ---------------------------------------------------------------------------
@@ -924,4 +927,42 @@ export async function googleLoginAction(credential: string): Promise<{ error?: s
     return { error: err instanceof Error ? err.message : 'Google sign-in failed.' };
   }
   redirect('/dashboard');
+}
+
+// ---------------------------------------------------------------------------
+// Agent → office requests (queue actions)
+// ---------------------------------------------------------------------------
+
+export async function loadOfficeRequestAction(id: string): Promise<{ request?: OfficeRequest; error?: string }> {
+  const session = await getSession();
+  if (!session) return { error: 'Not authenticated' };
+  try {
+    const request = await apiGetOfficeRequest(session.accessToken, id);
+    return { request };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Load failed' };
+  }
+}
+
+export async function updateOfficeRequestAction(id: string, data: { status?: string; assignee?: string }): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiUpdateOfficeRequest(session.accessToken, id, data);
+    revalidatePath('/requests');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
+  }
+}
+
+export async function officeRequestMessageAction(id: string, body: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiOfficeRequestMessage(session.accessToken, id, body);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Send failed' };
+  }
 }

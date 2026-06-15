@@ -274,3 +274,30 @@ export async function apiAckResource(accessToken: string, id: string): Promise<{
   });
   return handleResponse(res);
 }
+
+// ── Agent → office requests ─────────────────────────────────────────────────
+
+export type RequestAttachment = { name: string; url: string; kind?: string };
+export type RequestMessage = { id: string; authorType: string; authorName: string | null; body: string; createdAt: string };
+export type AgentRequest = {
+  id: string; type: string; subject: string; details: string; status: string;
+  attachments: RequestAttachment[]; createdAt: string; updatedAt: string;
+  messages?: RequestMessage[];
+};
+
+export async function apiListRequests(accessToken: string): Promise<AgentRequest[]> {
+  const res = await safeFetch(`${API}/portal/requests`, { headers: authHeaders(accessToken), cache: 'no-store' });
+  return handleResponse(res);
+}
+export async function apiGetRequest(accessToken: string, id: string): Promise<AgentRequest> {
+  const res = await safeFetch(`${API}/portal/requests/${encodeURIComponent(id)}`, { headers: authHeaders(accessToken), cache: 'no-store' });
+  return handleResponse(res);
+}
+export async function apiCreateRequest(accessToken: string, data: { type: string; subject: string; details?: string; attachments?: RequestAttachment[] }): Promise<AgentRequest> {
+  const res = await safeFetch(`${API}/portal/requests`, { method: 'POST', headers: authHeaders(accessToken), body: JSON.stringify(data) });
+  return handleResponse(res);
+}
+export async function apiRequestMessage(accessToken: string, id: string, body: string): Promise<RequestMessage> {
+  const res = await safeFetch(`${API}/portal/requests/${encodeURIComponent(id)}/messages`, { method: 'POST', headers: authHeaders(accessToken), body: JSON.stringify({ body }) });
+  return handleResponse(res);
+}

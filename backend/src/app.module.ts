@@ -16,6 +16,7 @@ import { AgentsModule } from './agents/agents.module';
 import { TrainingModule } from './training/training.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { RegionalModule } from './regional/regional.module';
+import { RequestsModule } from './requests/requests.module';
 import { HealthModule } from './health/health.module';
 
 @Module({
@@ -73,6 +74,7 @@ import { HealthModule } from './health/health.module';
     TrainingModule,
     DashboardModule,
     RegionalModule,
+    RequestsModule,
     HealthModule,
   ],
   providers: [
