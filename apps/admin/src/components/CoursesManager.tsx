@@ -203,12 +203,12 @@ function CourseForm({
         <RichTextEditor value={form.contentHtml} onChange={(html) => set('contentHtml', html)} />
       </Section>
 
-      <Section step={3} title="Curriculum" hint="Sections and video/text lessons - the Udemy-style course outline.">
+      <Section step={3} title="Curriculum" hint="Modules and their lessons (video/text) - the Udemy-style course outline.">
         {courseId ? (
           <CurriculumEditor courseId={courseId} />
         ) : (
           <p className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded p-3">
-            Save the course first, then reopen it to add sections and lessons (video + text).
+            Save the course first, then reopen it to add modules and lessons (video + text).
           </p>
         )}
       </Section>

@@ -87,7 +87,7 @@ export default function CurriculumEditor({ courseId }: { courseId: string }) {
 
       {sections.length === 0 && (
         <p className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded p-3">
-          No sections yet. Add a section (e.g. “Introduction”), then add lessons with video and text.
+          No modules yet. Add a module (e.g. “Module 1: Introduction”), then add lessons (sub-sections) with video and text inside it.
         </p>
       )}
 
@@ -100,7 +100,7 @@ export default function CurriculumEditor({ courseId }: { courseId: string }) {
               className="flex-1 bg-transparent text-sm font-semibold text-gray-800 focus:outline-none"
             />
             <span className="text-xs text-gray-400">{s.lessons.length} lesson{s.lessons.length === 1 ? '' : 's'}</span>
-            <button onClick={() => { if (confirm(`Delete section “${s.title}” and its lessons?`)) run(() => deleteSectionAction(s.id)); }} className="text-xs text-red-600 hover:underline">Delete</button>
+            <button onClick={() => { if (confirm(`Delete module “${s.title}” and its lessons?`)) run(() => deleteSectionAction(s.id)); }} className="text-xs text-red-600 hover:underline">Delete</button>
           </div>
 
           <div className="divide-y divide-gray-100">
@@ -143,13 +143,13 @@ export default function CurriculumEditor({ courseId }: { courseId: string }) {
       ))}
 
       <div className="flex gap-2">
-        <input value={newSection} onChange={(e) => setNewSection(e.target.value)} placeholder="New section title" className={inputCls} />
+        <input value={newSection} onChange={(e) => setNewSection(e.target.value)} placeholder="New module title (e.g. Module 1: Introduction)" className={inputCls} />
         <button
           disabled={!newSection.trim() || isPending}
           onClick={() => run(() => createSectionAction(courseId, { title: newSection.trim(), order: sections.length }), () => setNewSection(''))}
           className="px-4 py-2 text-sm bg-gray-800 text-white rounded hover:bg-gray-700 disabled:opacity-50 whitespace-nowrap"
         >
-          + Add section
+          + Add module
         </button>
       </div>
     </div>
