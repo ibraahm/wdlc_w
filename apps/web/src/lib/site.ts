@@ -185,6 +185,14 @@ export const licenses: StateLicense[] = [
   { state: 'Wisconsin', number: '114MT', status: 'Active' },
 ];
 
+// Number of active money-transmission jurisdictions, computed from `licenses`
+// so copy never drifts from the source of truth. Counted unique by jurisdiction
+// (guards against two license rows for one state) and includes DC — hence
+// "jurisdictions" is more accurate than "states".
+export const activeJurisdictionCount = new Set(
+  licenses.filter((l) => (l.status ?? 'Active') === 'Active').map((l) => l.state),
+).size;
+
 // State-specific consumer complaint disclosures. Several states require a money
 // transmitter to publish a specific notice telling consumers how to escalate a
 // complaint to the state regulator. `general` applies in every state; keyed

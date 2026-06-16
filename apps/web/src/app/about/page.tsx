@@ -11,6 +11,7 @@ import {
   ButtonOnDark,
   CtaBand,
 } from '@/components/ui';
+import { activeJurisdictionCount } from '@/lib/site';
 import { getCmsPage, getCmsNetworkCountries, cmsMetadata } from '@/lib/cms';
 import BlockRenderer from '@/components/BlockRenderer';
 import NetworkMap from '@/components/NetworkMap';
@@ -74,7 +75,7 @@ export default async function AboutPage() {
         <div className="mt-10">
           <StatStrip
             stats={[
-              { value: 'Licensed in 20 states', label: 'Money transmitter' },
+              { value: `Licensed in ${activeJurisdictionCount} U.S. jurisdictions`, label: 'Money transmitter' },
               { value: 'Since 1999', label: 'Serving diaspora families' },
               { value: 'Trusted', label: 'Correspondent network' },
             ]}
@@ -91,7 +92,7 @@ export default async function AboutPage() {
             { label: 'Headquarters', value: 'Stone Mountain, Georgia, USA' },
             { label: 'Structure', value: 'Privately held corporation' },
             { label: 'Registration', value: 'FinCEN-registered MSB · NMLS ID 1119263' },
-            { label: 'Primary service', value: 'International & domestic money remittance (USD)' },
+            { label: 'Primary service', value: 'International money remittance (USD)' },
           ]}
         />
       </Section>

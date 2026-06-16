@@ -28,7 +28,7 @@ export default async function PrivacyPage() {
             <h2>Information we collect</h2>
             <p>We collect information you provide directly to us, including:</p>
             <ul>
-              <li><strong>When you contact us or submit a website form</strong> - your name, email address, phone number, and the contents of your message (for example, support requests, complaints, or fraud reports). Our complaint form may also accept a file you choose to upload.</li>
+              <li><strong>When you contact us or submit a website form</strong> - your name, email address, phone number, and the contents of your message (for example, support requests, complaints, or fraud reports).</li>
               <li><strong>When you apply to become an agent</strong> - business and principal contact details, business type and history, and related information you provide on the application.</li>
               <li><strong>When you use a money transfer service at an authorized delegate</strong> - your name, address, government-issued ID details, contact information, recipient information, and transaction details. This information is collected by the delegate and maintained through our regulated transaction records, not through this website.</li>
               <li><strong>Automatically</strong> - limited technical data and security cookies as described in our <a href="/legal/cookies">Cookie Policy</a>.</li>

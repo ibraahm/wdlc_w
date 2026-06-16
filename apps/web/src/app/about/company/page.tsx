@@ -9,7 +9,7 @@ import {
   CtaBand,
   ButtonOnDark,
 } from '@/components/ui';
-import { company, licenses } from '@/lib/site';
+import { company, activeJurisdictionCount } from '@/lib/site';
 
 export const metadata = {
   title: 'Our Company | World Direct Link',
@@ -18,7 +18,7 @@ export const metadata = {
 };
 
 export default function CompanyPage() {
-  const activeCount = licenses.filter((l) => l.status === 'Active').length;
+  const activeCount = activeJurisdictionCount;
 
   return (
     <>
@@ -40,7 +40,7 @@ export default function CompanyPage() {
         stats={[
           { value: '1999', label: 'Founded' },
           { value: '25+', label: 'Years in Service' },
-          { value: String(activeCount), label: 'State Licenses' },
+          { value: String(activeCount), label: 'Licensed Jurisdictions' },
           { value: 'NMLS #' + company.nmls, label: 'MSB Registration' },
         ]}
       />
@@ -113,7 +113,7 @@ export default function CompanyPage() {
       <Section>
         <Callout variant="info">
           <strong>Licensed and regulated.</strong> World Direct Link holds active money transmitter
-          licenses in {activeCount} states and is registered as a Money Services Business with FinCEN
+          licenses in {activeCount} U.S. jurisdictions and is registered as a Money Services Business with FinCEN
           (NMLS ID {company.nmls}). License details are available on{' '}
           <a href="https://nmlsconsumeraccess.org" className="underline" target="_blank" rel="noopener noreferrer">
             NMLS Consumer Access
@@ -125,7 +125,7 @@ export default function CompanyPage() {
 
       <CtaBand
         heading="Ready to send money?"
-        subtext="Find an agent near you or start your transfer online."
+        subtext="Find an authorized agent near you to send money in person."
       >
         <ButtonOnDark href="/find-an-agent">Find an Agent</ButtonOnDark>
         <Link

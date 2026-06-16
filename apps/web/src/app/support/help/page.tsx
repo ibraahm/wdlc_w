@@ -22,7 +22,7 @@ const rights = [
   },
   {
     title: 'Error resolution',
-    body: 'If you think there\'s an error, contact us within 180 days. We\'ll investigate and resolve within 10 days of receiving your written request.',
+    body: 'If you think there\'s an error, contact us within 180 days of the date funds were promised to your recipient. We\'ll investigate and respond within the timeframe required by applicable law.',
   },
   {
     title: 'Refunds',
