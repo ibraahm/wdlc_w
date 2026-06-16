@@ -58,6 +58,7 @@ export class PortalAuthController {
   }
 
   @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @Post('verify-email')
   verifyEmail(@Body() dto: VerifyEmailDto) {
     return this.auth.verifyEmail(dto.token);
@@ -80,6 +81,7 @@ export class PortalAuthController {
   }
 
   @Public()
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @Post('reset-password')
   resetPassword(@Body() dto: AgentResetPasswordDto) {
     return this.auth.resetPassword(dto.token, dto.newPassword);

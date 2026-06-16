@@ -1,4 +1,5 @@
 import { Body, Controller, ForbiddenException, Logger, Post, Req } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { Request } from 'express';
 import { ApplicationsService } from './applications.service';
 import { CreateApplicationDto } from './dto/application.dto';
@@ -14,6 +15,7 @@ export class ApplicationsPublicController {
     private humanVerification: HumanVerificationService,
   ) {}
 
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @Post('apply')
   async apply(@Body() dto: CreateApplicationDto, @Req() req: Request) {
     if (process.env.NODE_ENV !== 'production') {
