@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException, OnModuleInit } from '@nestjs/common'
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '../prisma/prisma.service';
+import { JWT_ISSUER, JWT_AUDIENCE_AGENT } from '../common/security.constants';
 
 export interface AgentJwtPayload {
   sub: string;
@@ -18,6 +19,8 @@ export class PortalJwtStrategy extends PassportStrategy(Strategy, 'portal-jwt') 
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: secret,
+      issuer: JWT_ISSUER,
+      audience: JWT_AUDIENCE_AGENT,
     });
   }
 
