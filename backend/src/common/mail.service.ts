@@ -156,8 +156,8 @@ export class MailService {
       to,
       'Your World Direct Link agent portal access',
       emailLayout('Welcome to World Direct Link', `
-        <p>Hello ${firstName},</p>
-        <p>Your agent account has been approved. Your branch code is <strong>${branchCode}</strong> - keep it for all correspondence.</p>
+        <p>Hello ${escapeHtml(firstName)},</p>
+        <p>Your agent account has been approved. Your branch code is <strong>${escapeHtml(branchCode)}</strong> - keep it for all correspondence.</p>
         <p>Set your password to access the agent portal (training and resources). This link expires in <strong>48 hours</strong>.</p>
         <p style="text-align:center;margin:32px 0">
           <a href="${link}" style="background:#1a56db;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:600">Set Up My Account</a>
@@ -196,7 +196,7 @@ export class MailService {
       to,
       'You have been invited to the World Direct Link admin console',
       emailLayout('Welcome to World Direct Link', `
-        <p>Hello ${name},</p>
+        <p>Hello ${escapeHtml(name)},</p>
         <p>You have been invited to the <strong>World Direct Link</strong> admin console.
         Click the button below to set your password. This link expires in <strong>48 hours</strong>.</p>
         <p style="text-align:center;margin:32px 0">

@@ -1,4 +1,4 @@
-import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 
 // Fields an agent can edit for their own public locator listing.
 export class UpdateAgentProfileDto {
@@ -50,6 +50,6 @@ export class AdminAgentVisibilityDto {
 }
 
 export class AdminAgentStatusDto {
-  @IsString()
-  status: string; // PENDING | ACTIVE | SUSPENDED | REJECTED
+  @IsIn(['PENDING', 'ACTIVE', 'SUSPENDED', 'REJECTED'])
+  status: string;
 }
