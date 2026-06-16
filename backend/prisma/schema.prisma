@@ -714,3 +714,27 @@ model ResourceAck {
   @@unique([resourceId, agentId])
   @@index([agentId])
 }
+
+// ─────────────────────────────────────────────
+// VISIT EVENTS  (privacy-respecting traffic analytics)
+// One row per page view across the public web, agent portal, and admin app.
+// No raw IP is stored - only a salted hash for coarse unique-visitor counting -
+// and country is derived from the edge/CDN geo header (may be null).
+// portal: 'web' | 'agent' | 'admin'
+// ─────────────────────────────────────────────
+model VisitEvent {
+  id        String   @id @default(cuid())
+  portal    String
+  path      String
+  country   String?  // ISO 3166-1 alpha-2 (from CDN geo header), null if unknown
+  region    String?
+  city      String?
+  ipHash    String?  // salted SHA-256 of client IP; never the raw address
+  referrer  String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([portal, createdAt])
+  @@index([country])
+}

@@ -4,6 +4,7 @@ import Script from 'next/script';
 import SiteNav from '@/components/SiteNav';
 import Footer from '@/components/Footer';
 import MaintenanceScreen from '@/components/MaintenanceScreen';
+import VisitBeacon from '@/components/VisitBeacon';
 import { company } from '@/lib/site';
 import { getCmsSetting } from '@/lib/cms';
 
@@ -42,6 +43,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <SiteNav />
           {children}
           <Footer />
+          <VisitBeacon />
         <Script id="design-effects" strategy="afterInteractive">{`
 (function () {
   var header = document.querySelector('[data-header]');

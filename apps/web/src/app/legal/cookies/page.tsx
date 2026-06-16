@@ -62,6 +62,13 @@ export default async function CookiePolicyPage() {
                 <p>
                   We do not use this website to set advertising cookies or to sell personal information.
                 </p>
+                <p>
+                  <strong>Analytics is cookieless.</strong> We measure page views with first-party,
+                  cookieless analytics that set no cookies and use no third-party trackers. What it
+                  records (page path, approximate country from your IP, and a one-way hashed IP for
+                  unique-visitor counts) is described in our{' '}
+                  <a href="/privacy">Privacy Policy</a>.
+                </p>
 
                 <h2>Managing cookies</h2>
                 <p>

@@ -18,6 +18,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { RegionalModule } from './regional/regional.module';
 import { RequestsModule } from './requests/requests.module';
 import { RiskModule } from './risk/risk.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 import { HealthModule } from './health/health.module';
 
 @Module({
@@ -77,6 +78,7 @@ import { HealthModule } from './health/health.module';
     RegionalModule,
     RequestsModule,
     RiskModule,
+    AnalyticsModule,
     HealthModule,
   ],
   providers: [

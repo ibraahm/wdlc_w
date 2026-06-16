@@ -13,7 +13,10 @@ type NavGroup = { heading: string; items: NavItem[] };
 const NAV_GROUPS: NavGroup[] = [
   {
     heading: 'Overview',
-    items: [{ href: '/dashboard', label: 'Dashboard', description: 'Attention queue and recent activity' }],
+    items: [
+      { href: '/dashboard', label: 'Dashboard', description: 'Attention queue and recent activity' },
+      { href: '/analytics', label: 'Visitor Analytics', description: 'Web, portal, and admin traffic by country' },
+    ],
   },
   {
     heading: 'Content',

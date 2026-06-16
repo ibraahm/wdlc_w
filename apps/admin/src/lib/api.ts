@@ -1300,3 +1300,22 @@ export async function apiCreateRiskAssessment(accessToken: string, ddFileId: str
   const res = await authFetch(`/admin/agent-dd/${ddFileId}/risk-assessments`, accessToken, { method: 'POST', body: JSON.stringify(data) });
   return handleResponse<RiskAssessment>(res);
 }
+
+// ---------------------------------------------------------------------------
+// Visitor analytics (web / portal / admin traffic)
+// ---------------------------------------------------------------------------
+
+export type AnalyticsSummary = {
+  rangeDays: number;
+  totalVisits: number;
+  uniqueVisitors: number;
+  byPortal: { portal: string; visits: number }[];
+  topCountries: { country: string; visits: number }[];
+  topPaths: { portal: string; path: string; visits: number }[];
+  daily: { date: string; visits: number }[];
+};
+
+export async function apiGetAnalyticsSummary(accessToken: string, days = 30): Promise<AnalyticsSummary> {
+  const res = await authFetch(`/admin/analytics/summary?days=${days}`, accessToken);
+  return handleResponse<AnalyticsSummary>(res);
+}
