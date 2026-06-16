@@ -3,6 +3,7 @@ import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { Public } from '../auth/decorators/public.decorator';
 import { AnalyticsService } from './analytics.service';
+import { GeoService } from './geo.service';
 import { CollectDto } from './dto/collect.dto';
 import {
   countryFromHeaders,
@@ -17,7 +18,10 @@ import {
 // the resolved client IP, authenticated by a shared ingest key (when set).
 @Controller('analytics')
 export class AnalyticsPublicController {
-  constructor(private analytics: AnalyticsService) {}
+  constructor(
+    private analytics: AnalyticsService,
+    private geo: GeoService,
+  ) {}
 
   @Public()
   @Throttle({ default: { ttl: 60_000, limit: 120 } })
@@ -31,12 +35,24 @@ export class AnalyticsPublicController {
 
     const forwardedIp = (req.headers['x-visitor-ip'] as string | undefined) || req.ip;
 
+    // Prefer the trusted CDN/edge geo header; fall back to an offline MaxMind
+    // lookup (if configured) so country is populated even without a CDN.
+    let country = countryFromHeaders(req.headers);
+    let region = regionFromHeaders(req.headers);
+    let city = cityFromHeaders(req.headers);
+    if (!country) {
+      const geo = await this.geo.lookup(forwardedIp);
+      country = geo.country;
+      region = region ?? geo.region;
+      city = city ?? geo.city;
+    }
+
     await this.analytics.record({
       portal: dto.portal,
       path: normalizePath(dto.path),
-      country: countryFromHeaders(req.headers),
-      region: regionFromHeaders(req.headers),
-      city: cityFromHeaders(req.headers),
+      country,
+      region,
+      city,
       ipHash: hashIp(forwardedIp),
       referrer: dto.referrer ? dto.referrer.slice(0, 512) : null,
       userAgent: (req.headers['user-agent'] as string | undefined)?.slice(0, 512) ?? null,
