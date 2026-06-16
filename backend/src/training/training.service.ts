@@ -92,6 +92,46 @@ export class TrainingService {
     );
   }
 
+  // ── Phase 3: assignment access (additive on audience) ──────────────────────
+  // Map of courseId -> the most specific active assignment for this agent
+  // (agent-specific beats branch; earlier deadline wins among equals).
+  private async assignmentsForAgent(agentId: string, branchCode: string | null) {
+    const rows = await this.prisma.trainingAssignment.findMany({
+      where: { active: true, OR: [{ agentId }, ...(branchCode ? [{ branchCode }] : [])] },
+    });
+    const byCourse = new Map<string, (typeof rows)[number]>();
+    const specificity = (a: (typeof rows)[number]) => (a.agentId ? 2 : 1);
+    for (const a of rows) {
+      const cur = byCourse.get(a.courseId);
+      if (!cur) { byCourse.set(a.courseId, a); continue; }
+      if (specificity(a) > specificity(cur)) byCourse.set(a.courseId, a);
+      else if (specificity(a) === specificity(cur) && a.dueAt && (!cur.dueAt || a.dueAt < cur.dueAt)) {
+        byCourse.set(a.courseId, a);
+      }
+    }
+    return byCourse;
+  }
+
+  private async hasActiveAssignment(agentId: string, courseId: string, branchCode: string | null): Promise<boolean> {
+    const a = await this.prisma.trainingAssignment.findFirst({
+      where: { courseId, active: true, OR: [{ agentId }, ...(branchCode ? [{ branchCode }] : [])] },
+      select: { id: true },
+    });
+    return !!a;
+  }
+
+  // A course is accessible to an agent if the audience matches OR it is
+  // explicitly assigned to them or their branch.
+  private async agentCanAccess(
+    agentId: string,
+    course: { id: string; audience: string; targetStates: string | null; targetBranches: string | null },
+    branchCode: string | null,
+    states: string[],
+  ): Promise<boolean> {
+    if (this.matches(course, branchCode, states)) return true;
+    return this.hasActiveAssignment(agentId, course.id, branchCode);
+  }
+
   // ── PORTAL: course catalogue ──────────────────────────────────────────────
   async listCoursesForAgent(agentId: string) {
     const { branchCode, states, language } = await this.resolveAudience(agentId);
@@ -100,11 +140,15 @@ export class TrainingService {
       orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
       include: { sections: { orderBy: { order: 'asc' }, include: { lessons: { orderBy: { order: 'asc' } } } } },
     })) as unknown as CourseWithCurriculum[];
-    const assigned = courses.filter((c) => this.matches(c, branchCode, states));
-    const assignedIds = assigned.map((c) => c.id);
+
+    // Phase 3: explicit assignments (additive). A course is shown if the
+    // audience matches OR an active assignment targets the agent or branch.
+    const assignmentByCourse = await this.assignmentsForAgent(agentId, branchCode);
+    const shown = courses.filter((c) => this.matches(c, branchCode, states) || assignmentByCourse.has(c.id));
+    const shownIds = shown.map((c) => c.id);
 
     const [completions, progress] = await Promise.all([
-      this.prisma.courseCompletion.findMany({ where: { agentId, courseId: { in: assignedIds } } }),
+      this.prisma.courseCompletion.findMany({ where: { agentId, courseId: { in: shownIds } } }),
       this.prisma.lessonProgress.findMany({ where: { agentId } }),
     ]);
     const passedCourseIds = new Set(completions.filter((c) => c.passed).map((c) => c.courseId));
@@ -116,7 +160,7 @@ export class TrainingService {
 
     // Group translations and present one card per group.
     const groups = new Map<string, CourseWithCurriculum[]>();
-    for (const c of assigned) {
+    for (const c of shown) {
       const key = this.groupKey(c);
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(c);
@@ -132,7 +176,10 @@ export class TrainingService {
       const progressPct = lessons.length
         ? Math.round((lessonsDone / lessons.length) * 100)
         : passed ? 100 : 0;
-      const overdue = !passed && !!variant.dueAt && variant.dueAt < now;
+      // Explicit assignment (if any) overrides the course deadline and carries the reason.
+      const assignment = group.map((c) => assignmentByCourse.get(c.id)).find(Boolean) ?? null;
+      const dueAt = assignment?.dueAt ?? variant.dueAt;
+      const overdue = !passed && !!dueAt && dueAt < now;
       return {
         slug: variant.slug,
         title: variant.title,
@@ -147,8 +194,9 @@ export class TrainingService {
         progressPct,
         completed: passed,
         bestScore: passed ? bestScore : null,
-        dueAt: variant.dueAt,
+        dueAt,
         overdue,
+        assignedReason: assignment?.reason ?? null,
         order: variant.order,
       };
     });
@@ -228,11 +276,97 @@ export class TrainingService {
     return versions;
   }
 
+  // ── ADMIN: assignments (Phase 3) ───────────────────────────────────────────
+  private readonly ASSIGN_REASONS = ['NEW_HIRE', 'ANNUAL', 'HAZARD', 'ROLE', 'REMEDIATION', 'OTHER'];
+
+  async adminListAssignments(filter: { courseId?: string; agentId?: string; branchCode?: string; activeOnly?: boolean }) {
+    const where: any = {};
+    if (filter.courseId) where.courseId = filter.courseId;
+    if (filter.agentId) where.agentId = filter.agentId;
+    if (filter.branchCode) where.branchCode = filter.branchCode.trim().toUpperCase();
+    if (filter.activeOnly) where.active = true;
+    const rows = await this.prisma.trainingAssignment.findMany({
+      where,
+      orderBy: [{ active: 'desc' }, { createdAt: 'desc' }],
+      include: {
+        course: { select: { title: true, slug: true } },
+        agent: { select: { firstName: true, lastName: true, email: true } },
+      },
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      courseId: r.courseId,
+      courseTitle: r.course.title,
+      courseSlug: r.course.slug,
+      agentId: r.agentId,
+      agentName: r.agent ? `${r.agent.firstName} ${r.agent.lastName}` : null,
+      agentEmail: r.agent?.email ?? null,
+      branchCode: r.branchCode,
+      reason: r.reason,
+      note: r.note,
+      dueAt: r.dueAt,
+      active: r.active,
+      assignedBy: r.assignedBy,
+      createdAt: r.createdAt,
+    }));
+  }
+
+  async adminCreateAssignment(dto: any, adminId: string) {
+    if (!dto.courseId) throw new BadRequestException('A course is required');
+    if (!dto.agentId && !dto.branchCode) throw new BadRequestException('Specify an agent or a branch code');
+    const reason = String(dto.reason || 'OTHER').toUpperCase();
+    if (!this.ASSIGN_REASONS.includes(reason)) throw new BadRequestException('Invalid assignment reason');
+    const course = await this.prisma.course.findUnique({ where: { id: dto.courseId } });
+    if (!course) throw new NotFoundException('Course not found');
+    if (dto.agentId) {
+      const agent = await this.prisma.agentUser.findUnique({ where: { id: dto.agentId }, select: { id: true } });
+      if (!agent) throw new NotFoundException('Agent not found');
+    }
+    const due = this.parseDueAt(dto.dueAt);
+    const assignment = await this.prisma.trainingAssignment.create({
+      data: {
+        courseId: dto.courseId,
+        agentId: dto.agentId || null,
+        branchCode: dto.branchCode ? String(dto.branchCode).trim().toUpperCase() : null,
+        reason,
+        note: dto.note?.trim() || null,
+        dueAt: due ?? null,
+        assignedBy: adminId,
+      },
+    });
+    await this.audit.log({
+      action: 'training.assignment.create', adminId, entity: 'Course', entityId: dto.courseId,
+      after: { assignmentId: assignment.id, agentId: assignment.agentId, branchCode: assignment.branchCode, reason, dueAt: assignment.dueAt },
+    });
+    return assignment;
+  }
+
+  async adminUpdateAssignment(id: string, dto: any, adminId: string) {
+    const existing = await this.prisma.trainingAssignment.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Assignment not found');
+    const data: any = {};
+    if (dto.reason !== undefined) {
+      const r = String(dto.reason).toUpperCase();
+      if (!this.ASSIGN_REASONS.includes(r)) throw new BadRequestException('Invalid assignment reason');
+      data.reason = r;
+    }
+    if (dto.note !== undefined) data.note = dto.note?.trim() || null;
+    if (dto.active !== undefined) data.active = !!dto.active;
+    const due = this.parseDueAt(dto.dueAt);
+    if (due !== undefined) data.dueAt = due;
+    const assignment = await this.prisma.trainingAssignment.update({ where: { id }, data });
+    await this.audit.log({
+      action: 'training.assignment.update', adminId, entity: 'Course', entityId: existing.courseId,
+      after: { assignmentId: id, ...data },
+    });
+    return assignment;
+  }
+
   // ── PORTAL: policy acknowledgment ──────────────────────────────────────────
   async acknowledgePolicy(agentId: string, slug: string, meta: { ip?: string; userAgent?: string } = {}) {
     const { branchCode, states } = await this.resolveAudience(agentId);
     const course = await this.prisma.course.findUnique({ where: { slug } });
-    if (!course || course.status !== 'PUBLISHED' || !this.matches(course, branchCode, states)) {
+    if (!course || course.status !== 'PUBLISHED' || !(await this.agentCanAccess(agentId, course, branchCode, states))) {
       throw new NotFoundException('Course not found or not assigned to you');
     }
     const version = await this.ensureVersion(course.id);
@@ -267,7 +401,7 @@ export class TrainingService {
       where: { slug },
       include: { sections: { orderBy: { order: 'asc' }, include: { lessons: { orderBy: { order: 'asc' } } } } },
     })) as unknown as CourseWithCurriculum | null;
-    if (!course || course.status !== 'PUBLISHED' || !this.matches(course, branchCode, states)) {
+    if (!course || course.status !== 'PUBLISHED' || !(await this.agentCanAccess(agentId, course, branchCode, states))) {
       throw new NotFoundException('Course not found or not assigned to you');
     }
 
@@ -351,7 +485,7 @@ export class TrainingService {
     if (!lesson) throw new NotFoundException('Lesson not found');
     const course = lesson.section.course;
     const { branchCode, states } = await this.resolveAudience(agentId);
-    if (course.status !== 'PUBLISHED' || !this.matches(course, branchCode, states)) {
+    if (course.status !== 'PUBLISHED' || !(await this.agentCanAccess(agentId, course, branchCode, states))) {
       throw new NotFoundException('Lesson not available to you');
     }
     return { lesson, course };
@@ -384,7 +518,7 @@ export class TrainingService {
       where: { slug },
       include: { sections: { include: { lessons: { select: { id: true } } } } },
     })) as any;
-    if (!course || course.status !== 'PUBLISHED' || !this.matches(course, branchCode, states)) {
+    if (!course || course.status !== 'PUBLISHED' || !(await this.agentCanAccess(agentId, course, branchCode, states))) {
       throw new NotFoundException('Course not found or not assigned to you');
     }
     const questions = parseQuestions(course.questions);
@@ -446,7 +580,7 @@ export class TrainingService {
   async getCertificate(agentId: string, slug: string, meta: { ip?: string; userAgent?: string } = {}): Promise<{ pdf: Buffer; filename: string }> {
     const { branchCode, states } = await this.resolveAudience(agentId);
     const course = await this.prisma.course.findUnique({ where: { slug } });
-    if (!course || !this.matches(course, branchCode, states)) throw new NotFoundException('Course not found');
+    if (!course || !(await this.agentCanAccess(agentId, course, branchCode, states))) throw new NotFoundException('Course not found');
     const completion = await this.prisma.courseCompletion.findFirst({
       where: { agentId, courseId: course.id, passed: true },
       orderBy: { score: 'desc' },

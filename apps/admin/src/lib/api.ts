@@ -1323,3 +1323,49 @@ export async function apiGetAnalyticsSummary(accessToken: string, days = 30): Pr
   const res = await authFetch(`/admin/analytics/summary?days=${days}`, accessToken);
   return handleResponse<AnalyticsSummary>(res);
 }
+
+// ---------------------------------------------------------------------------
+// Training assignments (Phase 3)
+// ---------------------------------------------------------------------------
+
+export type TrainingAssignment = {
+  id: string;
+  courseId: string;
+  courseTitle: string;
+  courseSlug: string;
+  agentId: string | null;
+  agentName: string | null;
+  agentEmail: string | null;
+  branchCode: string | null;
+  reason: string;
+  note: string | null;
+  dueAt: string | null;
+  active: boolean;
+  assignedBy: string | null;
+  createdAt: string;
+};
+
+export type AssignmentInput = {
+  courseId: string;
+  agentId?: string;
+  branchCode?: string;
+  reason: string;
+  note?: string;
+  dueAt?: string | null;
+};
+
+export async function apiListAssignments(accessToken: string, courseId?: string): Promise<TrainingAssignment[]> {
+  const qs = courseId ? `?courseId=${encodeURIComponent(courseId)}` : '';
+  const res = await authFetch(`/admin/training/assignments${qs}`, accessToken);
+  return handleResponse<TrainingAssignment[]>(res);
+}
+
+export async function apiCreateAssignment(accessToken: string, data: AssignmentInput): Promise<TrainingAssignment> {
+  const res = await authFetch('/admin/training/assignments', accessToken, { method: 'POST', body: JSON.stringify(data) });
+  return handleResponse<TrainingAssignment>(res);
+}
+
+export async function apiUpdateAssignment(accessToken: string, id: string, data: Partial<{ reason: string; note: string; dueAt: string | null; active: boolean }>): Promise<TrainingAssignment> {
+  const res = await authFetch(`/admin/training/assignments/${id}`, accessToken, { method: 'PATCH', body: JSON.stringify(data) });
+  return handleResponse<TrainingAssignment>(res);
+}

@@ -41,6 +41,8 @@ import {
   apiReorderNav,
   apiCreateCourse,
   apiUpdateCourse,
+  apiCreateAssignment,
+  apiUpdateAssignment,
   apiDeleteCourse,
   apiCreateResource,
   apiUpdateResource,
@@ -65,7 +67,7 @@ import {
   apiListRiskAssessments,
   apiCreateRiskAssessment,
 } from './api';
-import type { Partner, NetworkCountry, NavItemInput, CourseInput, ResourceInput, Completion, CourseWithCurriculum, SectionInput, LessonInput, SearchResult, RegionalOfficeInput, OfficeRequest, RiskAssessment, RiskFactor } from './api';
+import type { Partner, NetworkCountry, NavItemInput, CourseInput, ResourceInput, Completion, CourseWithCurriculum, SectionInput, LessonInput, SearchResult, RegionalOfficeInput, OfficeRequest, RiskAssessment, RiskFactor, AssignmentInput } from './api';
 import { getSession, setSessionCookies, clearSessionCookies, clearMustChangePassword } from './auth';
 
 // ---------------------------------------------------------------------------
@@ -688,6 +690,33 @@ export async function createCourseAction(data: CourseInput): Promise<{ ok: boole
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Create failed' };
+  }
+}
+
+export async function createAssignmentAction(data: AssignmentInput): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiCreateAssignment(session.accessToken, data);
+    revalidatePath('/training/assignments');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Assign failed' };
+  }
+}
+
+export async function updateAssignmentAction(
+  id: string,
+  data: Partial<{ reason: string; note: string; dueAt: string | null; active: boolean }>,
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiUpdateAssignment(session.accessToken, id, data);
+    revalidatePath('/training/assignments');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
   }
 }
 

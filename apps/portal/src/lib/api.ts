@@ -166,6 +166,8 @@ export type CourseSummary = {
   bestScore: number | null;
   dueAt: string | null;
   overdue: boolean;
+  // Phase 3: reason this course was explicitly assigned (null = via audience).
+  assignedReason: string | null;
 };
 
 export type QuizQuestion = { i: number; q: string; options: string[] };

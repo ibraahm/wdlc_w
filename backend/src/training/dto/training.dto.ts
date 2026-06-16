@@ -46,6 +46,24 @@ export class UpsertCourseDto {
   @IsOptional() @IsString() @MaxLength(1000) policyStatement?: string;
 }
 
+const ASSIGN_REASONS = ['NEW_HIRE', 'ANNUAL', 'HAZARD', 'ROLE', 'REMEDIATION', 'OTHER'];
+
+export class CreateAssignmentDto {
+  @IsString() courseId: string;
+  @IsOptional() @IsString() agentId?: string;
+  @IsOptional() @IsString() @MaxLength(40) branchCode?: string;
+  @IsIn(ASSIGN_REASONS) reason: string;
+  @IsOptional() @IsString() @MaxLength(500) note?: string;
+  @IsOptional() @IsString() @MaxLength(40) dueAt?: string;
+}
+
+export class UpdateAssignmentDto {
+  @IsOptional() @IsIn(ASSIGN_REASONS) reason?: string;
+  @IsOptional() @IsString() @MaxLength(500) note?: string;
+  @IsOptional() @IsString() @MaxLength(40) dueAt?: string;
+  @IsOptional() @IsBoolean() active?: boolean;
+}
+
 export class UpsertSectionDto {
   @IsOptional() @IsString() @MaxLength(160) title?: string;
   @IsOptional() @IsInt() order?: number;

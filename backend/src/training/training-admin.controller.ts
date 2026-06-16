@@ -4,7 +4,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser, AuthUser } from '../auth/decorators/current-user.decorator';
 import { TrainingService } from './training.service';
-import { UpsertCourseDto, UpsertResourceDto, UpsertSectionDto, UpsertLessonDto } from './dto/training.dto';
+import { UpsertCourseDto, UpsertResourceDto, UpsertSectionDto, UpsertLessonDto, CreateAssignmentDto, UpdateAssignmentDto } from './dto/training.dto';
 
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
 @Controller('admin/training')
@@ -84,6 +84,35 @@ export class TrainingAdminController {
   @Delete('lessons/:id')
   deleteLesson(@Param('id') id: string, @CurrentUser('id') adminId: string) {
     return this.training.adminDeleteLesson(id, adminId);
+  }
+
+  // ── Assignments (Phase 3) ───────────────────────────────────────────────────
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')
+  @Get('assignments')
+  listAssignments(
+    @Query('courseId') courseId?: string,
+    @Query('agentId') agentId?: string,
+    @Query('branchCode') branchCode?: string,
+    @Query('activeOnly') activeOnly?: string,
+  ) {
+    return this.training.adminListAssignments({
+      courseId,
+      agentId,
+      branchCode,
+      activeOnly: activeOnly === 'true' || activeOnly === '1',
+    });
+  }
+
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')
+  @Post('assignments')
+  createAssignment(@Body() dto: CreateAssignmentDto, @CurrentUser('id') adminId: string) {
+    return this.training.adminCreateAssignment(dto, adminId);
+  }
+
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')
+  @Patch('assignments/:id')
+  updateAssignment(@Param('id') id: string, @Body() dto: UpdateAssignmentDto, @CurrentUser('id') adminId: string) {
+    return this.training.adminUpdateAssignment(id, dto, adminId);
   }
 
   // ── Resources ──────────────────────────────────────────────────────────────

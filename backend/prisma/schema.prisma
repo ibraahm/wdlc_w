@@ -100,6 +100,7 @@ model AgentUser {
   resourceAcks        ResourceAck[]
   lessonProgress      LessonProgress[]
   policyAcks          PolicyAcknowledgment[]
+  trainingAssignments TrainingAssignment[]
 
   @@index([showOnMap, status])
 }
@@ -611,6 +612,7 @@ model Course {
   completions     CourseCompletion[]
   versions        CourseVersion[]
   acknowledgments PolicyAcknowledgment[]
+  assignments     TrainingAssignment[]
 
   @@index([status, order])
   @@index([category])
@@ -662,6 +664,30 @@ model PolicyAcknowledgment {
   @@unique([agentId, courseVersionId])
   @@index([courseId])
   @@index([agentId])
+}
+
+// Phase 3: explicit, admin-driven assignment with rationale + deadline. Layered
+// additively on audience targeting — a course is required for an agent if the
+// audience matches OR an active assignment targets the agent or their branch.
+// Deactivated (active=false) rather than deleted, to preserve the record.
+model TrainingAssignment {
+  id         String     @id @default(cuid())
+  courseId   String
+  course     Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  agentId    String?
+  agent      AgentUser? @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  branchCode String?
+  reason     String     // NEW_HIRE | ANNUAL | HAZARD | ROLE | REMEDIATION | OTHER
+  note       String?
+  dueAt      DateTime?
+  active     Boolean    @default(true)
+  assignedBy String?    // admin id who created the assignment
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([courseId, active])
+  @@index([agentId, active])
+  @@index([branchCode, active])
 }
 
 // A curriculum section groups ordered lessons within a course (Udemy-style).

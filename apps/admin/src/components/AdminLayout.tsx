@@ -43,6 +43,7 @@ const NAV_GROUPS: NavGroup[] = [
     heading: 'Training',
     items: [
       { href: '/training/courses', label: 'Courses', description: 'Course and quiz management' },
+      { href: '/training/assignments', label: 'Assignments', description: 'Assign required training with reason and deadline' },
       { href: '/training/resources', label: 'Resources', description: 'Reference documents for agents' },
       { href: '/training/reports', label: 'Reports', description: 'Score tracking and completion audit' },
     ],
