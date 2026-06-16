@@ -198,6 +198,13 @@ export type CourseDetail = {
   questions: QuizQuestion[];
   lastAttempt: { score: number; passed: boolean; completedAt: string } | null;
   certificateAvailable: boolean;
+  // Phase 2: policy acknowledgment / content versioning
+  requireAck: boolean;
+  version: number;
+  versionEffectiveAt: string;
+  policyStatement: string;
+  acknowledgedVersion: number | null;
+  acknowledgedAt: string | null;
 };
 
 export type QuizResult = {
@@ -247,6 +254,17 @@ export async function apiSubmitQuiz(accessToken: string, slug: string, answers: 
 
 export async function apiCompleteLesson(accessToken: string, lessonId: string): Promise<{ ok: boolean }> {
   const res = await safeFetch(`${API}/portal/training/lessons/${encodeURIComponent(lessonId)}/complete`, {
+    method: 'POST',
+    headers: authHeaders(accessToken),
+  });
+  return handleResponse(res);
+}
+
+export async function apiAcknowledgePolicy(
+  accessToken: string,
+  slug: string,
+): Promise<{ acknowledged: boolean; version: number; acknowledgedAt: string; statement: string }> {
+  const res = await safeFetch(`${API}/portal/training/courses/${encodeURIComponent(slug)}/acknowledge`, {
     method: 'POST',
     headers: authHeaders(accessToken),
   });

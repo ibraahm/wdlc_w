@@ -2,8 +2,12 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { submitQuizAction, completeLessonAction, setLanguageAction } from '@/lib/actions';
+import { submitQuizAction, completeLessonAction, setLanguageAction, acknowledgePolicyAction } from '@/lib/actions';
 import type { CourseDetail, QuizResult, LessonView } from '@/lib/api';
+
+function fmtDate(d: string) {
+  return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+}
 
 const LANG_LABEL: Record<string, string> = {
   en: 'English', es: 'Español', fr: 'Français', pt: 'Português', zh: '中文', ar: 'العربية', vi: 'Tiếng Việt', ht: 'Kreyòl',
@@ -26,6 +30,25 @@ export default function CourseClient({ course }: { course: CourseDetail }) {
   const [navOpen, setNavOpen] = useState(false);
   const [savingLesson, setSavingLesson] = useState(false);
   const [, startTransition] = useTransition();
+
+  // Phase 2: policy acknowledgment gate.
+  const [acked, setAcked] = useState(() => !course.requireAck || course.acknowledgedVersion === course.version);
+  const [ackChecked, setAckChecked] = useState(false);
+  const [ackPending, setAckPending] = useState(false);
+  const [ackError, setAckError] = useState('');
+  const needsAck = course.requireAck && !acked;
+
+  function doAcknowledge() {
+    if (!ackChecked) { setAckError('Please check the box to confirm you have reviewed the policy.'); return; }
+    setAckPending(true);
+    setAckError('');
+    acknowledgePolicyAction(course.slug)
+      .then((res) => {
+        if (res.ok) setAcked(true);
+        else setAckError(res.error || 'Could not record your acknowledgment.');
+      })
+      .finally(() => setAckPending(false));
+  }
 
   const hasQuiz = course.questions.length > 0;
   const lessonsComplete = flatLessons.length === 0 || flatLessons.every((l) => done.has(l.id));
@@ -117,6 +140,49 @@ export default function CourseClient({ course }: { course: CourseDetail }) {
           </a>
         )}
       </div>
+
+      {/* Phase 2: policy acknowledgment. Required courses must be attested
+          before the quiz/completion; the exact statement + version is shown. */}
+      {course.requireAck && (
+        needsAck ? (
+          <div className="dash-card" style={{ borderLeft: '3px solid var(--gold)' }}>
+            <p className="dash-card-title" style={{ color: 'var(--gold)' }}>Acknowledgment required</p>
+            <p style={{ fontSize: '0.86rem', color: 'var(--charcoal)', margin: '10px 0', lineHeight: 1.6 }}>
+              {course.policyStatement}
+            </p>
+            <p style={{ fontSize: '0.74rem', color: 'var(--muted)', marginBottom: '12px' }}>
+              Policy version {course.version} · effective {fmtDate(course.versionEffectiveAt)}
+            </p>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', minHeight: '44px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={ackChecked}
+                onChange={(e) => setAckChecked(e.target.checked)}
+                style={{ accentColor: 'var(--gold)', width: '18px', height: '18px', marginTop: '2px' }}
+              />
+              <span style={{ fontSize: '0.86rem', color: 'var(--charcoal)' }}>
+                I confirm I have read and understood the above, and agree to comply.
+              </span>
+            </label>
+            {ackError && <div className="auth-error" style={{ margin: '12px 0' }}>{ackError}</div>}
+            <button
+              onClick={doAcknowledge}
+              disabled={ackPending}
+              className="auth-submit course-cta"
+              style={{ width: 'auto', padding: '14px 24px', marginTop: '12px', minHeight: '48px' }}
+            >
+              {ackPending ? 'Recording…' : 'I acknowledge'}
+            </button>
+          </div>
+        ) : (
+          <div className="dash-card" style={{ borderLeft: '3px solid #166534' }}>
+            <p style={{ fontSize: '0.84rem', color: '#166534', fontWeight: 600 }}>
+              ✓ Policy acknowledged{course.acknowledgedAt ? ` on ${fmtDate(course.acknowledgedAt)}` : ''}
+              {' '}· version {course.version}
+            </p>
+          </div>
+        )
+      )}
 
       {/* Mobile-only "Course contents" toggle. Hidden on desktop where the
           curriculum sidebar is always shown. */}
@@ -229,6 +295,7 @@ export default function CourseClient({ course }: { course: CourseDetail }) {
             <Quiz
               course={course}
               lessonsComplete={lessonsComplete}
+              blockedByAck={needsAck}
               onPassed={() => router.refresh()}
             />
           )}
@@ -279,7 +346,7 @@ function currItemStyle(active: boolean): React.CSSProperties {
   return active ? { background: 'rgba(200,150,12,0.1)', fontWeight: 600 } : {};
 }
 
-function Quiz({ course, lessonsComplete, onPassed }: { course: CourseDetail; lessonsComplete: boolean; onPassed: () => void }) {
+function Quiz({ course, lessonsComplete, blockedByAck, onPassed }: { course: CourseDetail; lessonsComplete: boolean; blockedByAck: boolean; onPassed: () => void }) {
   const [answers, setAnswers] = useState<(number | null)[]>(() => course.questions.map(() => null));
   const [result, setResult] = useState<QuizResult | null>(null);
   const [error, setError] = useState('');
@@ -287,6 +354,17 @@ function Quiz({ course, lessonsComplete, onPassed }: { course: CourseDetail; les
 
   const blocked = course.requireLessons && !lessonsComplete;
   const allAnswered = answers.every((a) => a !== null);
+
+  if (blockedByAck) {
+    return (
+      <div className="dash-card" style={{ borderLeft: '3px solid var(--gold)' }}>
+        <p className="dash-card-title" style={{ color: 'var(--gold)' }}>Acknowledge the policy first</p>
+        <p style={{ fontSize: '0.84rem', color: 'var(--muted)', marginTop: '8px', lineHeight: 1.6 }}>
+          This course requires acknowledging the policy statement (shown above) before you can take the final quiz.
+        </p>
+      </div>
+    );
+  }
   const answeredCount = answers.filter((a) => a !== null).length;
 
   function submit() {

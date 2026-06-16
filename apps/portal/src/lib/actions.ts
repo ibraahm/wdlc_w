@@ -12,6 +12,7 @@ import {
   apiSubmitQuiz,
   apiAckResource,
   apiCompleteLesson,
+  apiAcknowledgePolicy,
   apiSetLanguage,
   apiCreateRequest,
   apiRequestMessage,
@@ -161,6 +162,19 @@ export async function completeLessonAction(lessonId: string): Promise<{ ok?: boo
     return { ok: true };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Could not save progress.' };
+  }
+}
+
+export async function acknowledgePolicyAction(
+  slug: string,
+): Promise<{ ok?: boolean; version?: number; acknowledgedAt?: string; error?: string }> {
+  const accessToken = cookies().get('pat')?.value;
+  if (!accessToken) return { error: 'Not authenticated.' };
+  try {
+    const res = await apiAcknowledgePolicy(accessToken, slug);
+    return { ok: true, version: res.version, acknowledgedAt: res.acknowledgedAt };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Could not record your acknowledgment.' };
   }
 }
 

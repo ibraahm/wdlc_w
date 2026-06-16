@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { sanitizeLessonHtml, safeHttpUrl } from './sanitize';
@@ -29,6 +30,7 @@ type CourseWithCurriculum = {
   contentHtml: string; questions: string; passingScore: number; audience: string;
   targetStates: string | null; targetBranches: string | null; status: string; order: number;
   language: string; translationGroup: string | null; dueAt: Date | null; requireLessons: boolean;
+  requireAck: boolean; policyStatement: string | null;
   sections: { id: string; title: string; order: number; lessons: {
     id: string; title: string; order: number; contentHtml: string; videoUrl: string | null; durationMinutes: number | null;
   }[] }[];
@@ -154,6 +156,111 @@ export class TrainingService {
   }
 
   // ── PORTAL: course detail (curriculum + quiz, no answer key) ───────────────
+  // ── Phase 2: content versioning (append-only) ──────────────────────────────
+  private buildOutline(sections: { title: string; lessons: { title: string }[] }[]) {
+    return sections.map((s) => ({ title: s.title, lessons: s.lessons.map((l) => l.title) }));
+  }
+
+  private contentHashOf(title: string, contentHtml: string, questions: string, outline: unknown): string {
+    return createHash('sha256')
+      .update(JSON.stringify({ title, contentHtml, questions, outline }))
+      .digest('hex');
+  }
+
+  // Returns the current content version, minting a new append-only snapshot when
+  // the acknowledgeable content (title/overview/quiz/outline) has changed.
+  private async ensureVersion(courseId: string, adminId?: string, note?: string) {
+    const course = await this.prisma.course.findUnique({
+      where: { id: courseId },
+      include: {
+        sections: {
+          orderBy: { order: 'asc' },
+          include: { lessons: { orderBy: { order: 'asc' }, select: { title: true } } },
+        },
+      },
+    });
+    if (!course) throw new NotFoundException('Course not found');
+    const outline = this.buildOutline(course.sections);
+    const hash = this.contentHashOf(course.title, course.contentHtml, course.questions, outline);
+    const latest = await this.prisma.courseVersion.findFirst({
+      where: { courseId },
+      orderBy: { version: 'desc' },
+    });
+    if (latest && latest.contentHash === hash && !note) return latest;
+    if (latest && latest.contentHash === hash && note) return latest; // no content change → don't fork
+    const nextNum = (latest?.version ?? 0) + 1;
+    try {
+      return await this.prisma.courseVersion.create({
+        data: {
+          courseId,
+          version: nextNum,
+          title: course.title,
+          contentHtml: course.contentHtml,
+          questions: course.questions,
+          outline: JSON.stringify(outline),
+          contentHash: hash,
+          note: note ?? null,
+          createdBy: adminId ?? null,
+        },
+      });
+    } catch {
+      // Concurrent mint raced us to this version number; return the latest.
+      const current = await this.prisma.courseVersion.findFirst({
+        where: { courseId },
+        orderBy: { version: 'desc' },
+      });
+      if (current) return current;
+      throw new Error('Failed to create course version');
+    }
+  }
+
+  async adminListVersions(courseId: string) {
+    const versions = await this.prisma.courseVersion.findMany({
+      where: { courseId },
+      orderBy: { version: 'desc' },
+      select: { id: true, version: true, effectiveAt: true, note: true, createdBy: true, createdAt: true },
+    });
+    // Mint v1 lazily so the admin always sees at least the current version.
+    if (versions.length === 0) {
+      const v = await this.ensureVersion(courseId);
+      return [{ id: v.id, version: v.version, effectiveAt: v.effectiveAt, note: v.note, createdBy: v.createdBy, createdAt: v.createdAt }];
+    }
+    return versions;
+  }
+
+  // ── PORTAL: policy acknowledgment ──────────────────────────────────────────
+  async acknowledgePolicy(agentId: string, slug: string, meta: { ip?: string; userAgent?: string } = {}) {
+    const { branchCode, states } = await this.resolveAudience(agentId);
+    const course = await this.prisma.course.findUnique({ where: { slug } });
+    if (!course || course.status !== 'PUBLISHED' || !this.matches(course, branchCode, states)) {
+      throw new NotFoundException('Course not found or not assigned to you');
+    }
+    const version = await this.ensureVersion(course.id);
+    const effective = version.effectiveAt.toISOString().slice(0, 10);
+    const statement =
+      (course.policyStatement && course.policyStatement.trim()) ||
+      `I have reviewed and understood the training and policy content of "${course.title}" (version ${version.version}, effective ${effective}).`;
+    const ack = await this.prisma.policyAcknowledgment.upsert({
+      where: { agentId_courseVersionId: { agentId, courseVersionId: version.id } },
+      create: {
+        courseId: course.id,
+        courseVersionId: version.id,
+        versionNumber: version.version,
+        agentId,
+        statement,
+        branchCode,
+        ip: meta.ip,
+        userAgent: meta.userAgent,
+      },
+      update: {},
+    });
+    await this.audit.log({
+      action: 'training.policy.acknowledge', agentId, entity: 'Course', entityId: course.id,
+      after: { version: version.version, statement }, ip: meta.ip, userAgent: meta.userAgent,
+    });
+    return { acknowledged: true, version: version.version, acknowledgedAt: ack.acknowledgedAt, statement };
+  }
+
   async getCourseForAgent(agentId: string, slug: string) {
     const { branchCode, states } = await this.resolveAudience(agentId);
     const course = (await this.prisma.course.findUnique({
@@ -198,6 +305,16 @@ export class TrainingService {
       orderBy: { completedAt: 'desc' },
     });
 
+    // Phase 2: current content version + this agent's acknowledgment of it.
+    const version = await this.ensureVersion(course.id);
+    const ack = course.requireAck
+      ? await this.prisma.policyAcknowledgment.findUnique({
+          where: { agentId_courseVersionId: { agentId, courseVersionId: version.id } },
+        })
+      : null;
+    const effective = version.effectiveAt.toISOString().slice(0, 10);
+    const defaultStatement = `I have reviewed and understood the training and policy content of "${course.title}" (version ${version.version}, effective ${effective}).`;
+
     return {
       slug: course.slug,
       title: course.title,
@@ -215,6 +332,13 @@ export class TrainingService {
       questions,
       lastAttempt: last ? { score: last.score, passed: last.passed, completedAt: last.completedAt } : null,
       certificateAvailable: !!last?.passed,
+      // Phase 2 acknowledgment fields
+      requireAck: course.requireAck,
+      version: version.version,
+      versionEffectiveAt: version.effectiveAt,
+      policyStatement: (course.policyStatement && course.policyStatement.trim()) || defaultStatement,
+      acknowledgedVersion: ack ? version.version : null,
+      acknowledgedAt: ack?.acknowledgedAt ?? null,
     };
   }
 
@@ -279,6 +403,18 @@ export class TrainingService {
       }
     }
 
+    // Phase 2: gate completion on policy acknowledgment, and stamp the exact
+    // content version this attempt was assessed against.
+    const version = await this.ensureVersion(course.id);
+    if (course.requireAck) {
+      const ack = await this.prisma.policyAcknowledgment.findUnique({
+        where: { agentId_courseVersionId: { agentId, courseVersionId: version.id } },
+      });
+      if (!ack) {
+        throw new BadRequestException('Please acknowledge the policy statement before completing this course');
+      }
+    }
+
     let correct = 0;
     questions.forEach((q, i) => { if (answers[i] === q.answer) correct++; });
     const score = Math.round((correct / questions.length) * 100);
@@ -290,6 +426,7 @@ export class TrainingService {
         courseId: course.id, agentId, branchCode,
         agentState: states.join(',') || null,
         score, passed, answers: JSON.stringify(answers), attempt: prior + 1,
+        courseVersionId: version.id, versionNumber: version.version,
       },
     });
     await this.audit.log({
@@ -459,6 +596,8 @@ export class TrainingService {
         translationGroup: dto.translationGroup || null,
         dueAt: this.parseDueAt(dto.dueAt) ?? null,
         requireLessons: !!dto.requireLessons,
+        requireAck: !!dto.requireAck,
+        policyStatement: dto.policyStatement?.trim() || null,
       },
     });
     await this.audit.log({ action: 'training.course.create', adminId, entity: 'Course', entityId: course.id, after: { title: course.title } });
@@ -475,6 +614,8 @@ export class TrainingService {
     }
     if (dto.contentHtml !== undefined) data.contentHtml = sanitizeLessonHtml(dto.contentHtml);
     if (dto.requireLessons !== undefined) data.requireLessons = !!dto.requireLessons;
+    if (dto.requireAck !== undefined) data.requireAck = !!dto.requireAck;
+    if (dto.policyStatement !== undefined) data.policyStatement = dto.policyStatement?.trim() || null;
     const due = this.parseDueAt(dto.dueAt);
     if (due !== undefined) data.dueAt = due;
     if (dto.questions !== undefined) {

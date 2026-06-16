@@ -60,6 +60,14 @@ export class TrainingPortalController {
     res.end(pdf);
   }
 
+  @Post('courses/:slug/acknowledge')
+  acknowledge(@CurrentUser('id') agentId: string, @Param('slug') slug: string, @Req() req: Request) {
+    return this.training.acknowledgePolicy(agentId, slug, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
+  }
+
   @Post('language')
   setLanguage(@CurrentUser('id') agentId: string, @Body() dto: SetLanguageDto) {
     return this.training.setLanguage(agentId, dto.language);

@@ -42,6 +42,12 @@ export class TrainingAdminController {
     return this.training.adminDeleteCourse(id, adminId);
   }
 
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR')
+  @Get('courses/:id/versions')
+  courseVersions(@Param('id') id: string) {
+    return this.training.adminListVersions(id);
+  }
+
   // ── Curriculum: sections ────────────────────────────────────────────────────
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')
   @Post('courses/:courseId/sections')

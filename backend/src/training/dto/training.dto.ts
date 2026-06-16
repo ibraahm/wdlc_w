@@ -42,6 +42,8 @@ export class UpsertCourseDto {
   @IsOptional() @IsString() @MaxLength(80) translationGroup?: string;
   @IsOptional() @IsString() @MaxLength(40) dueAt?: string;
   @IsOptional() @IsBoolean() requireLessons?: boolean;
+  @IsOptional() @IsBoolean() requireAck?: boolean;
+  @IsOptional() @IsString() @MaxLength(1000) policyStatement?: string;
 }
 
 export class UpsertSectionDto {

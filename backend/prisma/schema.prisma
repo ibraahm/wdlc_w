@@ -99,6 +99,7 @@ model AgentUser {
   completions         CourseCompletion[]
   resourceAcks        ResourceAck[]
   lessonProgress      LessonProgress[]
+  policyAcks          PolicyAcknowledgment[]
 
   @@index([showOnMap, status])
 }
@@ -599,15 +600,68 @@ model Course {
   dueAt           DateTime?                  // assignment deadline (overdue if unmet)
   requireLessons  Boolean   @default(false)  // must finish all lessons before the quiz
 
+  // ── Phase 2: policy acknowledgment ─────────────────────────────────────────
+  requireAck      Boolean   @default(false)  // user must acknowledge the policy before completing
+  policyStatement String?                    // exact statement shown, e.g. the policy attestation text
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  sections      CourseSection[]
-  completions   CourseCompletion[]
+  sections        CourseSection[]
+  completions     CourseCompletion[]
+  versions        CourseVersion[]
+  acknowledgments PolicyAcknowledgment[]
 
   @@index([status, order])
   @@index([category])
   @@index([translationGroup])
+}
+
+// Append-only snapshot of a course's acknowledgeable content. A new version is
+// minted whenever the course's title/overview/quiz/outline changes, so every
+// completion and acknowledgment can point at the exact content the user saw.
+model CourseVersion {
+  id          String   @id @default(cuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  version     Int                              // 1-based, increments per course
+  title       String
+  contentHtml String   @default("")
+  questions   String   @default("[]")          // JSON snapshot of the quiz
+  outline     String   @default("[]")          // JSON snapshot of section/lesson titles
+  contentHash String                           // sha256 of the snapshotted content
+  effectiveAt DateTime @default(now())          // when this content first became live
+  note        String?                          // optional change note
+  createdBy   String?                          // admin id, when minted via an explicit publish
+  createdAt   DateTime @default(now())
+
+  completions     CourseCompletion[]
+  acknowledgments PolicyAcknowledgment[]
+
+  @@unique([courseId, version])
+  @@index([courseId])
+}
+
+// Append-only record that an agent explicitly attested to a specific course
+// version ("I reviewed policy vN, effective <date>"). Immutable evidence.
+model PolicyAcknowledgment {
+  id              String        @id @default(cuid())
+  courseId        String
+  course          Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseVersionId String
+  courseVersion   CourseVersion @relation(fields: [courseVersionId], references: [id], onDelete: Cascade)
+  versionNumber   Int
+  agentId         String
+  agent           AgentUser     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  statement       String                       // exact attestation text shown to the user
+  branchCode      String?                      // snapshot of the user's branch at the time
+  ip              String?
+  userAgent       String?
+  acknowledgedAt  DateTime      @default(now())
+
+  @@unique([agentId, courseVersionId])
+  @@index([courseId])
+  @@index([agentId])
 }
 
 // A curriculum section groups ordered lessons within a course (Udemy-style).
@@ -672,6 +726,10 @@ model CourseCompletion {
   // JSON array of selected option indexes, parallel to course questions
   answers     String    @default("[]")
   attempt     Int       @default(1)
+  // Phase 2: the exact content version this attempt was assessed against.
+  courseVersionId String?
+  courseVersion   CourseVersion? @relation(fields: [courseVersionId], references: [id])
+  versionNumber   Int?
   completedAt DateTime  @default(now())
 
   @@index([courseId, agentId])

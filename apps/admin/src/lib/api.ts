@@ -938,6 +938,8 @@ export type Course = {
   translationGroup?: string | null;
   dueAt?: string | null;
   requireLessons?: boolean;
+  requireAck?: boolean;
+  policyStatement?: string | null;
   questionCount?: number;
   sectionCount?: number;
   lessonCount?: number;
@@ -963,6 +965,8 @@ export type CourseInput = {
   translationGroup?: string;
   dueAt?: string | null;
   requireLessons?: boolean;
+  requireAck?: boolean;
+  policyStatement?: string | null;
 };
 
 export type Lesson = {

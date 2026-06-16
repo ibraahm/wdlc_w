@@ -34,6 +34,7 @@ const EMPTY: CourseInput = {
   title: '', slug: '', category: 'General', description: '', contentHtml: '',
   questions: [], passingScore: 80, audience: 'ALL', targetStates: '', targetBranches: '', status: 'DRAFT', order: 0,
   language: 'en', translationGroup: '', dueAt: null, requireLessons: false,
+  requireAck: false, policyStatement: '',
 };
 
 function parseQuestions(json: string): QuizQuestion[] {
@@ -246,6 +247,31 @@ function CourseForm({
             </label>
           </div>
         )}
+
+        {/* Phase 2: policy acknowledgment (HIPAA/EEOC/FINRA evidence) */}
+        <div className="mt-4 border-t border-gray-100 pt-4 max-w-2xl">
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input type="checkbox" checked={!!form.requireAck} onChange={(e) => set('requireAck', e.target.checked)} />
+            Require a signed policy acknowledgment before completion
+          </label>
+          {form.requireAck && (
+            <div className="mt-3">
+              <label className={labelCls}>Acknowledgment statement (optional)</label>
+              <textarea
+                value={form.policyStatement ?? ''}
+                onChange={(e) => set('policyStatement', e.target.value)}
+                rows={3}
+                maxLength={1000}
+                placeholder="e.g. I have read and agree to comply with the WDLC Anti-Money-Laundering Policy."
+                className={inputCls}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Shown to the user verbatim. Leave blank to use a default statement that names the course, version,
+                and effective date. Each acknowledgment is recorded immutably against the exact content version.
+              </p>
+            </div>
+          )}
+        </div>
       </Section>
 
       <Section step={6} title="Assignment & publish" hint="Set a deadline for compliance, then publish. Drafts stay hidden from agents.">
@@ -327,6 +353,7 @@ export default function CoursesManager({ courses }: { courses: Course[] }) {
       status: c.status, order: c.order,
       language: c.language || 'en', translationGroup: c.translationGroup || '',
       dueAt: c.dueAt ?? null, requireLessons: !!c.requireLessons,
+      requireAck: !!c.requireAck, policyStatement: c.policyStatement ?? '',
     };
   }
 
