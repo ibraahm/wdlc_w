@@ -233,13 +233,23 @@ export class TrainingService {
     return { lesson, course };
   }
 
-  async markLessonComplete(agentId: string, lessonId: string) {
+  async markLessonComplete(agentId: string, lessonId: string, meta: { ip?: string; userAgent?: string } = {}) {
     await this.assertLessonAccess(agentId, lessonId);
+    const existing = await this.prisma.lessonProgress.findUnique({
+      where: { lessonId_agentId: { lessonId, agentId } },
+    });
     await this.prisma.lessonProgress.upsert({
       where: { lessonId_agentId: { lessonId, agentId } },
       create: { lessonId, agentId },
       update: {},
     });
+    // Audit only the first completion so the lifecycle log isn't noisy on revisits.
+    if (!existing) {
+      await this.audit.log({
+        action: 'training.lesson.complete', agentId, entity: 'Lesson', entityId: lessonId,
+        ip: meta.ip, userAgent: meta.userAgent,
+      });
+    }
     return { ok: true };
   }
 
@@ -296,7 +306,7 @@ export class TrainingService {
   }
 
   // ── PORTAL: certificate ────────────────────────────────────────────────────
-  async getCertificate(agentId: string, slug: string): Promise<{ pdf: Buffer; filename: string }> {
+  async getCertificate(agentId: string, slug: string, meta: { ip?: string; userAgent?: string } = {}): Promise<{ pdf: Buffer; filename: string }> {
     const { branchCode, states } = await this.resolveAudience(agentId);
     const course = await this.prisma.course.findUnique({ where: { slug } });
     if (!course || !this.matches(course, branchCode, states)) throw new NotFoundException('Course not found');
@@ -316,6 +326,10 @@ export class TrainingService {
       completedAt: completion.completedAt,
       branchCode: completion.branchCode,
       certificateId: completion.id.slice(-10).toUpperCase(),
+    });
+    await this.audit.log({
+      action: 'training.certificate.download', agentId, entity: 'Course', entityId: course.id,
+      after: { completionId: completion.id, score: completion.score }, ip: meta.ip, userAgent: meta.userAgent,
     });
     return { pdf, filename: `certificate-${course.slug}.pdf` };
   }

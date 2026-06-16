@@ -22,8 +22,15 @@ export class TrainingPortalController {
   }
 
   @Post('lessons/:lessonId/complete')
-  completeLesson(@CurrentUser('id') agentId: string, @Param('lessonId') lessonId: string) {
-    return this.training.markLessonComplete(agentId, lessonId);
+  completeLesson(
+    @CurrentUser('id') agentId: string,
+    @Param('lessonId') lessonId: string,
+    @Req() req: Request,
+  ) {
+    return this.training.markLessonComplete(agentId, lessonId, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
   }
 
   @Post('courses/:slug/submit')
@@ -40,8 +47,11 @@ export class TrainingPortalController {
   }
 
   @Get('courses/:slug/certificate')
-  async certificate(@CurrentUser('id') agentId: string, @Param('slug') slug: string, @Res() res: Response) {
-    const { pdf, filename } = await this.training.getCertificate(agentId, slug);
+  async certificate(@CurrentUser('id') agentId: string, @Param('slug') slug: string, @Req() req: Request, @Res() res: Response) {
+    const { pdf, filename } = await this.training.getCertificate(agentId, slug, {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+    });
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="${filename}"`,

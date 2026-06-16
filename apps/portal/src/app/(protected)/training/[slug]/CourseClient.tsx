@@ -16,11 +16,14 @@ export default function CourseClient({ course }: { course: CourseDetail }) {
   const flatLessons = useMemo(() => course.sections.flatMap((s) => s.lessons), [course.sections]);
 
   const [done, setDone] = useState<Set<string>>(() => new Set(flatLessons.filter((l) => l.completed).map((l) => l.id)));
-  const [view, setView] = useState<View>(() => {
+  const [view, setViewState] = useState<View>(() => {
     const firstUndone = flatLessons.find((l) => !l.completed);
     if (flatLessons.length > 0) return { type: 'lesson', lessonId: (firstUndone ?? flatLessons[0]).id };
     return { type: 'overview' };
   });
+  // Curriculum is a collapsible drawer on phones (closed by default so the
+  // lesson is what you see first); always visible on the desktop sidebar.
+  const [navOpen, setNavOpen] = useState(false);
   const [savingLesson, setSavingLesson] = useState(false);
   const [, startTransition] = useTransition();
 
@@ -28,12 +31,27 @@ export default function CourseClient({ course }: { course: CourseDetail }) {
   const lessonsComplete = flatLessons.length === 0 || flatLessons.every((l) => done.has(l.id));
   const progressPct = flatLessons.length ? Math.round((done.size / flatLessons.length) * 100) : (course.lastAttempt?.passed ? 100 : 0);
 
+  // Navigating always collapses the mobile drawer so the chosen item is visible.
+  function setView(v: View) {
+    setViewState(v);
+    setNavOpen(false);
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   function lessonByIndex(i: number): LessonView | undefined {
     return flatLessons[i];
   }
   function currentLessonIndex(): number {
     if (view.type !== 'lesson') return -1;
     return flatLessons.findIndex((l) => l.id === view.lessonId);
+  }
+
+  // Short label for the mobile contents toggle ("Lesson 2 of 6", "Overview"…).
+  function positionLabel(): string {
+    if (view.type === 'overview') return 'Overview';
+    if (view.type === 'quiz') return 'Final quiz';
+    const idx = currentLessonIndex();
+    return idx >= 0 ? `Lesson ${idx + 1} of ${flatLessons.length}` : 'Course contents';
   }
 
   function markComplete(lessonId: string, goNext: boolean) {
@@ -63,7 +81,7 @@ export default function CourseClient({ course }: { course: CourseDetail }) {
   }
 
   return (
-    <div className="portal-content" style={{ maxWidth: '1100px' }}>
+    <div className="portal-content course-page" style={{ maxWidth: '1100px' }}>
       <div className="dash-eyebrow">
         <a href="/training" style={{ color: 'var(--muted)', textDecoration: 'none' }}>← Training</a>
       </div>
@@ -74,7 +92,7 @@ export default function CourseClient({ course }: { course: CourseDetail }) {
             value={course.slug}
             onChange={(e) => switchLanguage(e.target.value)}
             className="auth-input"
-            style={{ width: 'auto', padding: '6px 10px', fontSize: '0.82rem' }}
+            style={{ width: 'auto', padding: '8px 12px', fontSize: '0.86rem', minHeight: '44px' }}
             aria-label="Course language"
           >
             {course.languages.map((l) => (
@@ -90,19 +108,39 @@ export default function CourseClient({ course }: { course: CourseDetail }) {
           <span>{done.size} of {flatLessons.length} lessons{course.lastAttempt?.passed ? ' · quiz passed' : ''}</span>
           <span>{progressPct}%</span>
         </div>
-        <div style={{ height: '5px', background: 'var(--smoke)', borderRadius: '3px' }}>
+        <div style={{ height: '6px', background: 'var(--smoke)', borderRadius: '3px' }}>
           <div style={{ height: '100%', width: `${progressPct}%`, background: course.lastAttempt?.passed ? '#166534' : 'var(--gold)', borderRadius: '3px', transition: 'width 0.4s' }} />
         </div>
         {course.certificateAvailable && (
-          <a href={`/api/certificate/${course.slug}`} style={{ display: 'inline-block', marginTop: '12px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--gold)', textDecoration: 'none' }}>
+          <a href={`/api/certificate/${course.slug}`} style={{ display: 'inline-flex', alignItems: 'center', minHeight: '44px', marginTop: '8px', fontSize: '0.84rem', fontWeight: 600, color: 'var(--gold)', textDecoration: 'none' }}>
             ⬇ Download your certificate
           </a>
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '16px' }} className="course-layout">
-        {/* Curriculum sidebar */}
-        <aside className="dash-card course-curriculum" style={{ padding: '0', alignSelf: 'start' }}>
+      {/* Mobile-only "Course contents" toggle. Hidden on desktop where the
+          curriculum sidebar is always shown. */}
+      <button
+        type="button"
+        className="course-contents-toggle"
+        aria-expanded={navOpen}
+        aria-controls="course-curriculum"
+        onClick={() => setNavOpen((o) => !o)}
+      >
+        <span className="cct-left">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Course contents
+        </span>
+        <span className="cct-right">{positionLabel()} <span aria-hidden>{navOpen ? '▲' : '▼'}</span></span>
+      </button>
+
+      <div className="course-layout">
+        {/* Curriculum sidebar / mobile drawer */}
+        <aside
+          id="course-curriculum"
+          className={`dash-card course-curriculum ${navOpen ? 'is-open' : ''}`}
+          style={{ padding: '0', alignSelf: 'start' }}
+        >
           <button onClick={() => setView({ type: 'overview' })} className="curr-item" style={currItemStyle(view.type === 'overview')}>
             <span>Overview</span>
           </button>
@@ -135,9 +173,9 @@ export default function CourseClient({ course }: { course: CourseDetail }) {
           {view.type === 'overview' && (
             <div className="dash-card">
               {course.description && <p style={{ fontSize: '0.9rem', color: 'var(--muted)', marginBottom: '16px', lineHeight: 1.6 }}>{course.description}</p>}
-              <div className="course-content" dangerouslySetInnerHTML={{ __html: course.contentHtml || '<p>Use the curriculum on the left to begin.</p>' }} />
+              <div className="course-content" dangerouslySetInnerHTML={{ __html: course.contentHtml || '<p>Use the curriculum to begin.</p>' }} />
               {flatLessons.length > 0 && (
-                <button onClick={() => setView({ type: 'lesson', lessonId: flatLessons[0].id })} className="auth-submit" style={{ width: 'auto', padding: '12px 24px', marginTop: '16px' }}>
+                <button onClick={() => setView({ type: 'lesson', lessonId: flatLessons[0].id })} className="auth-submit course-cta" style={{ width: 'auto', padding: '14px 24px', marginTop: '16px' }}>
                   Start first lesson →
                 </button>
               )}
@@ -151,7 +189,7 @@ export default function CourseClient({ course }: { course: CourseDetail }) {
             const isDone = done.has(lesson.id);
             const next = lessonByIndex(idx + 1);
             return (
-              <div className="dash-card">
+              <div className="dash-card" style={{ paddingBottom: '8px' }}>
                 <p style={{ fontSize: '0.7rem', color: 'var(--muted)', marginBottom: '6px' }}>Lesson {idx + 1} of {flatLessons.length}</p>
                 <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--charcoal)', marginBottom: '14px' }}>{lesson.title}</h2>
                 {lesson.videoUrl && (
@@ -167,20 +205,21 @@ export default function CourseClient({ course }: { course: CourseDetail }) {
                 )}
                 {lesson.contentHtml && <div className="course-content" dangerouslySetInnerHTML={{ __html: lesson.contentHtml }} />}
 
-                <div style={{ display: 'flex', gap: '10px', marginTop: '20px', flexWrap: 'wrap' }}>
+                {/* Sticky thumb-reachable action bar on phones; inline on desktop. */}
+                <div className="course-actionbar">
+                  {idx > 0 && (
+                    <button onClick={() => setView({ type: 'lesson', lessonId: flatLessons[idx - 1].id })} className="portal-logout-btn course-prev" style={{ padding: '14px 18px', minHeight: '48px' }}>
+                      ← Prev
+                    </button>
+                  )}
                   <button
                     onClick={() => markComplete(lesson.id, true)}
                     disabled={savingLesson}
-                    className="auth-submit"
-                    style={{ width: 'auto', padding: '12px 24px' }}
+                    className="auth-submit course-cta"
+                    style={{ flex: 1, padding: '14px 24px', minHeight: '48px' }}
                   >
                     {savingLesson ? 'Saving…' : isDone ? (next ? 'Next lesson →' : hasQuiz ? 'Go to quiz →' : 'Done ✓') : 'Mark complete & continue →'}
                   </button>
-                  {idx > 0 && (
-                    <button onClick={() => setView({ type: 'lesson', lessonId: flatLessons[idx - 1].id })} className="portal-logout-btn" style={{ padding: '12px 18px' }}>
-                      ← Previous
-                    </button>
-                  )}
                 </div>
               </div>
             );
@@ -196,14 +235,41 @@ export default function CourseClient({ course }: { course: CourseDetail }) {
         </section>
       </div>
 
-      <style jsx>{`
-        @media (min-width: 880px) {
-          :global(.course-layout) { grid-template-columns: 300px minmax(0, 1fr) !important; }
-        }
-      `}</style>
       <style jsx global>{`
-        .curr-item { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 16px; background: transparent; border: 0; border-bottom: 1px solid var(--smoke); font-size: 0.84rem; color: var(--charcoal); cursor: pointer; }
+        .curr-item { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 13px 16px; background: transparent; border: 0; border-bottom: 1px solid var(--smoke); font-size: 0.9rem; color: var(--charcoal); cursor: pointer; text-align: left; }
         .curr-item:hover { background: rgba(200,150,12,0.05); }
+        .curr-item:focus-visible { outline: 2px solid var(--gold); outline-offset: -2px; }
+
+        /* Mobile-first: single column, content first, curriculum collapsible. */
+        .course-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+        .course-contents-toggle {
+          display: flex; align-items: center; justify-content: space-between; gap: 12px;
+          width: 100%; min-height: 50px; padding: 12px 16px; margin-top: 4px;
+          background: #fff; border: 1px solid var(--smoke); border-radius: 10px;
+          font-size: 0.86rem; font-weight: 600; color: var(--charcoal); cursor: pointer;
+        }
+        .course-contents-toggle .cct-left { display: inline-flex; align-items: center; gap: 8px; }
+        .course-contents-toggle .cct-right { color: var(--muted); font-weight: 500; font-size: 0.8rem; }
+        .course-curriculum { display: none; }
+        .course-curriculum.is-open { display: block; }
+        .course-actionbar { display: flex; gap: 10px; align-items: stretch; }
+        /* Keep the primary action within thumb reach while reading on a phone. */
+        @media (max-width: 879px) {
+          .course-actionbar {
+            position: sticky; bottom: 0; z-index: 5;
+            margin: 16px -18px -8px; padding: 12px 18px calc(12px + env(safe-area-inset-bottom, 0px));
+            background: linear-gradient(to top, #fff 70%, rgba(255,255,255,0));
+            border-top: 1px solid var(--smoke);
+          }
+        }
+
+        /* Desktop: real two-column layout, sidebar always visible, no sticky bar. */
+        @media (min-width: 880px) {
+          .course-layout { grid-template-columns: 300px minmax(0, 1fr); }
+          .course-contents-toggle { display: none; }
+          .course-curriculum { display: block; }
+          .course-actionbar { margin-top: 20px; }
+        }
       `}</style>
     </div>
   );
@@ -221,6 +287,7 @@ function Quiz({ course, lessonsComplete, onPassed }: { course: CourseDetail; les
 
   const blocked = course.requireLessons && !lessonsComplete;
   const allAnswered = answers.every((a) => a !== null);
+  const answeredCount = answers.filter((a) => a !== null).length;
 
   function submit() {
     if (!allAnswered) { setError('Please answer every question before submitting.'); return; }
@@ -254,13 +321,13 @@ function Quiz({ course, lessonsComplete, onPassed }: { course: CourseDetail; les
             You answered {result.correct} of {result.total} correctly. Pass mark is {result.passingScore}%.
           </p>
           {result.passed && result.certificateAvailable && (
-            <a href={`/api/certificate/${course.slug}`} className="auth-submit" style={{ display: 'inline-block', width: 'auto', padding: '10px 20px', marginTop: '14px', textDecoration: 'none' }}>
+            <a href={`/api/certificate/${course.slug}`} className="auth-submit course-cta" style={{ display: 'inline-block', width: 'auto', padding: '12px 20px', marginTop: '14px', textDecoration: 'none' }}>
               ⬇ Download certificate
             </a>
           )}
         </div>
         {!result.passed && (
-          <button onClick={retake} className="auth-submit" style={{ width: 'auto', padding: '12px 24px' }}>Retake quiz</button>
+          <button onClick={retake} className="auth-submit course-cta" style={{ width: 'auto', padding: '14px 24px' }}>Retake quiz</button>
         )}
       </>
     );
@@ -271,20 +338,23 @@ function Quiz({ course, lessonsComplete, onPassed }: { course: CourseDetail; les
       {error && <div className="auth-error" style={{ marginBottom: '16px' }}>{error}</div>}
       {course.questions.map((q, qi) => (
         <div key={q.i} className="dash-card">
-          <p style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--charcoal)', marginBottom: '12px' }}>{qi + 1}. {q.q}</p>
+          <p style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--charcoal)', marginBottom: '12px' }}>{qi + 1}. {q.q}</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {q.options.map((opt, oi) => (
-              <label key={oi} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', border: `1px solid ${answers[qi] === oi ? 'var(--gold)' : 'var(--smoke)'}`, borderRadius: '8px', cursor: 'pointer', background: answers[qi] === oi ? 'rgba(200,150,12,0.08)' : 'transparent' }}>
-                <input type="radio" name={`q-${qi}`} checked={answers[qi] === oi} onChange={() => setAnswers((p) => { const n = [...p]; n[qi] = oi; return n; })} style={{ accentColor: 'var(--gold)' }} />
-                <span style={{ fontSize: '0.86rem', color: 'var(--charcoal)' }}>{opt}</span>
+              <label key={oi} style={{ display: 'flex', alignItems: 'center', gap: '10px', minHeight: '48px', padding: '12px 14px', border: `1px solid ${answers[qi] === oi ? 'var(--gold)' : 'var(--smoke)'}`, borderRadius: '8px', cursor: 'pointer', background: answers[qi] === oi ? 'rgba(200,150,12,0.08)' : 'transparent' }}>
+                <input type="radio" name={`q-${qi}`} checked={answers[qi] === oi} onChange={() => setAnswers((p) => { const n = [...p]; n[qi] = oi; return n; })} style={{ accentColor: 'var(--gold)', width: '18px', height: '18px' }} />
+                <span style={{ fontSize: '0.9rem', color: 'var(--charcoal)' }}>{opt}</span>
               </label>
             ))}
           </div>
         </div>
       ))}
-      <button onClick={submit} disabled={pending} className="auth-submit" style={{ width: 'auto', padding: '12px 28px' }}>
-        {pending ? 'Submitting…' : 'Submit answers'}
-      </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+        <button onClick={submit} disabled={pending} className="auth-submit course-cta" style={{ width: 'auto', padding: '14px 28px', minHeight: '48px' }}>
+          {pending ? 'Submitting…' : 'Submit answers'}
+        </button>
+        <span style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>{answeredCount} of {course.questions.length} answered</span>
+      </div>
     </>
   );
 }
