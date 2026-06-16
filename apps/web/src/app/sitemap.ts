@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { getAgentLocations, locationSlug } from '@/lib/agents';
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://worlddirectlink.com';
 
@@ -36,12 +37,23 @@ const ROUTES = [
   '/legal/electronic-communications',
 ];
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const lastModified = new Date();
-  return ROUTES.map((path) => ({
+  const staticEntries = ROUTES.map((path) => ({
     url: `${SITE}${path}`,
     lastModified,
-    changeFrequency: path === '/' ? 'weekly' : 'monthly',
+    changeFrequency: (path === '/' ? 'weekly' : 'monthly') as 'weekly' | 'monthly',
     priority: path === '/' ? 1 : 0.7,
   }));
+
+  // Per-location pages for the agent network (drives local map/search SEO).
+  const locations = await getAgentLocations();
+  const locationEntries = locations.map((loc) => ({
+    url: `${SITE}/find-an-agent/${locationSlug(loc)}`,
+    lastModified,
+    changeFrequency: 'monthly' as const,
+    priority: 0.6,
+  }));
+
+  return [...staticEntries, ...locationEntries];
 }
