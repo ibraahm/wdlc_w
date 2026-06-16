@@ -34,11 +34,12 @@ export class ApplicationsPublicController {
       humanVerificationAnswer: _humanVerificationAnswer,
       ...data
     } = dto;
-    // Prefer the client IP forwarded by the web proxy hop; fall back to req.ip.
-    const fwd = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0].trim();
-    const ip = fwd || (req.headers['x-real-ip'] as string | undefined) || req.ip;
+    // Use req.ip, which Express derives from X-Forwarded-For under the
+    // `trust proxy` setting configured in main.ts (production). Parsing the
+    // raw header here is both redundant and unsafe — the left-most XFF entry
+    // is client-spoofable. This matches how every other controller logs IPs.
     return this.applications.create(data, {
-      ip,
+      ip: req.ip,
       userAgent: req.headers['user-agent'],
     });
   }
