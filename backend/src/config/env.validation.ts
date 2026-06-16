@@ -15,9 +15,9 @@ const PLACEHOLDERS = [
 ];
 
 // Each secret is OPTIONAL at the field level - the cross-field .custom() below
-// enforces that every portal ends up with a usable secret (per-portal OR the
-// shared JWT_SECRET fallback), matching assertSecrets() in main.ts. When a
-// secret IS provided in production it must be long and not a known placeholder.
+// enforces presence. In development a shared JWT_SECRET fallback is allowed; in
+// production both per-portal secrets are required and must differ. When a secret
+// IS provided in production it must be long and not a known placeholder.
 const secretField = isProd
   ? Joi.string()
       .min(32)
@@ -38,6 +38,16 @@ export const envValidationSchema = Joi.object({
   JWT_SECRET: secretField,
   ADMIN_JWT_SECRET: secretField,
   AGENT_JWT_SECRET: secretField,
+
+  // Public base URLs used to build links in emails (verify, reset, invites).
+  // In production these MUST be real https URLs - a localhost fallback would
+  // silently send users broken/insecure links.
+  PORTAL_BASE_URL: isProd
+    ? Joi.string().uri({ scheme: ['https'] }).required()
+    : Joi.string().uri().optional(),
+  ADMIN_BASE_URL: isProd
+    ? Joi.string().uri({ scheme: ['https'] }).required()
+    : Joi.string().uri().optional(),
 
   LOG_LEVEL: Joi.string()
     .valid('fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent', '')
@@ -65,18 +75,17 @@ export const envValidationSchema = Joi.object({
   GOOGLE_CLIENT_ID: Joi.string().allow('').optional(),
   ADMIN_GOOGLE_CLIENT_ID: Joi.string().allow('').optional(),
 })
-  // Require that the admin & agent portals end up with usable, distinct secrets
-  // in production: either both per-portal secrets, or a shared JWT_SECRET.
+  // In production the admin & agent portals must each have their OWN secret -
+  // a shared JWT_SECRET fallback is not accepted, so a token minted for one
+  // portal can never be replayed against the other.
   .custom((value, helpers) => {
     if (!isProd) return value;
-    const admin = value.ADMIN_JWT_SECRET || value.JWT_SECRET;
-    const agent = value.AGENT_JWT_SECRET || value.JWT_SECRET;
-    if (!admin || !agent) {
+    if (!value.ADMIN_JWT_SECRET || !value.AGENT_JWT_SECRET) {
       return helpers.message({
-        custom: 'Set ADMIN_JWT_SECRET and AGENT_JWT_SECRET (or a shared JWT_SECRET) in production',
+        custom: 'Set distinct ADMIN_JWT_SECRET and AGENT_JWT_SECRET in production (the shared JWT_SECRET fallback is not allowed)',
       });
     }
-    if (value.ADMIN_JWT_SECRET && value.AGENT_JWT_SECRET && value.ADMIN_JWT_SECRET === value.AGENT_JWT_SECRET) {
+    if (value.ADMIN_JWT_SECRET === value.AGENT_JWT_SECRET) {
       return helpers.message({
         custom: 'ADMIN_JWT_SECRET and AGENT_JWT_SECRET must differ in production',
       });

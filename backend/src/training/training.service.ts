@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
-import { sanitizeLessonHtml } from './sanitize';
+import { sanitizeLessonHtml, safeHttpUrl } from './sanitize';
 import { RegionalService } from '../regional/regional.service';
 import { normalizeVideoUrl } from './video.util';
 import { buildCertificatePdf } from './certificate';
@@ -564,10 +564,12 @@ export class TrainingService {
 
   async adminCreateResource(dto: any, adminId: string) {
     if (!dto.title || !dto.url) throw new BadRequestException('Title and URL are required');
+    const url = safeHttpUrl(dto.url);
+    if (!url) throw new BadRequestException('Resource URL must be a valid http(s) link');
     const resource = await this.prisma.resource.create({
       data: {
         title: dto.title, category: dto.category || 'General', description: dto.description ?? null,
-        url: dto.url, audience: dto.audience || 'ALL', targetStates: dto.targetStates ?? null,
+        url, audience: dto.audience || 'ALL', targetStates: dto.targetStates ?? null,
         targetBranches: dto.targetBranches ?? null, status: dto.status || 'DRAFT', order: dto.order ?? 0,
       },
     });
@@ -579,8 +581,13 @@ export class TrainingService {
     const existing = await this.prisma.resource.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Resource not found');
     const data: any = {};
-    for (const k of ['title', 'category', 'description', 'url', 'audience', 'targetStates', 'targetBranches', 'status', 'order'] as const) {
+    for (const k of ['title', 'category', 'description', 'audience', 'targetStates', 'targetBranches', 'status', 'order'] as const) {
       if (dto[k] !== undefined) data[k] = dto[k];
+    }
+    if (dto.url !== undefined) {
+      const url = safeHttpUrl(dto.url);
+      if (!url) throw new BadRequestException('Resource URL must be a valid http(s) link');
+      data.url = url;
     }
     const resource = await this.prisma.resource.update({ where: { id }, data });
     await this.audit.log({ action: 'training.resource.update', adminId, entity: 'Resource', entityId: id, after: data });

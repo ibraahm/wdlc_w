@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { RegionalService } from '../regional/regional.service';
+import { safeHttpUrl } from '../training/sanitize';
 
 const TYPES = ['RISK_ASSESSMENT', 'LOCATION_DD', 'CHECKLIST', 'PHOTOS', 'OTHER'];
 const STATUSES = ['OPEN', 'IN_REVIEW', 'NEEDS_INFO', 'APPROVED', 'REJECTED', 'CLOSED'];
@@ -13,8 +14,12 @@ function parseAttachments(input: unknown): string {
   const arr = Array.isArray(input) ? input : [];
   const clean: Attachment[] = [];
   for (const a of arr as any[]) {
-    if (a && typeof a.url === 'string' && a.url.trim()) {
-      clean.push({ name: String(a.name ?? a.url).slice(0, 200), url: String(a.url).slice(0, 1000), kind: a.kind ? String(a.kind).slice(0, 20) : 'link' });
+    // Only keep attachments whose URL is a valid http(s) link. This rejects
+    // javascript:/data:/file: URLs before they are stored and later rendered
+    // as clickable anchors in the admin queue and agent portal.
+    const url = a && safeHttpUrl(a.url);
+    if (url) {
+      clean.push({ name: String(a.name ?? url).slice(0, 200), url: url.slice(0, 1000), kind: a.kind ? String(a.kind).slice(0, 20) : 'link' });
     }
   }
   return JSON.stringify(clean.slice(0, 30));

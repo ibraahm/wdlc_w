@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { sanitizeRichHtml, safeHttpUrl } from '../training/sanitize';
 
 export class CreateNewsPostDto {
   @IsString() @MaxLength(300) title: string;
@@ -61,9 +62,9 @@ export class NewsService {
         slug: dto.slug,
         category: dto.category ?? 'NEWS',
         summary: dto.summary ?? null,
-        body: dto.body ?? '',
+        body: sanitizeRichHtml(dto.body ?? ''),
         author: dto.author ?? null,
-        imageUrl: dto.imageUrl ?? null,
+        imageUrl: dto.imageUrl ? safeHttpUrl(dto.imageUrl) : null,
         status: dto.status ?? 'DRAFT',
         publishedAt: dto.publishedAt ? new Date(dto.publishedAt) : null,
       },
@@ -84,9 +85,9 @@ export class NewsService {
     if (dto.slug !== undefined) data.slug = dto.slug;
     if (dto.category !== undefined) data.category = dto.category;
     if (dto.summary !== undefined) data.summary = dto.summary;
-    if (dto.body !== undefined) data.body = dto.body;
+    if (dto.body !== undefined) data.body = sanitizeRichHtml(dto.body ?? '');
     if (dto.author !== undefined) data.author = dto.author;
-    if (dto.imageUrl !== undefined) data.imageUrl = dto.imageUrl;
+    if (dto.imageUrl !== undefined) data.imageUrl = dto.imageUrl ? safeHttpUrl(dto.imageUrl) : null;
     if (dto.status !== undefined) data.status = dto.status;
     if ('publishedAt' in dto) data.publishedAt = dto.publishedAt ? new Date(dto.publishedAt as string) : null;
     const updated = await (this.prisma.newsPost as any).update({ where: { id }, data });
