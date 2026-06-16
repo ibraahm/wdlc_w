@@ -21,6 +21,8 @@ import {
   ADMIN_AT_EXPIRES,
   ADMIN_RT_DAYS,
   PASSWORD_RESET_MINUTES,
+  JWT_ISSUER,
+  JWT_AUDIENCE_ADMIN,
 } from '../common/security.constants';
 import { AdminCreateUserDto } from './dto/admin-auth.dto';
 
@@ -120,7 +122,7 @@ export class AdminAuthService {
   private async issueTokens(user: { id: string; email: string; role: string }, ip?: string, ua?: string) {
     const accessToken = await this.jwt.signAsync(
       { sub: user.id, email: user.email, role: user.role, portal: 'admin' },
-      { expiresIn: ADMIN_AT_EXPIRES, secret: adminSecret() },
+      { expiresIn: ADMIN_AT_EXPIRES, secret: adminSecret(), issuer: JWT_ISSUER, audience: JWT_AUDIENCE_ADMIN },
     );
     const refreshToken = await this.tokens.issue(this.rtDelegate, OWNER_KEY, user.id, ADMIN_RT_DAYS, ip, ua);
     return { accessToken, refreshToken };

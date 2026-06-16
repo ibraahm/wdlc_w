@@ -78,7 +78,7 @@ describe('AdminAuthService', () => {
 
       expect(result.accessToken).toBe('access-token');
       expect(result.refreshToken).toBe('raw-refresh');
-      expect(result.user).toEqual({ id: 'admin-1', email: 'admin@wdlc.test', name: 'Admin', role: 'SUPER_ADMIN' });
+      expect(result.user).toEqual({ id: 'admin-1', email: 'admin@wdlc.test', name: 'Admin', role: 'SUPER_ADMIN', mustChangePassword: false, regionalOfficeId: null });
       expect(prisma.adminUser.update).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ failedAttempts: 0, lockedUntil: null }) }),
       );

@@ -43,7 +43,10 @@ export class NewsService {
   async getPublished(slug: string) {
     const post = await (this.prisma.newsPost as any).findFirst({ where: { slug, status: 'PUBLISHED' } });
     if (!post) throw new NotFoundException(`Post not found`);
-    return post;
+    // Defense in depth: sanitize on the way out too, so any row written before
+    // sanitize-on-write shipped (or via a direct DB write) is still cleaned
+    // before it reaches the public page's dangerouslySetInnerHTML sink.
+    return { ...post, body: sanitizeRichHtml(post.body ?? '') };
   }
 
   listAll(category?: string) {

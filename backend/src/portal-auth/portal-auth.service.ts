@@ -22,6 +22,8 @@ import {
   AGENT_RT_DAYS,
   EMAIL_VERIFY_HOURS,
   PASSWORD_RESET_MINUTES,
+  JWT_ISSUER,
+  JWT_AUDIENCE_AGENT,
 } from '../common/security.constants';
 import { AgentSignupDto, AgentChangePasswordDto } from './dto/portal-auth.dto';
 
@@ -208,7 +210,7 @@ export class PortalAuthService {
   private async issueTokens(agent: { id: string; email: string }, ip?: string, ua?: string) {
     const accessToken = await this.jwt.signAsync(
       { sub: agent.id, email: agent.email, portal: 'agent' },
-      { expiresIn: AGENT_AT_EXPIRES, secret: agentSecret() },
+      { expiresIn: AGENT_AT_EXPIRES, secret: agentSecret(), issuer: JWT_ISSUER, audience: JWT_AUDIENCE_AGENT },
     );
     const refreshToken = await this.tokens.issue(this.rtDelegate, OWNER_KEY, agent.id, AGENT_RT_DAYS, ip, ua);
     return { accessToken, refreshToken };
