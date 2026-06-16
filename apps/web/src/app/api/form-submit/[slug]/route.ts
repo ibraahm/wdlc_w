@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { clientIp } from '@/lib/client-ip';
 
 const API = process.env.API_URL || 'http://localhost:4000/api';
 
@@ -14,20 +15,14 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  const clientIp =
-    req.headers.get('cf-connecting-ip') ||
-    req.headers.get('true-client-ip') ||
-    req.headers.get('x-real-ip') ||
-    req.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-    req.ip ||
-    '';
+  const ip = clientIp(req);
 
   try {
     const res = await fetch(`${API}/cms/forms/${encodeURIComponent(params.slug)}/submit`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(clientIp ? { 'x-forwarded-for': clientIp, 'x-real-ip': clientIp } : {}),
+        ...(ip ? { 'x-forwarded-for': ip, 'x-real-ip': ip } : {}),
       },
       body: JSON.stringify(body),
     });
