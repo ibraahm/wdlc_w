@@ -54,7 +54,7 @@ function UserRow({ user, onToggle }: UserRowProps) {
         </span>
       </td>
       <td className="px-6 py-4 text-right">
-        {error && <span className="text-red-500 text-xs mr-2">{error}</span>}
+        {error && <span role="alert" className="text-red-500 text-xs mr-2">{error}</span>}
         <button
           onClick={handleToggle}
           disabled={isPending}
@@ -133,16 +133,16 @@ export default function UsersManager({ initialUsers, offices = [] }: UsersManage
           <table className="min-w-full divide-y divide-gray-200">
             <thead>
               <tr className="bg-gray-50">
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
                   User
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
                   Role
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
+                <th scope="col" className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase">
                   Status
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">
+                <th scope="col" className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase">
                   Actions
                 </th>
               </tr>
@@ -163,8 +163,9 @@ export default function UsersManager({ initialUsers, offices = [] }: UsersManage
           <form onSubmit={handleAdd} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Name *</label>
+                <label htmlFor="user-name" className="block text-xs font-medium text-gray-700 mb-1">Name *</label>
                 <input
+                  id="user-name"
                   name="name"
                   required
                   placeholder="Full name"
@@ -172,10 +173,11 @@ export default function UsersManager({ initialUsers, offices = [] }: UsersManage
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+                <label htmlFor="user-email" className="block text-xs font-medium text-gray-700 mb-1">
                   Email *
                 </label>
                 <input
+                  id="user-email"
                   name="email"
                   type="email"
                   required
@@ -184,8 +186,9 @@ export default function UsersManager({ initialUsers, offices = [] }: UsersManage
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Role</label>
+                <label htmlFor="user-role" className="block text-xs font-medium text-gray-700 mb-1">Role</label>
                 <select
+                  id="user-role"
                   name="role"
                   value={newRole}
                   onChange={(e) => setNewRole(e.target.value)}
@@ -202,20 +205,22 @@ export default function UsersManager({ initialUsers, offices = [] }: UsersManage
 
             {newRole === 'AUDITOR' && (
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Access expires</label>
+                <label htmlFor="user-expires" className="block text-xs font-medium text-gray-700 mb-1">Access expires</label>
                 <input
+                  id="user-expires"
                   name="accessExpiresAt"
                   type="date"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
-                <p className="text-xs text-gray-400 mt-1">Read-only access to training compliance, reports and evidence. Leave blank for no expiry; after this date the account can no longer sign in.</p>
+                <p className="text-xs text-gray-500 mt-1">Read-only access to training compliance, reports and evidence. Leave blank for no expiry; after this date the account can no longer sign in.</p>
               </div>
             )}
 
             {newRole === 'REGIONAL_OFFICER' && (
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Regional office *</label>
+                <label htmlFor="user-office" className="block text-xs font-medium text-gray-700 mb-1">Regional office *</label>
                 <select
+                  id="user-office"
                   name="regionalOfficeId"
                   required
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
@@ -225,7 +230,7 @@ export default function UsersManager({ initialUsers, offices = [] }: UsersManage
                     <option key={o.id} value={o.id}>{o.code} — {o.name} ({o.states || 'no states'})</option>
                   ))}
                 </select>
-                <p className="text-xs text-gray-400 mt-1">The officer will only see agents, applications, and training in this office&apos;s states.</p>
+                <p className="text-xs text-gray-500 mt-1">The officer will only see agents, applications, and training in this office&apos;s states.</p>
               </div>
             )}
 
@@ -234,7 +239,7 @@ export default function UsersManager({ initialUsers, offices = [] }: UsersManage
             </p>
 
             {addError && (
-              <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+              <div role="alert" className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
                 {addError}
               </div>
             )}

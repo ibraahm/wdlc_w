@@ -29,30 +29,30 @@ export default function EvidenceExport({ courses }: { courses: { id: string; tit
       <h2 className="font-semibold text-gray-900 text-sm">Evidence packet export</h2>
       <div className="flex flex-wrap gap-3 items-end">
         <div>
-          <label className={labelCls}>Course</label>
-          <select value={courseId} onChange={(e) => setCourseId(e.target.value)} className={inputCls}>
+          <label htmlFor="ev-course" className={labelCls}>Course</label>
+          <select id="ev-course" value={courseId} onChange={(e) => setCourseId(e.target.value)} className={inputCls}>
             <option value="">All courses</option>
             {courses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
           </select>
         </div>
         <div>
-          <label className={labelCls}>Branch</label>
-          <input value={branchCode} onChange={(e) => setBranchCode(e.target.value)} placeholder="Any" className={inputCls} style={{ width: '110px' }} />
+          <label htmlFor="ev-branch" className={labelCls}>Branch</label>
+          <input id="ev-branch" value={branchCode} onChange={(e) => setBranchCode(e.target.value)} placeholder="Any" className={inputCls} style={{ width: '110px' }} />
         </div>
         <div>
-          <label className={labelCls}>State</label>
-          <input value={state} onChange={(e) => setState(e.target.value)} placeholder="Any" className={inputCls} style={{ width: '90px' }} />
+          <label htmlFor="ev-state" className={labelCls}>State</label>
+          <input id="ev-state" value={state} onChange={(e) => setState(e.target.value)} placeholder="Any" className={inputCls} style={{ width: '90px' }} />
         </div>
         <div>
-          <label className={labelCls}>From</label>
-          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={inputCls} />
+          <label htmlFor="ev-from" className={labelCls}>From</label>
+          <input id="ev-from" type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={inputCls} />
         </div>
         <div>
-          <label className={labelCls}>To</label>
-          <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={inputCls} />
+          <label htmlFor="ev-to" className={labelCls}>To</label>
+          <input id="ev-to" type="date" value={to} onChange={(e) => setTo(e.target.value)} className={inputCls} />
         </div>
-        <label className="flex items-center gap-2 text-sm text-gray-600 pb-2">
-          <input type="checkbox" checked={passedOnly} onChange={(e) => setPassedOnly(e.target.checked)} />
+        <label htmlFor="ev-passed" className="flex items-center gap-2 text-sm text-gray-600 pb-2">
+          <input id="ev-passed" type="checkbox" checked={passedOnly} onChange={(e) => setPassedOnly(e.target.checked)} />
           Passing only
         </label>
       </div>

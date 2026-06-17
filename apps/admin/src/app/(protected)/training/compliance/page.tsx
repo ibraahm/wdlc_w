@@ -64,13 +64,13 @@ export default async function CompliancePage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-gray-500 border-b border-gray-100">
-                  <th className="p-3 font-medium">Course</th>
-                  <th className="p-3 font-medium">Required</th>
-                  <th className="p-3 font-medium">Completion</th>
-                  <th className="p-3 font-medium">Overdue</th>
-                  <th className="p-3 font-medium">Ack</th>
-                  <th className="p-3 font-medium">Due</th>
-                  <th className="p-3 font-medium">Content</th>
+                  <th scope="col" className="p-3 font-medium">Course</th>
+                  <th scope="col" className="p-3 font-medium">Required</th>
+                  <th scope="col" className="p-3 font-medium">Completion</th>
+                  <th scope="col" className="p-3 font-medium">Overdue</th>
+                  <th scope="col" className="p-3 font-medium">Ack</th>
+                  <th scope="col" className="p-3 font-medium">Due</th>
+                  <th scope="col" className="p-3 font-medium">Content</th>
                 </tr>
               </thead>
               <tbody>
@@ -81,7 +81,7 @@ export default async function CompliancePage() {
                   <tr key={c.id} className="border-b border-gray-50">
                     <td className="p-3">
                       <div className="text-gray-800 font-medium">{c.title}</div>
-                      <div className="text-xs text-gray-400">{c.category}</div>
+                      <div className="text-xs text-gray-500">{c.category}</div>
                     </td>
                     <td className="p-3 text-gray-600">{c.requiredCount}</td>
                     <td className="p-3">
@@ -95,9 +95,9 @@ export default async function CompliancePage() {
                     <td className="p-3">
                       {c.overdueCount > 0
                         ? <span className="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-700">{c.overdueCount} overdue</span>
-                        : <span className="text-gray-400">—</span>}
+                        : <span className="text-gray-500">—</span>}
                     </td>
-                    <td className="p-3 text-gray-600">{c.requireAck ? `${c.ackCount}/${c.requiredCount} (${c.ackPct}%)` : <span className="text-gray-400">n/a</span>}</td>
+                    <td className="p-3 text-gray-600">{c.requireAck ? `${c.ackCount}/${c.requiredCount} (${c.ackPct}%)` : <span className="text-gray-500">n/a</span>}</td>
                     <td className="p-3 text-gray-600">{fmtDate(c.dueAt)}</td>
                     <td className="p-3">
                       {c.stale

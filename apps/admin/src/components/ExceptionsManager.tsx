@@ -90,46 +90,46 @@ export default function ExceptionsManager({
       {canRequest && (
       <form onSubmit={submit} className="bg-gray-100 border border-gray-200 rounded-lg p-4 space-y-3">
         <h2 className="font-semibold text-gray-900 text-sm">Request an exception</h2>
-        {error && <div className="rounded bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{error}</div>}
+        {error && <div role="alert" className="rounded bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{error}</div>}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className={labelCls}>Course</label>
-            <select value={courseId} onChange={(e) => setCourseId(e.target.value)} className={inputCls}>
+            <label htmlFor="exc-course" className={labelCls}>Course</label>
+            <select id="exc-course" value={courseId} onChange={(e) => setCourseId(e.target.value)} className={inputCls}>
               <option value="">Select a course…</option>
               {courses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
             </select>
           </div>
           <div>
-            <label className={labelCls}>Type</label>
-            <select value={type} onChange={(e) => setType(e.target.value)} className={inputCls}>
+            <label htmlFor="exc-type" className={labelCls}>Type</label>
+            <select id="exc-type" value={type} onChange={(e) => setType(e.target.value)} className={inputCls}>
               {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
           <div>
-            <label className={labelCls}>For</label>
+            <label htmlFor="exc-target" className={labelCls}>For</label>
             <div className="flex gap-2">
-              <select value={target} onChange={(e) => setTarget(e.target.value as 'agent' | 'branch')} className={inputCls} style={{ maxWidth: '110px' }}>
+              <select id="exc-target" value={target} onChange={(e) => setTarget(e.target.value as 'agent' | 'branch')} className={inputCls} style={{ maxWidth: '110px' }}>
                 <option value="agent">Agent</option>
                 <option value="branch">Branch</option>
               </select>
               {target === 'agent' ? (
-                <select value={agentId} onChange={(e) => setAgentId(e.target.value)} className={inputCls}>
+                <select aria-label="Agent" value={agentId} onChange={(e) => setAgentId(e.target.value)} className={inputCls}>
                   <option value="">Select an agent…</option>
                   {agents.map((a) => <option key={a.id} value={a.id}>{a.name} ({a.email})</option>)}
                 </select>
               ) : (
-                <input value={branchCode} onChange={(e) => setBranchCode(e.target.value)} placeholder="Branch code" className={inputCls} />
+                <input aria-label="Branch code" value={branchCode} onChange={(e) => setBranchCode(e.target.value)} placeholder="Branch code" className={inputCls} />
               )}
             </div>
           </div>
           <div>
-            <label className={labelCls}>{type === 'EXTENSION' ? 'New deadline' : 'Expires (optional)'}</label>
-            <input type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} className={inputCls} />
+            <label htmlFor="exc-expires" className={labelCls}>{type === 'EXTENSION' ? 'New deadline' : 'Expires (optional)'}</label>
+            <input id="exc-expires" type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} className={inputCls} />
           </div>
         </div>
         <div>
-          <label className={labelCls}>Reason</label>
-          <input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} className={inputCls} placeholder="e.g. Completed equivalent state-certified course on file" />
+          <label htmlFor="exc-reason" className={labelCls}>Reason</label>
+          <input id="exc-reason" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={500} className={inputCls} placeholder="e.g. Completed equivalent state-certified course on file" />
         </div>
         <button type="submit" disabled={isPending} className="rounded-md bg-gray-900 text-white text-sm px-4 py-2 disabled:opacity-50">
           {isPending ? 'Saving…' : 'Submit request'}
@@ -141,13 +141,13 @@ export default function ExceptionsManager({
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-gray-500 border-b border-gray-100">
-              <th className="p-3 font-medium">Course</th>
-              <th className="p-3 font-medium">For</th>
-              <th className="p-3 font-medium">Type</th>
-              <th className="p-3 font-medium">Reason</th>
-              <th className="p-3 font-medium">Expires</th>
-              <th className="p-3 font-medium">Status</th>
-              <th className="p-3 font-medium text-right">Action</th>
+              <th scope="col" className="p-3 font-medium">Course</th>
+              <th scope="col" className="p-3 font-medium">For</th>
+              <th scope="col" className="p-3 font-medium">Type</th>
+              <th scope="col" className="p-3 font-medium">Reason</th>
+              <th scope="col" className="p-3 font-medium">Expires</th>
+              <th scope="col" className="p-3 font-medium">Status</th>
+              <th scope="col" className="p-3 font-medium text-right">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -168,7 +168,7 @@ export default function ExceptionsManager({
                       <button onClick={() => decide(x.id, 'APPROVED')} disabled={isPending} className="text-xs text-green-700 hover:underline disabled:opacity-50">Approve</button>
                       <button onClick={() => decide(x.id, 'REJECTED')} disabled={isPending} className="text-xs text-red-700 hover:underline disabled:opacity-50">Reject</button>
                     </div>
-                  ) : <span className="text-gray-300">—</span>}
+                  ) : <span className="text-gray-500">—</span>}
                 </td>
               </tr>
             ))}

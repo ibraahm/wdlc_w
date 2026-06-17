@@ -79,14 +79,14 @@ function AudienceFields({
         <div>
           <label className={labelCls}>Which states? Enter 2-letter codes, separated by commas.</label>
           <input value={targetStates} onChange={(e) => onChange({ targetStates: e.target.value })} placeholder="e.g. GA, TX, FL" className={inputCls} />
-          <p className="text-xs text-gray-400 mt-1">An agent sees this if their branch operates in any of these states.</p>
+          <p className="text-xs text-gray-500 mt-1">An agent sees this if their branch operates in any of these states.</p>
         </div>
       )}
       {audience === 'AGENT' && (
         <div>
           <label className={labelCls}>Which agents? Enter their branch codes, separated by commas.</label>
           <input value={targetBranches} onChange={(e) => onChange({ targetBranches: e.target.value })} placeholder="e.g. uswdlc, abc123" className={inputCls} />
-          <p className="text-xs text-gray-400 mt-1">Only users belonging to these branches will see it.</p>
+          <p className="text-xs text-gray-500 mt-1">Only users belonging to these branches will see it.</p>
         </div>
       )}
     </div>
@@ -148,7 +148,7 @@ function QuizBuilder({ questions, onChange }: { questions: QuizQuestion[]; onCha
                   <input value={opt} onChange={(e) => updateOption(qi, oi, e.target.value)} placeholder={`Answer choice ${oi + 1}`} className="flex-1 bg-transparent text-sm focus:outline-none" />
                   {correct && <span className="text-xs font-medium text-green-700 shrink-0">Correct</span>}
                   {q.options.length > 2 && (
-                    <button type="button" onClick={() => removeOption(qi, oi)} title="Remove this choice" className="text-xs text-gray-400 hover:text-red-600 shrink-0">✕</button>
+                    <button type="button" onClick={() => removeOption(qi, oi)} title="Remove this choice" aria-label="Remove this choice" className="text-xs text-gray-500 hover:text-red-600 shrink-0">✕</button>
                   )}
                 </div>
               );
@@ -191,7 +191,7 @@ function CourseForm({
           <div>
             <label className={labelCls}>Category</label>
             <input value={form.category} onChange={(e) => set('category', e.target.value)} placeholder="e.g. Compliance" className={inputCls} />
-            <p className="text-xs text-gray-400 mt-1">Courses are grouped by category in the portal.</p>
+            <p className="text-xs text-gray-500 mt-1">Courses are grouped by category in the portal.</p>
           </div>
         </div>
         <div className="mt-3">
@@ -225,7 +225,7 @@ function CourseForm({
           <div>
             <label className={labelCls}>Translation group (optional)</label>
             <input value={form.translationGroup || ''} onChange={(e) => set('translationGroup', e.target.value)} placeholder="e.g. bsa-aml-basics" className={inputCls} />
-            <p className="text-xs text-gray-400 mt-1">Same code on each language variant links them as one course.</p>
+            <p className="text-xs text-gray-500 mt-1">Same code on each language variant links them as one course.</p>
           </div>
         </div>
       </Section>
@@ -286,7 +286,7 @@ function CourseForm({
           <div>
             <label className={labelCls}>Complete-by date (optional)</label>
             <input type="date" value={form.dueAt ? String(form.dueAt).slice(0, 10) : ''} onChange={(e) => set('dueAt', e.target.value || null)} className={inputCls} />
-            <p className="text-xs text-gray-400 mt-1">Overdue agents are flagged in reports.</p>
+            <p className="text-xs text-gray-500 mt-1">Overdue agents are flagged in reports.</p>
           </div>
           <div>
             <label className={labelCls}>Order in list</label>
@@ -372,7 +372,7 @@ export default function CoursesManager({ courses }: { courses: Course[] }) {
       )}
 
       {courses.length === 0 && !creating ? (
-        <div className="border border-dashed border-gray-300 rounded-lg py-12 text-center text-gray-400 text-sm">
+        <div className="border border-dashed border-gray-300 rounded-lg py-12 text-center text-gray-500 text-sm">
           No courses yet. Click "New Course" to create one.
         </div>
       ) : (
@@ -390,7 +390,7 @@ export default function CoursesManager({ courses }: { courses: Course[] }) {
                     <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium">{AUDIENCE_LABEL[c.audience] ?? c.audience}</span>
                     <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 font-medium uppercase">{c.language || 'en'}</span>
                   </div>
-                  <div className="text-xs text-gray-400 mt-0.5 space-x-2">
+                  <div className="text-xs text-gray-500 mt-0.5 space-x-2">
                     <span>/{c.slug}</span>
                     <span>· {c.sectionCount ?? 0} sections, {c.lessonCount ?? 0} lessons</span>
                     <span>· {c.questionCount ?? 0} questions</span>

@@ -80,46 +80,46 @@ export default function AssignmentsManager({
     <div className="space-y-6">
       <form onSubmit={submit} className="bg-gray-100 border border-gray-200 rounded-lg p-4 space-y-3">
         <h2 className="font-semibold text-gray-900 text-sm">New assignment</h2>
-        {error && <div className="rounded bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{error}</div>}
+        {error && <div role="alert" className="rounded bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{error}</div>}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className={labelCls}>Course</label>
-            <select value={courseId} onChange={(e) => setCourseId(e.target.value)} className={inputCls}>
+            <label htmlFor="asn-course" className={labelCls}>Course</label>
+            <select id="asn-course" value={courseId} onChange={(e) => setCourseId(e.target.value)} className={inputCls}>
               <option value="">Select a course…</option>
               {courses.map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
             </select>
           </div>
           <div>
-            <label className={labelCls}>Reason</label>
-            <select value={reason} onChange={(e) => setReason(e.target.value)} className={inputCls}>
+            <label htmlFor="asn-reason" className={labelCls}>Reason</label>
+            <select id="asn-reason" value={reason} onChange={(e) => setReason(e.target.value)} className={inputCls}>
               {REASONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
             </select>
           </div>
           <div>
-            <label className={labelCls}>Assign to</label>
+            <label htmlFor="asn-target" className={labelCls}>Assign to</label>
             <div className="flex gap-2">
-              <select value={target} onChange={(e) => setTarget(e.target.value as 'agent' | 'branch')} className={inputCls} style={{ maxWidth: '110px' }}>
+              <select id="asn-target" value={target} onChange={(e) => setTarget(e.target.value as 'agent' | 'branch')} className={inputCls} style={{ maxWidth: '110px' }}>
                 <option value="agent">Agent</option>
                 <option value="branch">Branch</option>
               </select>
               {target === 'agent' ? (
-                <select value={agentId} onChange={(e) => setAgentId(e.target.value)} className={inputCls}>
+                <select aria-label="Agent" value={agentId} onChange={(e) => setAgentId(e.target.value)} className={inputCls}>
                   <option value="">Select an agent…</option>
                   {agents.map((a) => <option key={a.id} value={a.id}>{a.name} ({a.email})</option>)}
                 </select>
               ) : (
-                <input value={branchCode} onChange={(e) => setBranchCode(e.target.value)} placeholder="Branch code" className={inputCls} />
+                <input aria-label="Branch code" value={branchCode} onChange={(e) => setBranchCode(e.target.value)} placeholder="Branch code" className={inputCls} />
               )}
             </div>
           </div>
           <div>
-            <label className={labelCls}>Due date (optional)</label>
-            <input type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} className={inputCls} />
+            <label htmlFor="asn-due" className={labelCls}>Due date (optional)</label>
+            <input id="asn-due" type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} className={inputCls} />
           </div>
         </div>
         <div>
-          <label className={labelCls}>Note (optional)</label>
-          <input value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} className={inputCls} placeholder="e.g. Required after the Q2 policy update" />
+          <label htmlFor="asn-note" className={labelCls}>Note (optional)</label>
+          <input id="asn-note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} className={inputCls} placeholder="e.g. Required after the Q2 policy update" />
         </div>
         <button type="submit" disabled={isPending} className="rounded-md bg-gray-900 text-white text-sm px-4 py-2 disabled:opacity-50">
           {isPending ? 'Saving…' : 'Create assignment'}
@@ -130,12 +130,12 @@ export default function AssignmentsManager({
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-gray-500 border-b border-gray-100">
-              <th className="p-3 font-medium">Course</th>
-              <th className="p-3 font-medium">Target</th>
-              <th className="p-3 font-medium">Reason</th>
-              <th className="p-3 font-medium">Due</th>
-              <th className="p-3 font-medium">Status</th>
-              <th className="p-3 font-medium text-right">Action</th>
+              <th scope="col" className="p-3 font-medium">Course</th>
+              <th scope="col" className="p-3 font-medium">Target</th>
+              <th scope="col" className="p-3 font-medium">Reason</th>
+              <th scope="col" className="p-3 font-medium">Due</th>
+              <th scope="col" className="p-3 font-medium">Status</th>
+              <th scope="col" className="p-3 font-medium text-right">Action</th>
             </tr>
           </thead>
           <tbody>

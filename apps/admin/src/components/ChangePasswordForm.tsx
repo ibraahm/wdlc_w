@@ -47,20 +47,20 @@ export default function ChangePasswordForm({
   return (
     <form ref={formRef} onSubmit={onSubmit} className="space-y-3 max-w-md">
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">Current password</label>
-        <input name="currentPassword" type="password" required autoComplete="current-password" className={input} />
+        <label htmlFor="cpw-current" className="block text-xs font-medium text-gray-700 mb-1">Current password</label>
+        <input id="cpw-current" name="currentPassword" type="password" required autoComplete="current-password" className={input} />
       </div>
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">New password</label>
-        <input name="newPassword" type="password" required minLength={12} autoComplete="new-password" className={input} />
-        <p className="text-[11px] text-gray-400 mt-1">At least 12 characters.</p>
+        <label htmlFor="cpw-new" className="block text-xs font-medium text-gray-700 mb-1">New password</label>
+        <input id="cpw-new" name="newPassword" type="password" required minLength={12} autoComplete="new-password" className={input} />
+        <p className="text-[11px] text-gray-500 mt-1">At least 12 characters.</p>
       </div>
       <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">Confirm new password</label>
-        <input name="confirmPassword" type="password" required minLength={12} autoComplete="new-password" className={input} />
+        <label htmlFor="cpw-confirm" className="block text-xs font-medium text-gray-700 mb-1">Confirm new password</label>
+        <input id="cpw-confirm" name="confirmPassword" type="password" required minLength={12} autoComplete="new-password" className={input} />
       </div>
-      {error && <p className="text-red-500 text-xs">{error}</p>}
-      {done && !redirectTo && <p className="text-green-600 text-xs">Password changed.</p>}
+      {error && <p role="alert" className="text-red-500 text-xs">{error}</p>}
+      {done && !redirectTo && <p aria-live="polite" className="text-green-600 text-xs">Password changed.</p>}
       <button
         type="submit"
         disabled={pending}
