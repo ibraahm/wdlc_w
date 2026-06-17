@@ -228,6 +228,7 @@ export type ResourceItem = {
   category: string;
   description?: string;
   url: string;
+  allowDownload: boolean;
   acknowledged: boolean;
 };
 
@@ -287,6 +288,11 @@ export async function apiSetLanguage(accessToken: string, language: string): Pro
 
 export async function apiResources(accessToken: string): Promise<ResourceItem[]> {
   const res = await safeFetch(`${API}/portal/training/resources`, { headers: authHeaders(accessToken), cache: 'no-store' });
+  return handleResponse(res);
+}
+
+export async function apiResource(accessToken: string, id: string): Promise<ResourceItem> {
+  const res = await safeFetch(`${API}/portal/training/resources/${encodeURIComponent(id)}`, { headers: authHeaders(accessToken), cache: 'no-store' });
   return handleResponse(res);
 }
 

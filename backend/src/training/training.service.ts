@@ -754,8 +754,26 @@ export class TrainingService {
     const ackedIds = new Set(acks.map((a) => a.resourceId));
     return assigned.map((r) => ({
       id: r.id, title: r.title, category: r.category, description: r.description, url: r.url,
+      allowDownload: r.allowDownload,
       acknowledged: ackedIds.has(r.id),
     }));
+  }
+
+  // Single resource for the in-portal viewer (audience-checked).
+  async getResourceForAgent(agentId: string, resourceId: string) {
+    const { branchCode, states } = await this.resolveAudience(agentId);
+    const resource = await this.prisma.resource.findUnique({ where: { id: resourceId } });
+    if (!resource || resource.status !== 'PUBLISHED' || !this.matches(resource, branchCode, states)) {
+      throw new NotFoundException('Resource not found or not assigned to you');
+    }
+    const ack = await this.prisma.resourceAck.findUnique({
+      where: { resourceId_agentId: { resourceId, agentId } },
+    });
+    return {
+      id: resource.id, title: resource.title, category: resource.category,
+      description: resource.description, url: resource.url, allowDownload: resource.allowDownload,
+      acknowledged: !!ack,
+    };
   }
 
   async acknowledgeResource(agentId: string, resourceId: string, meta: { ip?: string; userAgent?: string }) {
@@ -986,7 +1004,8 @@ export class TrainingService {
     const resource = await this.prisma.resource.create({
       data: {
         title: dto.title, category: dto.category || 'General', description: dto.description ?? null,
-        url, audience: dto.audience || 'ALL', targetStates: dto.targetStates ?? null,
+        url, allowDownload: dto.allowDownload ?? false,
+        audience: dto.audience || 'ALL', targetStates: dto.targetStates ?? null,
         targetBranches: dto.targetBranches ?? null, status: dto.status || 'DRAFT', order: dto.order ?? 0,
       },
     });
@@ -998,7 +1017,7 @@ export class TrainingService {
     const existing = await this.prisma.resource.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Resource not found');
     const data: any = {};
-    for (const k of ['title', 'category', 'description', 'audience', 'targetStates', 'targetBranches', 'status', 'order'] as const) {
+    for (const k of ['title', 'category', 'description', 'allowDownload', 'audience', 'targetStates', 'targetBranches', 'status', 'order'] as const) {
       if (dto[k] !== undefined) data[k] = dto[k];
     }
     if (dto.url !== undefined) {

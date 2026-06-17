@@ -78,6 +78,11 @@ export class TrainingPortalController {
     return this.training.listResourcesForAgent(agentId);
   }
 
+  @Get('resources/:id')
+  resource(@CurrentUser('id') agentId: string, @Param('id') id: string) {
+    return this.training.getResourceForAgent(agentId, id);
+  }
+
   @Post('resources/:id/ack')
   ack(@CurrentUser('id') agentId: string, @Param('id') id: string, @Req() req: Request) {
     return this.training.acknowledgeResource(agentId, id, {

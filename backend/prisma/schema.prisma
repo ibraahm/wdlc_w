@@ -802,6 +802,7 @@ model Resource {
   category      String   @default("General")
   description   String?
   url           String                     // link to the document (Dropbox, PDF, etc.)
+  allowDownload Boolean  @default(false)    // false = view-only in the portal viewer
   audience      String   @default("ALL")   // ALL | STATE | AGENT
   targetStates  String?
   targetBranches String?

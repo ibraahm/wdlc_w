@@ -9,7 +9,7 @@ const inputCls = 'w-full border border-gray-300 rounded px-3 py-2 text-sm focus:
 const labelCls = 'block text-xs font-medium text-gray-600 mb-1';
 
 const EMPTY: ResourceInput = {
-  title: '', category: 'General', description: '', url: '', audience: 'ALL', targetStates: '', targetBranches: '', status: 'DRAFT', order: 0,
+  title: '', category: 'General', description: '', url: '', allowDownload: false, audience: 'ALL', targetStates: '', targetBranches: '', status: 'DRAFT', order: 0,
 };
 
 function ResourceForm({
@@ -42,6 +42,13 @@ function ResourceForm({
       <div>
         <label className={labelCls}>Link / URL *</label>
         <input value={form.url} onChange={(e) => set('url', e.target.value)} required placeholder="https://… (Dropbox, PDF, etc.)" className={inputCls} />
+      </div>
+      <div>
+        <label htmlFor="res-allow-download" className="flex items-center gap-2 text-sm text-gray-700">
+          <input id="res-allow-download" type="checkbox" checked={!!form.allowDownload} onChange={(e) => set('allowDownload', e.target.checked)} />
+          Allow download
+        </label>
+        <p className="text-xs text-gray-500 mt-1">When off, agents view the document in the portal viewer and the download/open button is hidden.</p>
       </div>
       <div>
         <label className={labelCls}>Description</label>
@@ -148,7 +155,7 @@ export default function ResourcesManager({ resources }: { resources: Resource[] 
 
   function toInput(r: Resource): ResourceInput {
     return {
-      title: r.title, category: r.category, description: r.description || '', url: r.url,
+      title: r.title, category: r.category, description: r.description || '', url: r.url, allowDownload: r.allowDownload,
       audience: r.audience, targetStates: r.targetStates || '', targetBranches: r.targetBranches || '',
       status: r.status, order: r.order,
     };

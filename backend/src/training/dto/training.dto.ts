@@ -99,6 +99,7 @@ export class UpsertResourceDto {
   @IsOptional() @IsString() @MaxLength(60) category?: string;
   @IsOptional() @IsString() @MaxLength(500) description?: string;
   @IsOptional() @IsString() @MaxLength(1000) url?: string;
+  @IsOptional() @IsBoolean() allowDownload?: boolean;
   @IsOptional() @IsIn(AUDIENCE) audience?: string;
   @IsOptional() @IsString() @MaxLength(400) targetStates?: string;
   @IsOptional() @IsString() @MaxLength(2000) targetBranches?: string;

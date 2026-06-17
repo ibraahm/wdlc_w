@@ -998,6 +998,7 @@ export type Resource = {
   category: string;
   description?: string | null;
   url: string;
+  allowDownload: boolean;
   audience: string;
   targetStates?: string | null;
   targetBranches?: string | null;
@@ -1012,6 +1013,7 @@ export type ResourceInput = {
   category: string;
   description?: string;
   url: string;
+  allowDownload?: boolean;
   audience: string;
   targetStates?: string;
   targetBranches?: string;

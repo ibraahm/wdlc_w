@@ -1,24 +1,17 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { ackResourceAction } from '@/lib/actions';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { ResourceItem } from '@/lib/api';
 
 export default function ResourcesClient({ resources }: { resources: ResourceItem[] }) {
-  const [acked, setAcked] = useState<Set<string>>(() => new Set(resources.filter((r) => r.acknowledged).map((r) => r.id)));
-  const [pendingId, setPendingId] = useState<string | null>(null);
-  const [, startTransition] = useTransition();
+  const router = useRouter();
+  const [acked] = useState<Set<string>>(() => new Set(resources.filter((r) => r.acknowledged).map((r) => r.id)));
 
-  function openAndAck(r: ResourceItem) {
-    // Open the document, then record the acknowledgement.
-    window.open(r.url, '_blank', 'noopener,noreferrer');
-    if (acked.has(r.id)) return;
-    setPendingId(r.id);
-    startTransition(async () => {
-      const res = await ackResourceAction(r.id);
-      if (res.ok) setAcked((prev) => new Set(prev).add(r.id));
-      setPendingId(null);
-    });
+  // Open the in-portal viewer (documents are viewed inline, not downloaded
+  // unless the resource allows it — that gate lives in the viewer).
+  function open(r: ResourceItem) {
+    router.push(`/resources/${r.id}`);
   }
 
   const byCategory = new Map<string, ResourceItem[]>();
@@ -57,12 +50,11 @@ export default function ResourcesClient({ resources }: { resources: ResourceItem
                       )}
                     </div>
                     <button
-                      onClick={() => openAndAck(r)}
-                      disabled={pendingId === r.id}
+                      onClick={() => open(r)}
                       className="auth-submit"
                       style={{ width: 'auto', padding: '10px 18px', flexShrink: 0, whiteSpace: 'nowrap' }}
                     >
-                      {pendingId === r.id ? 'Opening…' : acked.has(r.id) ? 'Open ↗' : 'Open & acknowledge ↗'}
+                      {acked.has(r.id) ? 'View →' : 'View →'}
                     </button>
                   </div>
                 </div>
