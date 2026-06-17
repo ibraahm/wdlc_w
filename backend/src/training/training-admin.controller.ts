@@ -141,6 +141,18 @@ export class TrainingAdminController {
     res.end(pdf);
   }
 
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR')
+  @Get('certificate/course/:id/preview')
+  async courseCertificatePreview(@Param('id') id: string, @Res() res: Response) {
+    const pdf = await this.training.adminCourseCertificatePreview(id);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'inline; filename="certificate-preview.pdf"',
+      'Content-Length': pdf.length,
+    });
+    res.end(pdf);
+  }
+
   // ── Resources ──────────────────────────────────────────────────────────────
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR')
   @Get('resources')

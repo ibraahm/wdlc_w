@@ -802,6 +802,26 @@ export class TrainingService {
     );
   }
 
+  // Sample certificate for a specific course (real title/category, saved
+  // template/layout) so admins can preview the learner-facing output.
+  async adminCourseCertificatePreview(courseId: string): Promise<Buffer> {
+    const course = await this.prisma.course.findUnique({ where: { id: courseId }, select: { title: true, category: true } });
+    if (!course) throw new NotFoundException('Course not found');
+    const cfg = await this.getCertificateConfig();
+    return buildCertificatePdf(
+      {
+        learnerName: 'Jordan A. Sample',
+        courseTitle: course.title,
+        category: course.category,
+        score: 95,
+        completedAt: new Date(),
+        branchCode: 'USWDLC',
+        certificateId: 'SAMPLE1234',
+      },
+      cfg.templateImage ? { image: this.dataUrlToBuffer(cfg.templateImage), layout: cfg.layout } : undefined,
+    );
+  }
+
   // ── PORTAL: language preference ────────────────────────────────────────────
   async setLanguage(agentId: string, language: string) {
     const lang = (language || 'en').slice(0, 8);
