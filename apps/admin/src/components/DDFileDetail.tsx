@@ -16,6 +16,34 @@ import {
 const NO_EXPIRY = new Set(['r0', 'r3', 'r11']);
 const ONBOARDING_SECTIONS = new Set(['DOCUMENTATION', 'COMPLIANCE']);
 
+// Recurring cadence (months) for periodic ongoing items — drives the one-click
+// "Renew" action that records the review today and sets the next due date.
+const CADENCE_MONTHS: Record<string, number> = { r12: 12, r13: 12, r14: 12, r15: 12, r16: 6, r17: 12, r18: 12 };
+
+// Viable date window for expiry / next-due dates (rejects typos like year 0005).
+const DATE_MIN = '2000-01-01';
+const DATE_MAX_YEAR = new Date().getFullYear() + 30;
+const DATE_MAX = `${DATE_MAX_YEAR}-12-31`;
+
+function addMonthsISO(months: number): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() + months);
+  return d.toISOString().slice(0, 10);
+}
+
+// Human "in N days" / "N days ago", computed by UTC calendar date (no off-by-one).
+function relativeExpiry(iso?: string | null): string {
+  if (!iso) return '';
+  const d = iso.slice(0, 10);
+  const exp = Date.UTC(Number(d.slice(0, 4)), Number(d.slice(5, 7)) - 1, Number(d.slice(8, 10)));
+  const now = new Date();
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const days = Math.round((exp - today) / 86_400_000);
+  if (days === 0) return 'expires today';
+  if (days > 0) return `in ${days} day${days === 1 ? '' : 's'}`;
+  return `${-days} day${days === -1 ? '' : 's'} ago`;
+}
+
 const STAGES = [
   'APPLICATION', 'UNDER_REVIEW', 'DD_IN_PROGRESS', 'ACTIVE',
   'SUSPENDED', 'TERMINATED', 'REJECTED',
@@ -359,6 +387,8 @@ export default function DDFileDetail({
           <input
             type="date"
             value={nextReview}
+            min={DATE_MIN}
+            max={DATE_MAX}
             onChange={(e) => setNextReview(e.target.value)}
             disabled={isPending || !canManageLifecycle}
             className="mb-2 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -443,10 +473,37 @@ function DocRow({
 }) {
   const na = doc.status === 'NA';
   const hasExpiry = !NO_EXPIRY.has(doc.code);
+  const cadence = CADENCE_MONTHS[doc.code];
   const onboardingRequired = ONBOARDING_SECTIONS.has(doc.section) && !na;
   const [notes, setNotes] = useState(doc.notes ?? '');
   const [dropbox, setDropbox] = useState(doc.dropboxUrl ?? '');
   const [open, setOpen] = useState(false);
+  const [dateVal, setDateVal] = useState(doc.expiry?.slice(0, 10) ?? '');
+  const [dateErr, setDateErr] = useState('');
+
+  // Save the expiry date, blocking non-viable years before they reach the server.
+  function commitDate(v: string) {
+    setDateVal(v);
+    setDateErr('');
+    if (!v) {
+      onChange(() => updateDDDocumentAction(fileId, doc.code, { expiry: null }));
+      return;
+    }
+    const year = Number(v.slice(0, 4));
+    if (!Number.isFinite(year) || year < 2000 || year > DATE_MAX_YEAR) {
+      setDateErr(`Year must be between 2000 and ${DATE_MAX_YEAR}`);
+      return;
+    }
+    onChange(() => updateDDDocumentAction(fileId, doc.code, { expiry: v }));
+  }
+
+  // One-click periodic review: mark present today and set the next due date.
+  function renew() {
+    const next = addMonthsISO(cadence);
+    setDateVal(next);
+    setDateErr('');
+    onChange(() => updateDDDocumentAction(fileId, doc.code, { present: true, expiry: next }));
+  }
 
   return (
     <div className={na ? 'opacity-50' : ''}>
@@ -479,14 +536,37 @@ function DocRow({
 
         <div className="flex flex-wrap items-center gap-2 lg:justify-end">
           {hasExpiry && (
-            <input
-              type="date"
-              defaultValue={doc.expiry?.slice(0, 10) ?? ''}
-              disabled={disabled || na}
-              onChange={(e) => onChange(() => updateDDDocumentAction(fileId, doc.code, { expiry: e.target.value || null }))}
-              className="rounded-lg border border-gray-200 px-2 py-1 text-xs text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
-              title="Expiry date"
-            />
+            <div className="flex flex-col items-end gap-0.5">
+              <div className="flex items-center gap-1">
+                <input
+                  type="date"
+                  min={DATE_MIN}
+                  max={DATE_MAX}
+                  value={dateVal}
+                  disabled={disabled || na}
+                  onChange={(e) => commitDate(e.target.value)}
+                  aria-label={`${doc.label} ${cadence ? 'next-due' : 'expiry'} date`}
+                  className={`rounded-lg border px-2 py-1 text-xs text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-400 ${dateErr ? 'border-red-300' : 'border-gray-200'}`}
+                  title={cadence ? 'Next-due date' : 'Expiry date'}
+                />
+                {cadence && !na && (
+                  <button
+                    type="button"
+                    onClick={renew}
+                    disabled={disabled}
+                    title={`Mark reviewed today and set the next due date in ${cadence} months`}
+                    className="rounded-lg border border-gray-200 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-50"
+                  >
+                    Renew
+                  </button>
+                )}
+              </div>
+              {dateErr
+                ? <span className="text-[11px] text-red-600">{dateErr}</span>
+                : dateVal
+                  ? <span className="text-[11px] text-gray-400">{relativeExpiry(dateVal)}</span>
+                  : doc.present && !na && <span className="text-[11px] text-amber-600">Add a date</span>}
+            </div>
           )}
           <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${STATUS_COLOR[doc.status]}`}>
             {doc.status}

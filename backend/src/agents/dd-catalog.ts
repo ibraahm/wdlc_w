@@ -19,6 +19,9 @@ export interface DDCatalogItem {
   label: string;
   hasExpiry: boolean;
   businessOnly?: boolean;
+  // Recurring cadence in months for periodic items, used to suggest the next
+  // due date when a review is recorded (e.g. annual = 12).
+  renewMonths?: number;
 }
 
 export const DD_CATALOG: DDCatalogItem[] = [
@@ -39,13 +42,13 @@ export const DD_CATALOG: DDCatalogItem[] = [
   { code: 'r11', section: 'COMPLIANCE', label: 'Anticipated volume form', hasExpiry: false },
 
   // 3. ONGOING DUE DILIGENCE
-  { code: 'r12', section: 'ONGOING', label: 'BSA training (periodic - annual)', hasExpiry: true },
-  { code: 'r13', section: 'ONGOING', label: 'AML acknowledgement renewal (annual)', hasExpiry: true },
-  { code: 'r14', section: 'ONGOING', label: 'OFAC re-screen (annual)', hasExpiry: true },
-  { code: 'r15', section: 'ONGOING', label: 'Location verification (Google Maps)', hasExpiry: true },
-  { code: 'r16', section: 'ONGOING', label: 'Agent visit & onsite review report (risk-based; high/medium every 3–6 months)', hasExpiry: true },
-  { code: 'r17', section: 'ONGOING', label: 'Credit / financial review (annual)', hasExpiry: true },
-  { code: 'r18', section: 'ONGOING', label: 'Annual review summary', hasExpiry: true },
+  { code: 'r12', section: 'ONGOING', label: 'BSA training (periodic - annual)', hasExpiry: true, renewMonths: 12 },
+  { code: 'r13', section: 'ONGOING', label: 'AML acknowledgement renewal (annual)', hasExpiry: true, renewMonths: 12 },
+  { code: 'r14', section: 'ONGOING', label: 'OFAC re-screen (annual)', hasExpiry: true, renewMonths: 12 },
+  { code: 'r15', section: 'ONGOING', label: 'Location verification (Google Maps)', hasExpiry: true, renewMonths: 12 },
+  { code: 'r16', section: 'ONGOING', label: 'Agent visit & onsite review report (risk-based; high/medium every 3–6 months)', hasExpiry: true, renewMonths: 6 },
+  { code: 'r17', section: 'ONGOING', label: 'Credit / financial review (annual)', hasExpiry: true, renewMonths: 12 },
+  { code: 'r18', section: 'ONGOING', label: 'Annual review summary', hasExpiry: true, renewMonths: 12 },
 ];
 
 /** Lifecycle stages for an agent DD file (application → ongoing → offboarding). */

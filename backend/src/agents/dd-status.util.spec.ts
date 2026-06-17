@@ -44,4 +44,11 @@ describe('computeDocStatus', () => {
   it('treats a present expiry-tracked doc with no date as OK (date not yet recorded)', () => {
     expect(computeDocStatus({ present: true, hasExpiry: true, expiry: null, now: NOW })).toBe('OK');
   });
+
+  it('ignores a non-viable year typo at the status layer (validation is enforced on save)', () => {
+    // A year-5 date would read as long expired; the write path rejects it, but
+    // status computation should still not throw on legacy/garbage values.
+    const ancient = new Date('0005-06-16T00:00:00Z');
+    expect(computeDocStatus({ present: true, hasExpiry: true, expiry: ancient, now: NOW })).toBe('EXPIRED');
+  });
 });

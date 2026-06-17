@@ -329,8 +329,21 @@ export class DDService {
     const applicable = doc.status !== 'NA';
 
     const present = dto.present ?? doc.present;
-    const expiry =
+    // A non-expiry document never carries a date. For the rest, validate that
+    // the date is real and within a viable window (guards against typos like
+    // year 0005 or 9999 that the date picker would otherwise accept).
+    let expiry =
       dto.expiry === null ? null : dto.expiry !== undefined ? new Date(dto.expiry) : doc.expiry;
+    if (!hasExpiry) {
+      expiry = null;
+    } else if (dto.expiry) {
+      if (!expiry || isNaN(expiry.getTime())) throw new BadRequestException('Enter a valid date');
+      const year = expiry.getUTCFullYear();
+      const maxYear = new Date().getUTCFullYear() + 30;
+      if (year < 2000 || year > maxYear) {
+        throw new BadRequestException(`Enter a real date — the year must be between 2000 and ${maxYear}`);
+      }
+    }
     const status = computeDocStatus({ present, applicable, hasExpiry, expiry });
 
     const before = { present: doc.present, expiry: doc.expiry, status: doc.status, dropboxUrl: doc.dropboxUrl };
@@ -590,13 +603,19 @@ export class DDService {
     // Reviewer is the signed-in admin (tamper-proof), date is stamped now.
     const admin = await this.prisma.adminUser.findUnique({ where: { id: adminId }, select: { name: true, email: true } });
     const reviewedBy = admin?.name || admin?.email || dto.reviewedBy || 'Unknown';
+    let nextReviewDueAt = file.nextReviewDueAt;
+    if (dto.nextReviewDueAt) {
+      const d = new Date(dto.nextReviewDueAt);
+      const year = d.getUTCFullYear();
+      const maxYear = new Date().getUTCFullYear() + 30;
+      if (isNaN(d.getTime()) || year < 2000 || year > maxYear) {
+        throw new BadRequestException(`Enter a real next-review date — the year must be between 2000 and ${maxYear}`);
+      }
+      nextReviewDueAt = d;
+    }
     const updated = await this.prisma.agentDDFile.update({
       where: { id },
-      data: {
-        lastReviewedAt: new Date(),
-        reviewedBy,
-        nextReviewDueAt: dto.nextReviewDueAt ? new Date(dto.nextReviewDueAt) : file.nextReviewDueAt,
-      },
+      data: { lastReviewedAt: new Date(), reviewedBy, nextReviewDueAt },
     });
     await this.audit.log({
       action: 'agent.dd.review.record',
