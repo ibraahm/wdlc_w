@@ -11,9 +11,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
 
-  // Preserve the real client IP across the proxy hop so the backend records the
-  // signer's actual IP (not the web server's 127.0.0.1) on the e-signature.
+  // Preserve the real client IP and browser user-agent across the proxy hop so
+  // the backend records the signer's actual metadata (not the web server's
+  // 127.0.0.1 / "node") on the e-signature.
   const ip = clientIp(req);
+  const ua = req.headers.get('user-agent');
 
   try {
     const res = await fetch(`${API}/agents/apply`, {
@@ -21,6 +23,7 @@ export async function POST(req: NextRequest) {
       headers: {
         'Content-Type': 'application/json',
         ...(ip ? { 'x-forwarded-for': ip, 'x-real-ip': ip } : {}),
+        ...(ua ? { 'user-agent': ua } : {}),
       },
       body: JSON.stringify(body),
     });

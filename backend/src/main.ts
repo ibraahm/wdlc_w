@@ -24,11 +24,19 @@ async function bootstrap() {
   // Route Nest's logger through pino (structured, redacted).
   app.useLogger(app.get(Logger));
 
-  // Behind a load balancer / reverse proxy in production: trust X-Forwarded-*
-  // so req.ip is the real client (correct rate limiting, lockout, audit IPs).
-  if (process.env.NODE_ENV === 'production') {
-    app.getHttpAdapter().getInstance().set('trust proxy', 1);
-  }
+  // Behind a reverse proxy (nginx in prod, the Next web/portal/admin route
+  // handlers locally), trust X-Forwarded-* so req.ip / req.headers reflect the
+  // real client — correct rate limiting, lockout, and audit/e-signature IPs.
+  //   - production: trust 1 hop (the front proxy) by default
+  //   - dev/staging: trust the loopback proxy, so the same-host Next routes can
+  //     forward the real client IP/UA
+  //   - override with TRUST_PROXY (a hop count, or an Express trust-proxy value
+  //     like "loopback, 10.0.0.0/8") for multi-hop deployments.
+  const rawTrust = process.env.TRUST_PROXY;
+  const trustProxy = rawTrust
+    ? (/^\d+$/.test(rawTrust.trim()) ? Number(rawTrust.trim()) : rawTrust)
+    : process.env.NODE_ENV === 'production' ? 1 : 'loopback';
+  app.getHttpAdapter().getInstance().set('trust proxy', trustProxy);
 
   // Drain in-flight work and run onModuleDestroy (Prisma $disconnect) on SIGTERM/SIGINT.
   app.enableShutdownHooks();
