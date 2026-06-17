@@ -97,8 +97,10 @@ export class TrainingService {
   // Map of courseId -> the most specific active assignment for this agent
   // (agent-specific beats branch; earlier deadline wins among equals).
   private async assignmentsForAgent(agentId: string, branchCode: string | null) {
+    // Branch targets are stored upper-cased; normalise the agent's branch to match.
+    const bc = branchCode ? branchCode.toUpperCase() : null;
     const rows = await this.prisma.trainingAssignment.findMany({
-      where: { active: true, OR: [{ agentId }, ...(branchCode ? [{ branchCode }] : [])] },
+      where: { active: true, OR: [{ agentId }, ...(bc ? [{ branchCode: bc }] : [])] },
     });
     const byCourse = new Map<string, (typeof rows)[number]>();
     const specificity = (a: (typeof rows)[number]) => (a.agentId ? 2 : 1);
@@ -114,8 +116,9 @@ export class TrainingService {
   }
 
   private async hasActiveAssignment(agentId: string, courseId: string, branchCode: string | null): Promise<boolean> {
+    const bc = branchCode ? branchCode.toUpperCase() : null;
     const a = await this.prisma.trainingAssignment.findFirst({
-      where: { courseId, active: true, OR: [{ agentId }, ...(branchCode ? [{ branchCode }] : [])] },
+      where: { courseId, active: true, OR: [{ agentId }, ...(bc ? [{ branchCode: bc }] : [])] },
       select: { id: true },
     });
     return !!a;
@@ -382,8 +385,10 @@ export class TrainingService {
 
   private async activeExceptionsForAgent(agentId: string, branchCode: string | null) {
     const now = new Date();
+    // Branch targets are stored upper-cased; normalise the agent's branch to match.
+    const bc = branchCode ? branchCode.toUpperCase() : null;
     const rows = await this.prisma.trainingException.findMany({
-      where: { status: 'APPROVED', OR: [{ agentId }, ...(branchCode ? [{ branchCode }] : [])] },
+      where: { status: 'APPROVED', OR: [{ agentId }, ...(bc ? [{ branchCode: bc }] : [])] },
     });
     const byCourse = new Map<string, (typeof rows)[number]>();
     for (const e of rows) {
@@ -1180,11 +1185,13 @@ export class TrainingService {
       let required = 0, completed = 0, overdue = 0, acknowledged = 0, excused = 0;
       for (const agent of agents) {
         const states = agent.branchCode ? statesByBranch.get(agent.branchCode) ?? [] : [];
+        // Branch targets are stored upper-cased; normalise the agent's branch to match.
+        const agentBranch = agent.branchCode ? agent.branchCode.toUpperCase() : null;
         const audienceMatch = variants.some((v) => this.matches(v, agent.branchCode, states));
-        const assign = groupAssigns.find((a) => a.agentId === agent.id || (!!a.branchCode && a.branchCode === agent.branchCode));
+        const assign = groupAssigns.find((a) => a.agentId === agent.id || (!!a.branchCode && a.branchCode === agentBranch));
         if (!audienceMatch && !assign) continue;
         // Approved exception: waiver/equivalency excuses (out of the denominator); extension moves the deadline.
-        const exc = groupExceptions.find((e) => e.agentId === agent.id || (!!e.branchCode && e.branchCode === agent.branchCode));
+        const exc = groupExceptions.find((e) => e.agentId === agent.id || (!!e.branchCode && e.branchCode === agentBranch));
         if (exc && (exc.type === 'WAIVER' || exc.type === 'EQUIVALENCY')) { excused++; continue; }
         required++;
         if (requireAck && ackAgents.has(agent.id)) acknowledged++;
