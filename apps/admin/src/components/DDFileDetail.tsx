@@ -71,13 +71,15 @@ const RISK_COLOR: Record<string, string> = {
   MEDIUM: 'bg-yellow-100 text-yellow-800 border-yellow-200',
   HIGH: 'bg-red-100 text-red-700 border-red-200',
 };
-const STATUS_COLOR: Record<string, string> = {
-  OK: 'bg-green-100 text-green-700 border-green-200',
-  EXPIRING: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-  EXPIRED: 'bg-red-100 text-red-700 border-red-200',
-  MISSING: 'bg-gray-100 text-gray-500 border-gray-200',
-  NA: 'bg-gray-50 text-gray-400 border-gray-200',
+// Readable status pill (dot + label) and a left-edge accent for fast scanning.
+const STATUS_META: Record<string, { label: string; dot: string; pill: string; accent: string }> = {
+  OK: { label: 'Complete', dot: 'bg-green-500', pill: 'bg-green-50 text-green-700 border-green-200', accent: 'border-l-green-400' },
+  EXPIRING: { label: 'Expiring', dot: 'bg-amber-500', pill: 'bg-amber-50 text-amber-700 border-amber-200', accent: 'border-l-amber-400' },
+  EXPIRED: { label: 'Expired', dot: 'bg-red-500', pill: 'bg-red-50 text-red-700 border-red-200', accent: 'border-l-red-500' },
+  MISSING: { label: 'Missing', dot: 'bg-gray-300', pill: 'bg-gray-50 text-gray-500 border-gray-200', accent: 'border-l-gray-200' },
+  NA: { label: 'N/A', dot: 'bg-gray-200', pill: 'bg-gray-50 text-gray-400 border-gray-200', accent: 'border-l-transparent' },
 };
+const ATTENTION = new Set(['MISSING', 'EXPIRED', 'EXPIRING']);
 
 const SECTIONS: { key: DDDocument['section']; title: string; description: string }[] = [
   { key: 'DOCUMENTATION', title: 'Business and principal documentation', description: 'Core records required before activation.' },
@@ -177,6 +179,7 @@ export default function DDFileDetail({
   const [error, setError] = useState('');
   const f = initialFile;
   const [nextReview, setNextReview] = useState(f.nextReviewDueAt?.slice(0, 10) ?? '');
+  const [attentionOnly, setAttentionOnly] = useState(false);
 
   const docs = f.documents ?? [];
   const blockers = useMemo(() => buildActivationBlockers(f), [f]);
@@ -187,6 +190,7 @@ export default function DDFileDetail({
   }, [docs]);
   const totalApplicable = docs.filter((doc) => doc.status !== 'NA').length;
   const totalProgress = totalApplicable ? Math.round((summary.OK / totalApplicable) * 100) : 100;
+  const attentionCount = docs.filter((doc) => ATTENTION.has(doc.status)).length;
   const readyForActivation = blockers.length === 0;
 
   const locationHref = (() => {
@@ -410,34 +414,65 @@ export default function DDFileDetail({
         <RiskAssessmentPanel ddFileId={f.id} canAssess={canAssessRisk} />
       </div>
 
+      {/* Checklist toolbar: overall progress + attention filter */}
+      <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900">Due diligence checklist</h2>
+            <p className="text-xs text-gray-500">
+              {summary.OK} of {totalApplicable} complete
+              {attentionCount > 0 && <> · <span className="font-medium text-amber-700">{attentionCount} need attention</span></>}
+            </p>
+          </div>
+          <label className="flex items-center gap-2 text-xs font-medium text-gray-600">
+            <input type="checkbox" checked={attentionOnly} onChange={(e) => setAttentionOnly(e.target.checked)} className="h-4 w-4 rounded border-gray-300 text-blue-600" />
+            Show only items needing attention{attentionCount > 0 ? ` (${attentionCount})` : ''}
+          </label>
+        </div>
+        <div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-100">
+          <div className={`h-full rounded-full transition-all ${attentionCount > 0 ? 'bg-amber-400' : 'bg-green-500'}`} style={{ width: `${totalProgress}%` }} />
+        </div>
+      </div>
+
       {SECTIONS.map((section) => {
         const sectionDocs = docs.filter((doc) => doc.section === section.key);
         if (sectionDocs.length === 0) return null;
+        const applicable = sectionDocs.filter((doc) => doc.status !== 'NA');
+        const okCount = applicable.filter((doc) => doc.status === 'OK').length;
         const progress = sectionProgress(sectionDocs);
-        const needsAttention = sectionDocs.filter((doc) => ['MISSING', 'EXPIRED', 'EXPIRING'].includes(doc.status)).length;
+        const attention = sectionDocs.filter((doc) => ATTENTION.has(doc.status));
+        const visible = attentionOnly ? attention : sectionDocs;
         return (
-          <section key={section.key} className="rounded-xl border border-gray-200 bg-white">
+          <section key={section.key} className="overflow-hidden rounded-xl border border-gray-200 bg-white">
             <div className="border-b border-gray-200 px-4 py-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 className="text-sm font-semibold text-gray-900">{section.title}</h2>
                   <p className="text-xs text-gray-400">{section.description}</p>
                 </div>
-                <div className="min-w-40">
-                  <div className="mb-1 flex justify-between text-xs text-gray-500">
-                    <span>{progress}% clear</span>
-                    <span>{needsAttention} attention</span>
+                <div className="min-w-44">
+                  <div className="mb-1 flex items-center justify-between gap-2 text-xs">
+                    <span className="text-gray-500">{okCount} / {applicable.length} complete</span>
+                    {attention.length > 0
+                      ? <span className="rounded-full bg-amber-50 px-2 py-0.5 font-medium text-amber-700">{attention.length} attention</span>
+                      : <span className="rounded-full bg-green-50 px-2 py-0.5 font-medium text-green-700">All clear</span>}
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-gray-100">
-                    <div className="h-full rounded-full bg-navy" style={{ width: `${progress}%` }} />
+                    <div className={`h-full rounded-full transition-all ${attention.length > 0 ? 'bg-amber-400' : 'bg-green-500'}`} style={{ width: `${progress}%` }} />
                   </div>
                 </div>
               </div>
             </div>
             <div className="divide-y divide-gray-100">
-              {sectionDocs.map((doc) => (
-                <DocRow key={doc.code} fileId={f.id} doc={doc} disabled={isPending} onChange={run} />
-              ))}
+              {visible.length === 0 ? (
+                <p className="px-4 py-6 text-center text-xs text-gray-400">
+                  {attentionOnly ? 'Nothing needs attention in this section.' : 'No documents.'}
+                </p>
+              ) : (
+                visible.map((doc) => (
+                  <DocRow key={doc.code} fileId={f.id} doc={doc} disabled={isPending} onChange={run} />
+                ))
+              )}
             </div>
           </section>
         );
@@ -505,8 +540,9 @@ function DocRow({
     onChange(() => updateDDDocumentAction(fileId, doc.code, { present: true, expiry: next }));
   }
 
+  const meta = STATUS_META[doc.status] ?? STATUS_META.MISSING;
   return (
-    <div className={na ? 'opacity-50' : ''}>
+    <div className={`border-l-4 ${meta.accent} ${na ? 'opacity-60' : ''} ${ATTENTION.has(doc.status) ? 'bg-amber-50/30' : ''}`}>
       <div className="grid gap-3 px-4 py-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
         <div className="flex items-start gap-3">
           <input
@@ -568,15 +604,28 @@ function DocRow({
                   : doc.present && !na && <span className="text-[11px] text-amber-600">Add a date</span>}
             </div>
           )}
-          <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${STATUS_COLOR[doc.status]}`}>
-            {doc.status}
+          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs font-medium ${meta.pill}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+            {meta.label}
           </span>
+          {doc.dropboxUrl && (
+            <a
+              href={doc.dropboxUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg border border-gray-200 px-2 py-1 text-xs font-semibold text-blue-700 hover:bg-blue-50"
+              title="Open the evidence document"
+            >
+              Open ↗
+            </a>
+          )}
           <button
             type="button"
             onClick={() => setOpen((value) => !value)}
+            aria-expanded={open}
             className="rounded-lg border border-gray-200 px-2 py-1 text-xs font-semibold text-gray-500 hover:bg-gray-50"
           >
-            {open ? 'Close' : 'Evidence'}
+            {open ? 'Close' : doc.dropboxUrl || doc.notes ? 'Edit' : 'Evidence'}
           </button>
         </div>
       </div>
