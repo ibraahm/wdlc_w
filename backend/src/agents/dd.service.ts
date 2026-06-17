@@ -8,6 +8,7 @@ import { RegionalService } from '../regional/regional.service';
 import { generateToken, hashToken } from '../common/crypto.util';
 import { DD_CATALOG } from './dd-catalog';
 import { computeDocStatus } from './dd-status.util';
+import { buildDdFilePdf, type DdFileDocRow } from './dd-file-pdf';
 import {
   CreateDDFileDto,
   UpdateDocumentDto,
@@ -302,6 +303,61 @@ export class DDService {
     const scope = adminId ? await this.regional.scopeForAdmin(adminId, role) : null;
     if (scope && file.regionalOfficeId !== scope.officeId) throw new NotFoundException('DD file not found');
     return file;
+  }
+
+  // Branded, regulator-presentable PDF of the whole DD file.
+  async exportFilePdf(id: string, generatedBy: string, adminId?: string, role?: string): Promise<{ pdf: Buffer; filename: string }> {
+    const file = await this.get(id, adminId, role);
+    const app = (file as any).application;
+    const documents: DdFileDocRow[] = (file.documents ?? []).map((d) => {
+      const cat = DD_CATALOG.find((c) => c.code === d.code);
+      return {
+        section: (cat?.section ?? 'DOCUMENTATION') as DdFileDocRow['section'],
+        label: cat?.label ?? d.code,
+        status: d.status as DdFileDocRow['status'],
+        present: d.present,
+        expiry: d.expiry ?? null,
+      };
+    });
+    const address = app
+      ? [app.businessStreet, [app.businessCity, app.businessState, app.businessZip].filter(Boolean).join(', '), app.businessCountry]
+          .filter(Boolean).join(' · ')
+      : null;
+
+    const logoRow = await this.prisma.siteSetting.findUnique({ where: { key: 'brand.logo' } });
+    let logo: Buffer | undefined;
+    if (logoRow) {
+      const url = JSON.parse(logoRow.value) as string | null;
+      if (url) {
+        const comma = url.indexOf(',');
+        logo = Buffer.from(comma >= 0 ? url.slice(comma + 1) : url, 'base64');
+      }
+    }
+
+    const pdf = await buildDdFilePdf(
+      {
+        generatedAt: new Date(),
+        generatedBy,
+        agentName: file.agentName,
+        entityType: file.entityType,
+        branchCode: file.branchCode,
+        states: file.states,
+        stage: file.stage,
+        riskRating: file.riskRating,
+        onboardedAt: file.onboardedAt,
+        lastReviewedAt: file.lastReviewedAt,
+        reviewedBy: file.reviewedBy,
+        nextReviewDueAt: file.nextReviewDueAt,
+        business: { company: app?.company ?? null, address, email: app?.email ?? null, phone: app?.businessPhone ?? null },
+        documents,
+      },
+      logo ? { logo } : undefined,
+    );
+    if (adminId) {
+      await this.audit.log({ action: 'agent.dd.file.export', adminId, entity: 'AgentDDFile', entityId: id, after: { records: documents.length } });
+    }
+    const safeName = (file.agentName || 'agent').replace(/[^a-z0-9]+/gi, '-').toLowerCase().replace(/^-|-$/g, '');
+    return { pdf, filename: `dd-file-${safeName || 'agent'}.pdf` };
   }
 
   /** Cross-file dashboard of documents needing attention + reviews due. */

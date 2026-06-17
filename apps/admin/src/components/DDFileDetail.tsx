@@ -223,6 +223,15 @@ export default function DDFileDetail({
           <div className="flex items-center gap-3">
             <Link href="/agent-dd" className="text-sm text-gray-400 hover:text-gray-600">Back to DD files</Link>
             <Link href={`/agent-profile/${f.id}`} className="text-sm font-medium text-gold hover:underline">360 view →</Link>
+            <a
+              href={`/api/agent-dd/${f.id}/pdf`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+              title="Download a branded PDF of this due-diligence file"
+            >
+              ⬇ Download PDF
+            </a>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <h1 className="text-2xl font-bold text-gray-900">{f.agentName}</h1>

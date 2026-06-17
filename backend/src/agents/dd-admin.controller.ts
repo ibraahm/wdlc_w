@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
 import { DDService } from './dd.service';
 import {
   CreateDDFileDto,
@@ -38,6 +39,19 @@ export class DDAdminController {
   @Get(':id')
   get(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.dd.get(id, user.id, user.role);
+  }
+
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'REGIONAL_OFFICER')
+  @Get(':id/pdf')
+  async exportPdf(@Param('id') id: string, @CurrentUser() user: AuthUser, @Res() res: Response) {
+    const by = (user as any).name || (user as any).email || user.id;
+    const { pdf, filename } = await this.dd.exportFilePdf(id, by, user.id, user.role);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': pdf.length,
+    });
+    res.end(pdf);
   }
 
   @Post('users/:userId/resend-setup')

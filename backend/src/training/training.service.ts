@@ -717,18 +717,20 @@ export class TrainingService {
     const agent = await this.prisma.agentUser.findUnique({ where: { id: agentId } });
     if (!agent) throw new NotFoundException('Account not found');
 
-    const cfg = await this.resolveCertConfigForCourse(course.id);
+    const [cfg, logo] = await Promise.all([this.resolveCertConfigForCourse(course.id), this.brandLogoBuffer()]);
     const pdf = await buildCertificatePdf(
       {
         learnerName: `${agent.firstName} ${agent.lastName}`,
         courseTitle: course.title,
         category: course.category,
+        description: course.description,
         score: completion.score,
         completedAt: completion.completedAt,
         branchCode: completion.branchCode,
         certificateId: completion.id.slice(-10).toUpperCase(),
       },
       cfg.templateImage ? { image: this.dataUrlToBuffer(cfg.templateImage), layout: cfg.layout } : undefined,
+      { logo },
     );
     await this.audit.log({
       action: 'training.certificate.download', agentId, entity: 'Course', entityId: course.id,
@@ -743,30 +745,44 @@ export class TrainingService {
     return Buffer.from(comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl, 'base64');
   }
 
-  async getCertificateConfig(): Promise<{ templateImage: string | null; layout: CertLayout }> {
-    const [imgRow, layoutRow] = await Promise.all([
+  async getCertificateConfig(): Promise<{ templateImage: string | null; layout: CertLayout; brandLogo: string | null }> {
+    const [imgRow, layoutRow, logoRow] = await Promise.all([
       this.prisma.siteSetting.findUnique({ where: { key: 'cert.templateImage' } }),
       this.prisma.siteSetting.findUnique({ where: { key: 'cert.layout' } }),
+      this.prisma.siteSetting.findUnique({ where: { key: 'brand.logo' } }),
     ]);
     const templateImage = imgRow ? (JSON.parse(imgRow.value) as string | null) : null;
+    const brandLogo = logoRow ? (JSON.parse(logoRow.value) as string | null) : null;
     const layout = layoutRow
       ? { ...DEFAULT_CERT_LAYOUT, ...(JSON.parse(layoutRow.value) as Partial<CertLayout>) }
       : DEFAULT_CERT_LAYOUT;
-    return { templateImage, layout };
+    return { templateImage, layout, brandLogo };
   }
 
-  async saveCertificateConfig(dto: { templateImage?: string | null; layout?: CertLayout }, adminId: string) {
+  // The company logo (data URL) shared by the built-in certificate and the DD
+  // file PDF, as a decoded buffer.
+  private async brandLogoBuffer(): Promise<Buffer | undefined> {
+    const row = await this.prisma.siteSetting.findUnique({ where: { key: 'brand.logo' } });
+    if (!row) return undefined;
+    const url = JSON.parse(row.value) as string | null;
+    return url ? this.dataUrlToBuffer(url) : undefined;
+  }
+
+  async saveCertificateConfig(dto: { templateImage?: string | null; layout?: CertLayout; brandLogo?: string | null }, adminId: string) {
     if (dto.templateImage !== undefined) {
-      if (dto.templateImage && !/^data:image\/(png|jpe?g);base64,/.test(dto.templateImage)) {
-        throw new BadRequestException('Template must be a PNG or JPEG image');
-      }
-      if (dto.templateImage && dto.templateImage.length > 4_000_000) {
-        throw new BadRequestException('Template image is too large (max ~3 MB)');
-      }
+      this.validateTemplateImage(dto.templateImage);
       await this.prisma.siteSetting.upsert({
         where: { key: 'cert.templateImage' },
         update: { value: JSON.stringify(dto.templateImage) },
         create: { key: 'cert.templateImage', value: JSON.stringify(dto.templateImage) },
+      });
+    }
+    if (dto.brandLogo !== undefined) {
+      this.validateTemplateImage(dto.brandLogo);
+      await this.prisma.siteSetting.upsert({
+        where: { key: 'brand.logo' },
+        update: { value: JSON.stringify(dto.brandLogo) },
+        create: { key: 'brand.logo', value: JSON.stringify(dto.brandLogo) },
       });
     }
     if (dto.layout !== undefined) {
@@ -778,7 +794,7 @@ export class TrainingService {
     }
     await this.audit.log({
       action: 'training.certificate.config', adminId, entity: 'SiteSetting', entityId: 'cert',
-      after: { hasTemplate: dto.templateImage !== undefined ? !!dto.templateImage : undefined, layoutUpdated: dto.layout !== undefined },
+      after: { hasTemplate: dto.templateImage !== undefined ? !!dto.templateImage : undefined, hasLogo: dto.brandLogo !== undefined ? !!dto.brandLogo : undefined, layoutUpdated: dto.layout !== undefined },
     });
     return this.getCertificateConfig();
   }
@@ -845,40 +861,48 @@ export class TrainingService {
 
   // Render a sample certificate from the supplied (possibly unsaved) config so
   // admins can preview placement before saving.
-  async certificatePreviewPdf(dto: { templateImage?: string | null; layout?: CertLayout }): Promise<Buffer> {
+  async certificatePreviewPdf(dto: { templateImage?: string | null; layout?: CertLayout; brandLogo?: string | null }): Promise<Buffer> {
     const sample = {
       learnerName: 'Jordan A. Sample',
       courseTitle: 'Anti-Money-Laundering Essentials',
       category: 'Compliance',
+      description: 'Core BSA/AML obligations for money services agents, including red flags and reporting.',
       score: 95,
       completedAt: new Date(),
       branchCode: 'USWDLC',
       certificateId: 'SAMPLE1234',
     };
     const layout = { ...DEFAULT_CERT_LAYOUT, ...(dto.layout ?? {}) };
+    // Use the unsaved logo if the editor sent one, else the saved brand logo.
+    const logo = dto.brandLogo !== undefined
+      ? (dto.brandLogo ? this.dataUrlToBuffer(dto.brandLogo) : undefined)
+      : await this.brandLogoBuffer();
     return buildCertificatePdf(
       sample,
       dto.templateImage ? { image: this.dataUrlToBuffer(dto.templateImage), layout } : undefined,
+      { logo },
     );
   }
 
   // Sample certificate for a specific course (real title/category, saved
   // template/layout) so admins can preview the learner-facing output.
   async adminCourseCertificatePreview(courseId: string): Promise<Buffer> {
-    const course = await this.prisma.course.findUnique({ where: { id: courseId }, select: { title: true, category: true } });
+    const course = await this.prisma.course.findUnique({ where: { id: courseId }, select: { title: true, category: true, description: true } });
     if (!course) throw new NotFoundException('Course not found');
-    const cfg = await this.resolveCertConfigForCourse(courseId);
+    const [cfg, logo] = await Promise.all([this.resolveCertConfigForCourse(courseId), this.brandLogoBuffer()]);
     return buildCertificatePdf(
       {
         learnerName: 'Jordan A. Sample',
         courseTitle: course.title,
         category: course.category,
+        description: course.description,
         score: 95,
         completedAt: new Date(),
         branchCode: 'USWDLC',
         certificateId: 'SAMPLE1234',
       },
       cfg.templateImage ? { image: this.dataUrlToBuffer(cfg.templateImage), layout: cfg.layout } : undefined,
+      { logo },
     );
   }
 

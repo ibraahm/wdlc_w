@@ -34,13 +34,14 @@ export default function CertificateDesigner({
   courseId,
   hasOverride = false,
 }: {
-  initial: { templateImage: string | null; layout: CertLayout };
+  initial: { templateImage: string | null; layout: CertLayout; brandLogo?: string | null };
   scope?: 'global' | 'course';
   courseId?: string;
   hasOverride?: boolean;
 }) {
   const router = useRouter();
   const [templateImage, setTemplateImage] = useState<string | null>(initial.templateImage);
+  const [brandLogo, setBrandLogo] = useState<string | null>(initial.brandLogo ?? null);
   const [layout, setLayout] = useState<CertLayout>(initial.layout);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
@@ -62,12 +63,23 @@ export default function CertificateDesigner({
     reader.readAsDataURL(file);
   }
 
+  function onLogoFile(e: React.ChangeEvent<HTMLInputElement>) {
+    setError('');
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!/^image\/(png|jpe?g)$/.test(file.type)) { setError('Logo must be a PNG or JPEG image.'); return; }
+    if (file.size > 3_000_000) { setError('Logo is too large (max ~3 MB).'); return; }
+    const reader = new FileReader();
+    reader.onload = () => { setBrandLogo(reader.result as string); setSaved(false); };
+    reader.readAsDataURL(file);
+  }
+
   function save() {
     setError('');
     startTransition(async () => {
       const res = scope === 'course' && courseId
         ? await saveCourseCertAction(courseId, { templateImage, layout })
-        : await saveCertificateAction({ templateImage, layout });
+        : await saveCertificateAction({ templateImage, layout, brandLogo });
       if (res.ok) { setSaved(true); if (scope === 'course') router.refresh(); }
       else setError(res.error ?? 'Save failed');
     });
@@ -88,7 +100,7 @@ export default function CertificateDesigner({
     const res = await fetch('/api/training/certificate-preview', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ templateImage, layout }),
+      body: JSON.stringify({ templateImage, layout, brandLogo }),
     });
     if (!res.ok) { setError('Could not generate preview.'); return; }
     const blob = await res.blob();
@@ -155,6 +167,22 @@ export default function CertificateDesigner({
             <button type="button" onClick={() => { setTemplateImage(null); setSaved(false); }} className="text-xs text-red-700 hover:underline">Remove template</button>
           )}
         </div>
+
+        {scope === 'global' && (
+          <div className="bg-gray-100 border border-gray-200 rounded-lg p-4 space-y-2">
+            <label htmlFor="cert-logo" className="block text-xs font-medium text-gray-700">Company logo (used on the built-in certificate and the DD file PDF)</label>
+            <div className="flex items-center gap-3">
+              {brandLogo && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={brandLogo} alt="Company logo" style={{ height: 40, maxWidth: 160, objectFit: 'contain' }} className="rounded border border-gray-200 bg-white p-1" />
+              )}
+              <input id="cert-logo" type="file" accept="image/png,image/jpeg" onChange={onLogoFile} className="text-sm" />
+            </div>
+            {brandLogo && (
+              <button type="button" onClick={() => { setBrandLogo(null); setSaved(false); }} className="text-xs text-red-700 hover:underline">Remove logo</button>
+            )}
+          </div>
+        )}
 
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
           <table className="w-full text-sm">

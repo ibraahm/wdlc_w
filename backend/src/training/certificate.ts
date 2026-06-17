@@ -4,6 +4,7 @@ export interface CertificateData {
   learnerName: string;
   courseTitle: string;
   category: string;
+  description?: string | null;
   score: number;
   completedAt: Date;
   branchCode?: string | null;
@@ -65,6 +66,7 @@ function drawField(doc: PDFKit.PDFDocument, f: CertField | undefined, text: stri
 export async function buildCertificatePdf(
   data: CertificateData,
   template?: { image: Buffer; layout: CertLayout },
+  brand?: { logo?: Buffer },
 ): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'LETTER', layout: 'landscape', margin: 0 });
@@ -98,27 +100,42 @@ export async function buildCertificatePdf(
     doc.rect(24, 24, W - 48, H - 48).lineWidth(2).stroke(navy);
     doc.rect(34, 34, W - 68, H - 68).lineWidth(0.5).stroke(gold);
 
-    doc.fillColor(navy).font('Helvetica-Bold').fontSize(28)
-      .text('World Direct Link, Corp.', 0, 70, { align: 'center' });
+    // Brand: the uploaded company logo if available, otherwise the wordmark.
+    if (brand?.logo) {
+      try {
+        doc.image(brand.logo, W / 2 - 110, 46, { fit: [220, 70], align: 'center' });
+      } catch {
+        doc.fillColor(navy).font('Helvetica-Bold').fontSize(28).text('World Direct Link, Corp.', 0, 70, { align: 'center' });
+      }
+    } else {
+      doc.fillColor(navy).font('Helvetica-Bold').fontSize(28).text('World Direct Link, Corp.', 0, 70, { align: 'center' });
+    }
     doc.fillColor(gold).font('Helvetica').fontSize(11)
-      .text('CERTIFICATE OF COMPLETION', 0, 108, { align: 'center', characterSpacing: 3 });
+      .text('CERTIFICATE OF COMPLETION', 0, 124, { align: 'center', characterSpacing: 3 });
 
     doc.fillColor('#444').font('Helvetica').fontSize(13)
-      .text('This certifies that', 0, 165, { align: 'center' });
+      .text('This certifies that', 0, 168, { align: 'center' });
 
     doc.fillColor(navy).font('Helvetica-Bold').fontSize(30)
       .text(data.learnerName, 0, 190, { align: 'center' });
 
     doc.fillColor('#444').font('Helvetica').fontSize(13)
-      .text('has successfully completed the training course', 0, 240, { align: 'center' });
+      .text('has successfully completed the training course', 0, 238, { align: 'center' });
 
     doc.fillColor(navy).font('Helvetica-Bold').fontSize(20)
-      .text(data.courseTitle, 72, 268, { align: 'center', width: W - 144 });
+      .text(data.courseTitle, 72, 264, { align: 'center', width: W - 144 });
+
+    // Optional course description (kept short so the layout stays balanced).
+    const description = (data.description ?? '').trim();
+    if (description) {
+      doc.fillColor('#555').font('Helvetica-Oblique').fontSize(11)
+        .text(description, 120, 296, { align: 'center', width: W - 240, height: 30, ellipsis: true, lineGap: 1 });
+    }
 
     doc.fillColor('#444').font('Helvetica').fontSize(12)
       .text(
         `${data.category}  •  Score ${data.score}%  •  ${fmtDate(data.completedAt)}`,
-        0, 320, { align: 'center' },
+        0, description ? 332 : 322, { align: 'center' },
       );
 
     const footY = H - 96;
