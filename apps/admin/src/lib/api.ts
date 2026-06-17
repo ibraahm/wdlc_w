@@ -1501,3 +1501,29 @@ export async function apiSaveCertificateConfig(
   const res = await authFetch('/admin/training/certificate', accessToken, { method: 'PATCH', body: JSON.stringify(data) });
   return handleResponse<CertConfig>(res);
 }
+
+// Per-course certificate override (falls back to the global default)
+export type CourseCertConfig = {
+  hasOverride: boolean;
+  templateImage: string | null;
+  layout: CertLayout;
+};
+
+export async function apiGetCourseCertConfig(accessToken: string, courseId: string): Promise<CourseCertConfig> {
+  const res = await authFetch(`/admin/training/certificate/course/${encodeURIComponent(courseId)}/config`, accessToken);
+  return handleResponse<CourseCertConfig>(res);
+}
+
+export async function apiSaveCourseCertConfig(
+  accessToken: string,
+  courseId: string,
+  data: { templateImage?: string | null; layout?: CertLayout },
+): Promise<CourseCertConfig> {
+  const res = await authFetch(`/admin/training/certificate/course/${encodeURIComponent(courseId)}/config`, accessToken, { method: 'PATCH', body: JSON.stringify(data) });
+  return handleResponse<CourseCertConfig>(res);
+}
+
+export async function apiResetCourseCertConfig(accessToken: string, courseId: string): Promise<CourseCertConfig> {
+  const res = await authFetch(`/admin/training/certificate/course/${encodeURIComponent(courseId)}/config`, accessToken, { method: 'DELETE' });
+  return handleResponse<CourseCertConfig>(res);
+}

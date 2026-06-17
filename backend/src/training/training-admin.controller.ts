@@ -141,6 +141,24 @@ export class TrainingAdminController {
     res.end(pdf);
   }
 
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER')
+  @Get('certificate/course/:id/config')
+  courseCertConfig(@Param('id') id: string) {
+    return this.training.getCourseCertConfig(id);
+  }
+
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER')
+  @Patch('certificate/course/:id/config')
+  saveCourseCertConfig(@Param('id') id: string, @Body() dto: any, @CurrentUser('id') adminId: string) {
+    return this.training.saveCourseCertConfig(id, dto, adminId);
+  }
+
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER')
+  @Delete('certificate/course/:id/config')
+  resetCourseCertConfig(@Param('id') id: string, @CurrentUser('id') adminId: string) {
+    return this.training.deleteCourseCertConfig(id, adminId);
+  }
+
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR', 'REGIONAL_OFFICER', 'AUDITOR')
   @Get('certificate/course/:id/preview')
   async courseCertificatePreview(@Param('id') id: string, @Res() res: Response) {

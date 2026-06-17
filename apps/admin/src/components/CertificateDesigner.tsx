@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { saveCertificateAction } from '@/lib/actions';
-import type { CertConfig, CertField, CertLayout } from '@/lib/api';
+import { useRouter } from 'next/navigation';
+import { saveCertificateAction, saveCourseCertAction, resetCourseCertAction } from '@/lib/actions';
+import type { CertField, CertLayout } from '@/lib/api';
 
 // LETTER landscape is 792 x 612 pt. The preview is rendered at a fixed width so
 // field font sizes (specified in pt for the PDF) scale 1:1 with the real output.
@@ -27,7 +28,18 @@ const FIELD_LABEL: Record<keyof CertLayout, string> = {
 
 const FIELD_KEYS: (keyof CertLayout)[] = ['name', 'course', 'details', 'certId'];
 
-export default function CertificateDesigner({ initial }: { initial: CertConfig }) {
+export default function CertificateDesigner({
+  initial,
+  scope = 'global',
+  courseId,
+  hasOverride = false,
+}: {
+  initial: { templateImage: string | null; layout: CertLayout };
+  scope?: 'global' | 'course';
+  courseId?: string;
+  hasOverride?: boolean;
+}) {
+  const router = useRouter();
   const [templateImage, setTemplateImage] = useState<string | null>(initial.templateImage);
   const [layout, setLayout] = useState<CertLayout>(initial.layout);
   const [error, setError] = useState('');
@@ -53,9 +65,21 @@ export default function CertificateDesigner({ initial }: { initial: CertConfig }
   function save() {
     setError('');
     startTransition(async () => {
-      const res = await saveCertificateAction({ templateImage, layout });
-      if (res.ok) setSaved(true);
+      const res = scope === 'course' && courseId
+        ? await saveCourseCertAction(courseId, { templateImage, layout })
+        : await saveCertificateAction({ templateImage, layout });
+      if (res.ok) { setSaved(true); if (scope === 'course') router.refresh(); }
       else setError(res.error ?? 'Save failed');
+    });
+  }
+
+  function resetToDefault() {
+    if (!courseId) return;
+    setError('');
+    startTransition(async () => {
+      const res = await resetCourseCertAction(courseId);
+      if (res.ok) router.refresh();
+      else setError(res.error ?? 'Reset failed');
     });
   }
 
@@ -116,6 +140,13 @@ export default function CertificateDesigner({ initial }: { initial: CertConfig }
       <div className="space-y-4">
         {error && <div role="alert" className="rounded bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">{error}</div>}
         {saved && <div role="status" className="rounded bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-700">Saved.</div>}
+        {scope === 'course' && (
+          <div className={`rounded px-3 py-2 text-sm border ${hasOverride ? 'bg-blue-50 border-blue-200 text-blue-800' : 'bg-gray-50 border-gray-200 text-gray-600'}`}>
+            {hasOverride
+              ? 'This course uses a custom certificate that overrides the global default.'
+              : 'This course uses the global default. Saving here creates a course-specific certificate; the editor is pre-filled with the current default.'}
+          </div>
+        )}
 
         <div className="bg-gray-100 border border-gray-200 rounded-lg p-4 space-y-2">
           <label htmlFor="cert-template" className="block text-xs font-medium text-gray-700">Template image (PNG or JPEG, landscape)</label>
@@ -168,9 +199,12 @@ export default function CertificateDesigner({ initial }: { initial: CertConfig }
 
         <div className="flex gap-2">
           <button onClick={save} disabled={isPending} className="rounded-md bg-gray-900 text-white text-sm px-4 py-2 disabled:opacity-50">
-            {isPending ? 'Saving…' : 'Save certificate'}
+            {isPending ? 'Saving…' : scope === 'course' ? 'Save course certificate' : 'Save certificate'}
           </button>
           <button onClick={preview} className="rounded-md bg-white border border-gray-300 text-gray-800 text-sm px-4 py-2">Preview sample PDF</button>
+          {scope === 'course' && hasOverride && (
+            <button onClick={resetToDefault} disabled={isPending} className="rounded-md bg-white border border-red-300 text-red-700 text-sm px-4 py-2 disabled:opacity-50">Reset to default</button>
+          )}
         </div>
       </div>
     </div>

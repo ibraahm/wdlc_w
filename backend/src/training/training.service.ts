@@ -717,7 +717,7 @@ export class TrainingService {
     const agent = await this.prisma.agentUser.findUnique({ where: { id: agentId } });
     if (!agent) throw new NotFoundException('Account not found');
 
-    const cfg = await this.getCertificateConfig();
+    const cfg = await this.resolveCertConfigForCourse(course.id);
     const pdf = await buildCertificatePdf(
       {
         learnerName: `${agent.firstName} ${agent.lastName}`,
@@ -783,6 +783,66 @@ export class TrainingService {
     return this.getCertificateConfig();
   }
 
+  // ── Per-course certificate overrides ───────────────────────────────────────
+  private courseCertKey(courseId: string) {
+    return `cert.course.${courseId}`;
+  }
+
+  private validateTemplateImage(img: string | null | undefined) {
+    if (img && !/^data:image\/(png|jpe?g);base64,/.test(img)) {
+      throw new BadRequestException('Template must be a PNG or JPEG image');
+    }
+    if (img && img.length > 4_000_000) {
+      throw new BadRequestException('Template image is too large (max ~3 MB)');
+    }
+  }
+
+  // Effective certificate config for a course: its override if one is set,
+  // otherwise the global default.
+  async resolveCertConfigForCourse(courseId: string): Promise<{ templateImage: string | null; layout: CertLayout }> {
+    const row = await this.prisma.siteSetting.findUnique({ where: { key: this.courseCertKey(courseId) } });
+    if (row) {
+      const o = JSON.parse(row.value) as { templateImage?: string | null; layout?: Partial<CertLayout> } | null;
+      if (o) return { templateImage: o.templateImage ?? null, layout: { ...DEFAULT_CERT_LAYOUT, ...(o.layout ?? {}) } };
+    }
+    return this.getCertificateConfig();
+  }
+
+  // For the admin editor: the override if present, else seeded from the global
+  // default so admins start from the current look.
+  async getCourseCertConfig(courseId: string): Promise<{ hasOverride: boolean; templateImage: string | null; layout: CertLayout }> {
+    const row = await this.prisma.siteSetting.findUnique({ where: { key: this.courseCertKey(courseId) } });
+    if (row) {
+      const o = JSON.parse(row.value) as { templateImage?: string | null; layout?: Partial<CertLayout> } | null;
+      if (o) return { hasOverride: true, templateImage: o.templateImage ?? null, layout: { ...DEFAULT_CERT_LAYOUT, ...(o.layout ?? {}) } };
+    }
+    const g = await this.getCertificateConfig();
+    return { hasOverride: false, templateImage: g.templateImage, layout: g.layout };
+  }
+
+  async saveCourseCertConfig(courseId: string, dto: { templateImage?: string | null; layout?: CertLayout }, adminId: string) {
+    const course = await this.prisma.course.findUnique({ where: { id: courseId }, select: { id: true } });
+    if (!course) throw new NotFoundException('Course not found');
+    this.validateTemplateImage(dto.templateImage);
+    const value = JSON.stringify({ templateImage: dto.templateImage ?? null, layout: dto.layout ?? DEFAULT_CERT_LAYOUT });
+    await this.prisma.siteSetting.upsert({
+      where: { key: this.courseCertKey(courseId) },
+      update: { value },
+      create: { key: this.courseCertKey(courseId), value },
+    });
+    await this.audit.log({
+      action: 'training.certificate.course.config', adminId, entity: 'Course', entityId: courseId,
+      after: { hasTemplate: !!dto.templateImage },
+    });
+    return this.getCourseCertConfig(courseId);
+  }
+
+  async deleteCourseCertConfig(courseId: string, adminId: string) {
+    await this.prisma.siteSetting.deleteMany({ where: { key: this.courseCertKey(courseId) } });
+    await this.audit.log({ action: 'training.certificate.course.reset', adminId, entity: 'Course', entityId: courseId });
+    return this.getCourseCertConfig(courseId);
+  }
+
   // Render a sample certificate from the supplied (possibly unsaved) config so
   // admins can preview placement before saving.
   async certificatePreviewPdf(dto: { templateImage?: string | null; layout?: CertLayout }): Promise<Buffer> {
@@ -807,7 +867,7 @@ export class TrainingService {
   async adminCourseCertificatePreview(courseId: string): Promise<Buffer> {
     const course = await this.prisma.course.findUnique({ where: { id: courseId }, select: { title: true, category: true } });
     if (!course) throw new NotFoundException('Course not found');
-    const cfg = await this.getCertificateConfig();
+    const cfg = await this.resolveCertConfigForCourse(courseId);
     return buildCertificatePdf(
       {
         learnerName: 'Jordan A. Sample',

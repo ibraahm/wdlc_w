@@ -312,7 +312,7 @@ function CourseForm({
 
 const AUDIENCE_LABEL: Record<string, string> = { ALL: 'Everyone', STATE: 'By state', AGENT: 'By agent' };
 
-export default function CoursesManager({ courses }: { courses: Course[] }) {
+export default function CoursesManager({ courses, canEditCert = false }: { courses: Course[]; canEditCert?: boolean }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [creating, setCreating] = useState(false);
@@ -402,7 +402,10 @@ export default function CoursesManager({ courses }: { courses: Course[] }) {
                   {c.description && <p className="text-sm text-gray-500 mt-1 line-clamp-1">{c.description}</p>}
                 </div>
                 <div className="flex gap-1 shrink-0">
-                  <a href={`/api/training/course-certificate/${c.id}`} target="_blank" rel="noopener noreferrer" className="px-3 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50" title="Preview the completion certificate for this course">Certificate</a>
+                  <a href={`/api/training/course-certificate/${c.id}`} target="_blank" rel="noopener noreferrer" className="px-3 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50" title="Preview the completion certificate for this course">Preview cert</a>
+                  {canEditCert && (
+                    <a href={`/training/certificate/course/${c.id}`} className="px-3 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50" title="Set a certificate specific to this course">Cert template</a>
+                  )}
                   <button onClick={() => setEditingId(c.id)} className="px-3 py-1 text-xs border border-gray-300 rounded hover:bg-gray-50">Edit</button>
                   <button onClick={() => handleDelete(c.id, c.title)} disabled={isPending} className="px-3 py-1 text-xs border border-red-200 text-red-600 rounded hover:bg-red-50 disabled:opacity-50">Delete</button>
                 </div>

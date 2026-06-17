@@ -46,6 +46,8 @@ import {
   apiCreateException,
   apiDecideException,
   apiSaveCertificateConfig,
+  apiSaveCourseCertConfig,
+  apiResetCourseCertConfig,
   apiDeleteCourse,
   apiCreateResource,
   apiUpdateResource,
@@ -707,6 +709,33 @@ export async function saveCertificateAction(
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Save failed' };
+  }
+}
+
+export async function saveCourseCertAction(
+  courseId: string,
+  data: { templateImage?: string | null; layout?: CertLayout },
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiSaveCourseCertConfig(session.accessToken, courseId, data);
+    revalidatePath(`/training/certificate/course/${courseId}`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Save failed' };
+  }
+}
+
+export async function resetCourseCertAction(courseId: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiResetCourseCertConfig(session.accessToken, courseId);
+    revalidatePath(`/training/certificate/course/${courseId}`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Reset failed' };
   }
 }
 

@@ -29,7 +29,7 @@ export default async function CoursesPage() {
       {error ? (
         <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</div>
       ) : (
-        <CoursesManager courses={courses} />
+        <CoursesManager courses={courses} canEditCert={['SUPER_ADMIN', 'COMPLIANCE_OFFICER'].includes(session.user.role)} />
       )}
     </div>
   );
