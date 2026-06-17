@@ -116,6 +116,31 @@ export class TrainingAdminController {
     return this.training.adminUpdateAssignment(id, dto, adminId);
   }
 
+  // ── Certificate template + field placement (Phase: branding) ────────────────
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER')
+  @Get('certificate')
+  certificateConfig() {
+    return this.training.getCertificateConfig();
+  }
+
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER')
+  @Patch('certificate')
+  saveCertificate(@Body() dto: any, @CurrentUser('id') adminId: string) {
+    return this.training.saveCertificateConfig(dto, adminId);
+  }
+
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER')
+  @Post('certificate/preview')
+  async certificatePreview(@Body() dto: any, @Res() res: Response) {
+    const pdf = await this.training.certificatePreviewPdf(dto);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'inline; filename="certificate-preview.pdf"',
+      'Content-Length': pdf.length,
+    });
+    res.end(pdf);
+  }
+
   // ── Resources ──────────────────────────────────────────────────────────────
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR')
   @Get('resources')

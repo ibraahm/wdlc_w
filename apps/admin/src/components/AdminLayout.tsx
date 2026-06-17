@@ -46,6 +46,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: '/training/assignments', label: 'Assignments', description: 'Assign required training with reason and deadline' },
       { href: '/training/compliance', label: 'Compliance', description: 'Completion posture and evidence export' },
       { href: '/training/exceptions', label: 'Exceptions', description: 'Waivers, extensions and equivalencies' },
+      { href: '/training/certificate', label: 'Certificate', description: 'Completion certificate template and fields' },
       { href: '/training/resources', label: 'Resources', description: 'Reference documents for agents' },
       { href: '/training/reports', label: 'Reports', description: 'Score tracking and completion audit' },
     ],

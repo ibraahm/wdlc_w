@@ -5,7 +5,7 @@ import { AuditService } from '../audit/audit.service';
 import { sanitizeLessonHtml, safeHttpUrl } from './sanitize';
 import { RegionalService } from '../regional/regional.service';
 import { normalizeVideoUrl } from './video.util';
-import { buildCertificatePdf } from './certificate';
+import { buildCertificatePdf, DEFAULT_CERT_LAYOUT, type CertLayout } from './certificate';
 import { buildEvidencePacketPdf } from './evidence';
 
 interface Question {
@@ -717,20 +717,89 @@ export class TrainingService {
     const agent = await this.prisma.agentUser.findUnique({ where: { id: agentId } });
     if (!agent) throw new NotFoundException('Account not found');
 
-    const pdf = await buildCertificatePdf({
-      learnerName: `${agent.firstName} ${agent.lastName}`,
-      courseTitle: course.title,
-      category: course.category,
-      score: completion.score,
-      completedAt: completion.completedAt,
-      branchCode: completion.branchCode,
-      certificateId: completion.id.slice(-10).toUpperCase(),
-    });
+    const cfg = await this.getCertificateConfig();
+    const pdf = await buildCertificatePdf(
+      {
+        learnerName: `${agent.firstName} ${agent.lastName}`,
+        courseTitle: course.title,
+        category: course.category,
+        score: completion.score,
+        completedAt: completion.completedAt,
+        branchCode: completion.branchCode,
+        certificateId: completion.id.slice(-10).toUpperCase(),
+      },
+      cfg.templateImage ? { image: this.dataUrlToBuffer(cfg.templateImage), layout: cfg.layout } : undefined,
+    );
     await this.audit.log({
       action: 'training.certificate.download', agentId, entity: 'Course', entityId: course.id,
       after: { completionId: completion.id, score: completion.score }, ip: meta.ip, userAgent: meta.userAgent,
     });
     return { pdf, filename: `certificate-${course.slug}.pdf` };
+  }
+
+  // ── ADMIN/PORTAL: certificate template + field placement ────────────────────
+  private dataUrlToBuffer(dataUrl: string): Buffer {
+    const comma = dataUrl.indexOf(',');
+    return Buffer.from(comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl, 'base64');
+  }
+
+  async getCertificateConfig(): Promise<{ templateImage: string | null; layout: CertLayout }> {
+    const [imgRow, layoutRow] = await Promise.all([
+      this.prisma.siteSetting.findUnique({ where: { key: 'cert.templateImage' } }),
+      this.prisma.siteSetting.findUnique({ where: { key: 'cert.layout' } }),
+    ]);
+    const templateImage = imgRow ? (JSON.parse(imgRow.value) as string | null) : null;
+    const layout = layoutRow
+      ? { ...DEFAULT_CERT_LAYOUT, ...(JSON.parse(layoutRow.value) as Partial<CertLayout>) }
+      : DEFAULT_CERT_LAYOUT;
+    return { templateImage, layout };
+  }
+
+  async saveCertificateConfig(dto: { templateImage?: string | null; layout?: CertLayout }, adminId: string) {
+    if (dto.templateImage !== undefined) {
+      if (dto.templateImage && !/^data:image\/(png|jpe?g);base64,/.test(dto.templateImage)) {
+        throw new BadRequestException('Template must be a PNG or JPEG image');
+      }
+      if (dto.templateImage && dto.templateImage.length > 4_000_000) {
+        throw new BadRequestException('Template image is too large (max ~3 MB)');
+      }
+      await this.prisma.siteSetting.upsert({
+        where: { key: 'cert.templateImage' },
+        update: { value: JSON.stringify(dto.templateImage) },
+        create: { key: 'cert.templateImage', value: JSON.stringify(dto.templateImage) },
+      });
+    }
+    if (dto.layout !== undefined) {
+      await this.prisma.siteSetting.upsert({
+        where: { key: 'cert.layout' },
+        update: { value: JSON.stringify(dto.layout) },
+        create: { key: 'cert.layout', value: JSON.stringify(dto.layout) },
+      });
+    }
+    await this.audit.log({
+      action: 'training.certificate.config', adminId, entity: 'SiteSetting', entityId: 'cert',
+      after: { hasTemplate: dto.templateImage !== undefined ? !!dto.templateImage : undefined, layoutUpdated: dto.layout !== undefined },
+    });
+    return this.getCertificateConfig();
+  }
+
+  // Render a sample certificate from the supplied (possibly unsaved) config so
+  // admins can preview placement before saving.
+  async certificatePreviewPdf(dto: { templateImage?: string | null; layout?: CertLayout }): Promise<Buffer> {
+    const sample = {
+      learnerName: 'Jordan A. Sample',
+      courseTitle: 'Anti-Money-Laundering Essentials',
+      category: 'Compliance',
+      score: 95,
+      completedAt: new Date(),
+      branchCode: 'USWDLC',
+      certificateId: 'SAMPLE1234',
+    };
+    const layout = { ...DEFAULT_CERT_LAYOUT, ...(dto.layout ?? {}) };
+    return buildCertificatePdf(
+      sample,
+      dto.templateImage ? { image: this.dataUrlToBuffer(dto.templateImage), layout } : undefined,
+    );
   }
 
   // ── PORTAL: language preference ────────────────────────────────────────────

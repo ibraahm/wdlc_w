@@ -1461,3 +1461,42 @@ export async function apiDecideException(accessToken: string, id: string, status
   const res = await authFetch(`/admin/training/exceptions/${id}/decision`, accessToken, { method: 'PATCH', body: JSON.stringify({ status, note }) });
   return handleResponse<TrainingException>(res);
 }
+
+// ---------------------------------------------------------------------------
+// Certificate template + field placement
+// ---------------------------------------------------------------------------
+
+export type CertField = {
+  show: boolean;
+  yPct: number;
+  xPct?: number;
+  fontSize: number;
+  color: string;
+  align: 'left' | 'center' | 'right';
+  bold?: boolean;
+};
+
+export type CertLayout = {
+  name: CertField;
+  course: CertField;
+  details: CertField;
+  certId: CertField;
+};
+
+export type CertConfig = {
+  templateImage: string | null;
+  layout: CertLayout;
+};
+
+export async function apiGetCertificateConfig(accessToken: string): Promise<CertConfig> {
+  const res = await authFetch('/admin/training/certificate', accessToken);
+  return handleResponse<CertConfig>(res);
+}
+
+export async function apiSaveCertificateConfig(
+  accessToken: string,
+  data: { templateImage?: string | null; layout?: CertLayout },
+): Promise<CertConfig> {
+  const res = await authFetch('/admin/training/certificate', accessToken, { method: 'PATCH', body: JSON.stringify(data) });
+  return handleResponse<CertConfig>(res);
+}
