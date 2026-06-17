@@ -1311,6 +1311,7 @@ export class TrainingService {
       const head = variants[0];
       return {
         id: head.translationGroup || head.id,
+        courseId: head.id,
         title: head.title,
         category: head.category,
         requireAck,

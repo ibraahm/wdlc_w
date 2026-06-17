@@ -71,11 +71,12 @@ export default async function CompliancePage() {
                   <th scope="col" className="p-3 font-medium">Ack</th>
                   <th scope="col" className="p-3 font-medium">Due</th>
                   <th scope="col" className="p-3 font-medium">Content</th>
+                  <th scope="col" className="p-3 font-medium text-right">Certificate</th>
                 </tr>
               </thead>
               <tbody>
                 {summary.courses.length === 0 && (
-                  <tr><td colSpan={7} className="p-4 text-gray-500">No published courses.</td></tr>
+                  <tr><td colSpan={8} className="p-4 text-gray-500">No published courses.</td></tr>
                 )}
                 {summary.courses.map((c) => (
                   <tr key={c.id} className="border-b border-gray-50">
@@ -103,6 +104,9 @@ export default async function CompliancePage() {
                       {c.stale
                         ? <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700" title={`Effective ${fmtDate(c.versionEffectiveAt)}`}>Review due</span>
                         : <span className="text-xs text-gray-500">{fmtDate(c.versionEffectiveAt)}</span>}
+                    </td>
+                    <td className="p-3 text-right">
+                      <a href={`/api/training/course-certificate/${c.courseId}`} target="_blank" rel="noopener noreferrer" className="text-xs text-gray-600 hover:text-gray-900 underline" title="Preview the completion certificate for this course">Preview</a>
                     </td>
                   </tr>
                 ))}

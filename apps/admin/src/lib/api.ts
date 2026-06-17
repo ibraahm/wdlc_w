@@ -1378,6 +1378,7 @@ export async function apiUpdateAssignment(accessToken: string, id: string, data:
 
 export type ComplianceCourse = {
   id: string;
+  courseId: string;
   title: string;
   category: string;
   requireAck: boolean;

@@ -141,7 +141,7 @@ export class TrainingAdminController {
     res.end(pdf);
   }
 
-  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR')
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR', 'REGIONAL_OFFICER', 'AUDITOR')
   @Get('certificate/course/:id/preview')
   async courseCertificatePreview(@Param('id') id: string, @Res() res: Response) {
     const pdf = await this.training.adminCourseCertificatePreview(id);
