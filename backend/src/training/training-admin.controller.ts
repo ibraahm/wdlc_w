@@ -5,7 +5,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser, AuthUser } from '../auth/decorators/current-user.decorator';
 import { TrainingService } from './training.service';
-import { UpsertCourseDto, UpsertResourceDto, UpsertSectionDto, UpsertLessonDto, CreateAssignmentDto, UpdateAssignmentDto } from './dto/training.dto';
+import { UpsertCourseDto, UpsertResourceDto, UpsertSectionDto, UpsertLessonDto, CreateAssignmentDto, UpdateAssignmentDto, CreateExceptionDto, DecideExceptionDto } from './dto/training.dto';
 
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
 @Controller('admin/training')
@@ -13,7 +13,7 @@ export class TrainingAdminController {
   constructor(private training: TrainingService) {}
 
   // ── Courses ───────────────────────────────────────────────────────────────
-  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR', 'REGIONAL_OFFICER')
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR', 'REGIONAL_OFFICER', 'AUDITOR')
   @Get('courses')
   listCourses() {
     return this.training.adminListCourses();
@@ -43,7 +43,7 @@ export class TrainingAdminController {
     return this.training.adminDeleteCourse(id, adminId);
   }
 
-  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR')
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR', 'AUDITOR')
   @Get('courses/:id/versions')
   courseVersions(@Param('id') id: string) {
     return this.training.adminListVersions(id);
@@ -149,7 +149,7 @@ export class TrainingAdminController {
   }
 
   // ── Reporting / score tracking ─────────────────────────────────────────────
-  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'REGIONAL_OFFICER')
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'REGIONAL_OFFICER', 'AUDITOR')
   @Get('completions')
   completions(
     @CurrentUser() user: AuthUser,
@@ -166,20 +166,43 @@ export class TrainingAdminController {
     }, user.id, user.role);
   }
 
-  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'REGIONAL_OFFICER')
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'REGIONAL_OFFICER', 'AUDITOR')
   @Get('report')
   report(@CurrentUser() user: AuthUser) {
     return this.training.adminReportSummary(user.id, user.role);
   }
 
-  // ── Compliance dashboard + evidence export (Phase 4) ────────────────────────
+  // ── Exceptions workflow (Phase 5) ───────────────────────────────────────────
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'REGIONAL_OFFICER', 'AUDITOR')
+  @Get('exceptions')
+  listExceptions(
+    @Query('courseId') courseId?: string,
+    @Query('agentId') agentId?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.training.adminListExceptions({ courseId, agentId, status });
+  }
+
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'REGIONAL_OFFICER')
+  @Post('exceptions')
+  createException(@Body() dto: CreateExceptionDto, @CurrentUser('id') userId: string) {
+    return this.training.adminCreateException(dto, userId);
+  }
+
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER')
+  @Patch('exceptions/:id/decision')
+  decideException(@Param('id') id: string, @Body() dto: DecideExceptionDto, @CurrentUser('id') userId: string) {
+    return this.training.adminDecideException(id, dto, userId);
+  }
+
+  // ── Compliance dashboard + evidence export (Phase 4) ────────────────────────
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'REGIONAL_OFFICER', 'AUDITOR')
   @Get('compliance')
   compliance(@CurrentUser() user: AuthUser) {
     return this.training.adminComplianceSummary(user.id, user.role);
   }
 
-  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'REGIONAL_OFFICER')
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'REGIONAL_OFFICER', 'AUDITOR')
   @Get('evidence.csv')
   async evidenceCsv(@CurrentUser() user: AuthUser, @Query() q: any, @Res() res: Response) {
     const { csv, filename } = await this.training.adminEvidenceCsv(this.evidenceFilter(q), user.id, user.role);
@@ -190,7 +213,7 @@ export class TrainingAdminController {
     res.end(csv);
   }
 
-  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'REGIONAL_OFFICER')
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'REGIONAL_OFFICER', 'AUDITOR')
   @Get('evidence.pdf')
   async evidencePdf(@CurrentUser() user: AuthUser, @Query() q: any, @Res() res: Response) {
     const by = (user as any).name || (user as any).email || user.id;

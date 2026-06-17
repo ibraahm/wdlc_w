@@ -64,6 +64,23 @@ export class UpdateAssignmentDto {
   @IsOptional() @IsBoolean() active?: boolean;
 }
 
+const EXCEPTION_TYPES = ['WAIVER', 'EXTENSION', 'EQUIVALENCY'];
+
+export class CreateExceptionDto {
+  @IsString() courseId: string;
+  @IsOptional() @IsString() agentId?: string;
+  @IsOptional() @IsString() @MaxLength(40) branchCode?: string;
+  @IsIn(EXCEPTION_TYPES) type: string;
+  @IsString() @MaxLength(500) reason: string;
+  @IsOptional() @IsString() @MaxLength(500) note?: string;
+  @IsOptional() @IsString() @MaxLength(40) expiresAt?: string;
+}
+
+export class DecideExceptionDto {
+  @IsIn(['APPROVED', 'REJECTED']) status: string;
+  @IsOptional() @IsString() @MaxLength(500) note?: string;
+}
+
 export class UpsertSectionDto {
   @IsOptional() @IsString() @MaxLength(160) title?: string;
   @IsOptional() @IsInt() order?: number;

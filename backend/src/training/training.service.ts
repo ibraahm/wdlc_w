@@ -145,6 +145,8 @@ export class TrainingService {
     // Phase 3: explicit assignments (additive). A course is shown if the
     // audience matches OR an active assignment targets the agent or branch.
     const assignmentByCourse = await this.assignmentsForAgent(agentId, branchCode);
+    // Phase 5: approved, unexpired exceptions (waive or extend the deadline).
+    const exceptionByCourse = await this.activeExceptionsForAgent(agentId, branchCode);
     const shown = courses.filter((c) => this.matches(c, branchCode, states) || assignmentByCourse.has(c.id));
     const shownIds = shown.map((c) => c.id);
 
@@ -179,8 +181,12 @@ export class TrainingService {
         : passed ? 100 : 0;
       // Explicit assignment (if any) overrides the course deadline and carries the reason.
       const assignment = group.map((c) => assignmentByCourse.get(c.id)).find(Boolean) ?? null;
-      const dueAt = assignment?.dueAt ?? variant.dueAt;
-      const overdue = !passed && !!dueAt && dueAt < now;
+      // Approved exception (if any): waiver/equivalency excuses; extension moves the deadline.
+      const exception = group.map((c) => exceptionByCourse.get(c.id)).find(Boolean) ?? null;
+      const excused = !!exception && (exception.type === 'WAIVER' || exception.type === 'EQUIVALENCY');
+      const baseDue = assignment?.dueAt ?? variant.dueAt;
+      const dueAt = exception?.type === 'EXTENSION' ? exception.expiresAt ?? baseDue : baseDue;
+      const overdue = !passed && !excused && !!dueAt && dueAt < now;
       return {
         slug: variant.slug,
         title: variant.title,
@@ -198,6 +204,8 @@ export class TrainingService {
         dueAt,
         overdue,
         assignedReason: assignment?.reason ?? null,
+        excused,
+        excusedType: excused ? exception!.type : null,
         order: variant.order,
       };
     });
@@ -361,6 +369,120 @@ export class TrainingService {
       after: { assignmentId: id, ...data },
     });
     return assignment;
+  }
+
+  // ── ADMIN: exceptions workflow (Phase 5) ────────────────────────────────────
+  private readonly EXCEPTION_TYPES = ['WAIVER', 'EXTENSION', 'EQUIVALENCY'];
+
+  // Active = approved and not expired. WAIVER/EQUIVALENCY excuse the learner;
+  // EXTENSION moves the deadline to expiresAt.
+  private isExceptionActive(e: { status: string; expiresAt: Date | null }, now: Date): boolean {
+    return e.status === 'APPROVED' && (!e.expiresAt || e.expiresAt > now);
+  }
+
+  private async activeExceptionsForAgent(agentId: string, branchCode: string | null) {
+    const now = new Date();
+    const rows = await this.prisma.trainingException.findMany({
+      where: { status: 'APPROVED', OR: [{ agentId }, ...(branchCode ? [{ branchCode }] : [])] },
+    });
+    const byCourse = new Map<string, (typeof rows)[number]>();
+    for (const e of rows) {
+      if (!this.isExceptionActive(e, now)) continue;
+      const cur = byCourse.get(e.courseId);
+      // Prefer agent-specific over branch-wide.
+      if (!cur || (e.agentId && !cur.agentId)) byCourse.set(e.courseId, e);
+    }
+    return byCourse;
+  }
+
+  async adminListExceptions(filter: { courseId?: string; agentId?: string; status?: string }) {
+    const where: any = {};
+    if (filter.courseId) where.courseId = filter.courseId;
+    if (filter.agentId) where.agentId = filter.agentId;
+    if (filter.status) where.status = filter.status.toUpperCase();
+    const rows = await this.prisma.trainingException.findMany({
+      where,
+      orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+      include: {
+        course: { select: { title: true, slug: true } },
+        agent: { select: { firstName: true, lastName: true, email: true } },
+      },
+    });
+    const now = new Date();
+    return rows.map((r) => ({
+      id: r.id,
+      courseId: r.courseId,
+      courseTitle: r.course.title,
+      agentId: r.agentId,
+      agentName: r.agent ? `${r.agent.firstName} ${r.agent.lastName}` : null,
+      agentEmail: r.agent?.email ?? null,
+      branchCode: r.branchCode,
+      type: r.type,
+      reason: r.reason,
+      note: r.note,
+      status: r.status,
+      expiresAt: r.expiresAt,
+      expired: !!r.expiresAt && r.expiresAt < now,
+      requestedBy: r.requestedBy,
+      decidedBy: r.decidedBy,
+      decidedAt: r.decidedAt,
+      createdAt: r.createdAt,
+    }));
+  }
+
+  async adminCreateException(dto: any, userId: string) {
+    if (!dto.courseId) throw new BadRequestException('A course is required');
+    if (!dto.agentId && !dto.branchCode) throw new BadRequestException('Specify an agent or a branch code');
+    const type = String(dto.type || '').toUpperCase();
+    if (!this.EXCEPTION_TYPES.includes(type)) throw new BadRequestException('Invalid exception type');
+    if (!dto.reason?.trim()) throw new BadRequestException('A reason is required');
+    const expiresAt = this.parseDueAt(dto.expiresAt) ?? null;
+    if (type === 'EXTENSION' && !expiresAt) throw new BadRequestException('An extension requires a new deadline');
+    const course = await this.prisma.course.findUnique({ where: { id: dto.courseId }, select: { id: true } });
+    if (!course) throw new NotFoundException('Course not found');
+    if (dto.agentId) {
+      const agent = await this.prisma.agentUser.findUnique({ where: { id: dto.agentId }, select: { id: true } });
+      if (!agent) throw new NotFoundException('Agent not found');
+    }
+    const exception = await this.prisma.trainingException.create({
+      data: {
+        courseId: dto.courseId,
+        agentId: dto.agentId || null,
+        branchCode: dto.branchCode ? String(dto.branchCode).trim().toUpperCase() : null,
+        type,
+        reason: dto.reason.trim(),
+        note: dto.note?.trim() || null,
+        expiresAt,
+        status: 'PENDING',
+        requestedBy: userId,
+      },
+    });
+    await this.audit.log({
+      action: 'training.exception.request', adminId: userId, entity: 'Course', entityId: dto.courseId,
+      after: { exceptionId: exception.id, type, agentId: exception.agentId, branchCode: exception.branchCode, expiresAt },
+    });
+    return exception;
+  }
+
+  async adminDecideException(id: string, dto: { status: string; note?: string }, userId: string) {
+    const existing = await this.prisma.trainingException.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Exception not found');
+    const status = String(dto.status || '').toUpperCase();
+    if (!['APPROVED', 'REJECTED'].includes(status)) throw new BadRequestException('Decision must be APPROVED or REJECTED');
+    const exception = await this.prisma.trainingException.update({
+      where: { id },
+      data: {
+        status,
+        decidedBy: userId,
+        decidedAt: new Date(),
+        ...(dto.note?.trim() ? { note: dto.note.trim() } : {}),
+      },
+    });
+    await this.audit.log({
+      action: 'training.exception.decide', adminId: userId, entity: 'Course', entityId: existing.courseId,
+      after: { exceptionId: id, status },
+    });
+    return exception;
   }
 
   // ── PORTAL: policy acknowledgment ──────────────────────────────────────────
@@ -994,6 +1116,9 @@ export class TrainingService {
     const assignments = await this.prisma.trainingAssignment.findMany({
       where: { active: true }, select: { courseId: true, agentId: true, branchCode: true, dueAt: true },
     });
+    const exceptions = await this.prisma.trainingException.findMany({
+      where: { status: 'APPROVED' }, select: { courseId: true, agentId: true, branchCode: true, type: true, expiresAt: true },
+    });
     const completions = await this.prisma.courseCompletion.findMany({
       where: { passed: true }, select: { courseId: true, agentId: true },
     });
@@ -1032,11 +1157,12 @@ export class TrainingService {
     }
 
     const staleCutoff = new Date(now.getTime() - this.STALE_DAYS * 86_400_000);
-    let totRequired = 0, totCompleted = 0, totOverdue = 0;
+    let totRequired = 0, totCompleted = 0, totOverdue = 0, totExcused = 0;
 
     const courseRows = Array.from(groups.values()).map((variants) => {
       const variantIds = new Set(variants.map((v) => v.id));
       const groupAssigns = assignments.filter((a) => variantIds.has(a.courseId));
+      const groupExceptions = exceptions.filter((e) => variantIds.has(e.courseId) && (!e.expiresAt || e.expiresAt > now));
       const due0 = variants.map((v) => v.dueAt).find(Boolean) ?? null;
       const requireAck = variants.some((v) => v.requireAck);
       const passedAgents = new Set<string>();
@@ -1051,19 +1177,22 @@ export class TrainingService {
         .filter(Boolean)
         .sort((a, b) => (b as Date).getTime() - (a as Date).getTime())[0] as Date | undefined;
 
-      let required = 0, completed = 0, overdue = 0, acknowledged = 0;
+      let required = 0, completed = 0, overdue = 0, acknowledged = 0, excused = 0;
       for (const agent of agents) {
         const states = agent.branchCode ? statesByBranch.get(agent.branchCode) ?? [] : [];
         const audienceMatch = variants.some((v) => this.matches(v, agent.branchCode, states));
         const assign = groupAssigns.find((a) => a.agentId === agent.id || (!!a.branchCode && a.branchCode === agent.branchCode));
         if (!audienceMatch && !assign) continue;
+        // Approved exception: waiver/equivalency excuses (out of the denominator); extension moves the deadline.
+        const exc = groupExceptions.find((e) => e.agentId === agent.id || (!!e.branchCode && e.branchCode === agent.branchCode));
+        if (exc && (exc.type === 'WAIVER' || exc.type === 'EQUIVALENCY')) { excused++; continue; }
         required++;
         if (requireAck && ackAgents.has(agent.id)) acknowledged++;
         if (passedAgents.has(agent.id)) { completed++; continue; }
-        const due = assign?.dueAt ?? due0;
+        const due = exc?.type === 'EXTENSION' ? exc.expiresAt ?? assign?.dueAt ?? due0 : assign?.dueAt ?? due0;
         if (due && due < now) overdue++;
       }
-      totRequired += required; totCompleted += completed; totOverdue += overdue;
+      totRequired += required; totCompleted += completed; totOverdue += overdue; totExcused += excused;
       const head = variants[0];
       return {
         id: head.translationGroup || head.id,
@@ -1075,6 +1204,7 @@ export class TrainingService {
         completedCount: completed,
         completionPct: required ? Math.round((completed / required) * 100) : 0,
         overdueCount: overdue,
+        excusedCount: excused,
         ackCount: requireAck ? acknowledged : null,
         ackPct: requireAck && required ? Math.round((acknowledged / required) * 100) : null,
         versionEffectiveAt: effectiveAt ?? null,
@@ -1089,6 +1219,7 @@ export class TrainingService {
         required: totRequired,
         completed: totCompleted,
         overdue: totOverdue,
+        excused: totExcused,
         completionPct: totRequired ? Math.round((totCompleted / totRequired) * 100) : 0,
         staleCourses: courseRows.filter((c) => c.stale).length,
       },

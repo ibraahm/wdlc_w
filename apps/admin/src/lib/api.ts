@@ -1239,7 +1239,7 @@ export async function apiDeleteRegionalOffice(accessToken: string, id: string): 
 
 export async function apiInviteUser(
   accessToken: string,
-  data: { email: string; name: string; role?: string; regionalOfficeId?: string },
+  data: { email: string; name: string; role?: string; regionalOfficeId?: string; accessExpiresAt?: string },
 ): Promise<AdminUser> {
   const res = await authFetch('/admin/auth/users/invite', accessToken, { method: 'POST', body: JSON.stringify(data) });
   return handleResponse<AdminUser>(res);
@@ -1384,6 +1384,7 @@ export type ComplianceCourse = {
   completedCount: number;
   completionPct: number;
   overdueCount: number;
+  excusedCount: number;
   ackCount: number | null;
   ackPct: number | null;
   versionEffectiveAt: string | null;
@@ -1397,6 +1398,7 @@ export type ComplianceSummary = {
     required: number;
     completed: number;
     overdue: number;
+    excused: number;
     completionPct: number;
     staleCourses: number;
   };
@@ -1406,4 +1408,54 @@ export type ComplianceSummary = {
 export async function apiComplianceSummary(accessToken: string): Promise<ComplianceSummary> {
   const res = await authFetch('/admin/training/compliance', accessToken);
   return handleResponse<ComplianceSummary>(res);
+}
+
+// ---------------------------------------------------------------------------
+// Training exceptions (Phase 5)
+// ---------------------------------------------------------------------------
+
+export type TrainingException = {
+  id: string;
+  courseId: string;
+  courseTitle: string;
+  agentId: string | null;
+  agentName: string | null;
+  agentEmail: string | null;
+  branchCode: string | null;
+  type: string;
+  reason: string;
+  note: string | null;
+  status: string;
+  expiresAt: string | null;
+  expired: boolean;
+  requestedBy: string | null;
+  decidedBy: string | null;
+  decidedAt: string | null;
+  createdAt: string;
+};
+
+export type ExceptionInput = {
+  courseId: string;
+  agentId?: string;
+  branchCode?: string;
+  type: string;
+  reason: string;
+  note?: string;
+  expiresAt?: string | null;
+};
+
+export async function apiListExceptions(accessToken: string, status?: string): Promise<TrainingException[]> {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+  const res = await authFetch(`/admin/training/exceptions${qs}`, accessToken);
+  return handleResponse<TrainingException[]>(res);
+}
+
+export async function apiCreateException(accessToken: string, data: ExceptionInput): Promise<TrainingException> {
+  const res = await authFetch('/admin/training/exceptions', accessToken, { method: 'POST', body: JSON.stringify(data) });
+  return handleResponse<TrainingException>(res);
+}
+
+export async function apiDecideException(accessToken: string, id: string, status: 'APPROVED' | 'REJECTED', note?: string): Promise<TrainingException> {
+  const res = await authFetch(`/admin/training/exceptions/${id}/decision`, accessToken, { method: 'PATCH', body: JSON.stringify({ status, note }) });
+  return handleResponse<TrainingException>(res);
 }

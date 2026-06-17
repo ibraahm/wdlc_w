@@ -201,29 +201,31 @@ export class AdminAuthService {
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
     // A regional officer must be tied to an office; ignore the office for other roles.
     const regionalOfficeId = dto.role === 'REGIONAL_OFFICER' ? (dto.regionalOfficeId ?? null) : null;
+    const accessExpiresAt = (dto as any).accessExpiresAt ? new Date((dto as any).accessExpiresAt) : null;
     const user = await this.prisma.adminUser.create({
       // Password was set by another admin - require the user to change it on first login.
-      data: { email: dto.email, name: dto.name, passwordHash, role: dto.role ?? 'EDITOR', regionalOfficeId, mustChangePassword: true },
+      data: { email: dto.email, name: dto.name, passwordHash, role: dto.role ?? 'EDITOR', regionalOfficeId, accessExpiresAt, mustChangePassword: true },
     });
     await this.audit.log({
       action: 'admin.user.create',
       adminId: actorId,
       entity: 'AdminUser',
       entityId: user.id,
-      after: { email: user.email, role: user.role, regionalOfficeId },
+      after: { email: user.email, role: user.role, regionalOfficeId, accessExpiresAt },
     });
     return publicUser(user);
   }
 
   // Invite: create the account with no usable password and email a one-time
   // link so the user sets their own password (they can also use Google sign-in).
-  async inviteUser(dto: { email: string; name: string; role?: string; regionalOfficeId?: string }, actorId: string) {
+  async inviteUser(dto: { email: string; name: string; role?: string; regionalOfficeId?: string; accessExpiresAt?: string }, actorId: string) {
     const existing = await this.prisma.adminUser.findUnique({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Email already in use');
 
     const passwordHash = await bcrypt.hash(generateToken(32), BCRYPT_ROUNDS); // unusable until set
     const raw = generateToken(32);
     const regionalOfficeId = dto.role === 'REGIONAL_OFFICER' ? (dto.regionalOfficeId ?? null) : null;
+    const accessExpiresAt = dto.accessExpiresAt ? new Date(dto.accessExpiresAt) : null;
     const user = await this.prisma.adminUser.create({
       data: {
         email: dto.email,
@@ -231,13 +233,14 @@ export class AdminAuthService {
         passwordHash,
         role: dto.role ?? 'EDITOR',
         regionalOfficeId,
+        accessExpiresAt,
         mustChangePassword: false,
         resetToken: hashToken(raw),
         resetTokenExpiry: addHours(new Date(), 48),
       },
     });
     void this.mail.sendAdminInvite(dto.email, raw, dto.name);
-    await this.audit.log({ action: 'admin.user.invite', adminId: actorId, entity: 'AdminUser', entityId: user.id, after: { email: user.email, role: user.role } });
+    await this.audit.log({ action: 'admin.user.invite', adminId: actorId, entity: 'AdminUser', entityId: user.id, after: { email: user.email, role: user.role, accessExpiresAt } });
     return publicUser(user);
   }
 

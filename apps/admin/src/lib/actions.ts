@@ -43,6 +43,8 @@ import {
   apiUpdateCourse,
   apiCreateAssignment,
   apiUpdateAssignment,
+  apiCreateException,
+  apiDecideException,
   apiDeleteCourse,
   apiCreateResource,
   apiUpdateResource,
@@ -67,7 +69,7 @@ import {
   apiListRiskAssessments,
   apiCreateRiskAssessment,
 } from './api';
-import type { Partner, NetworkCountry, NavItemInput, CourseInput, ResourceInput, Completion, CourseWithCurriculum, SectionInput, LessonInput, SearchResult, RegionalOfficeInput, OfficeRequest, RiskAssessment, RiskFactor, AssignmentInput } from './api';
+import type { Partner, NetworkCountry, NavItemInput, CourseInput, ResourceInput, Completion, CourseWithCurriculum, SectionInput, LessonInput, SearchResult, RegionalOfficeInput, OfficeRequest, RiskAssessment, RiskFactor, AssignmentInput, ExceptionInput } from './api';
 import { getSession, setSessionCookies, clearSessionCookies, clearMustChangePassword } from './auth';
 
 // ---------------------------------------------------------------------------
@@ -693,6 +695,31 @@ export async function createCourseAction(data: CourseInput): Promise<{ ok: boole
   }
 }
 
+export async function createExceptionAction(data: ExceptionInput): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiCreateException(session.accessToken, data);
+    revalidatePath('/training/exceptions');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Request failed' };
+  }
+}
+
+export async function decideExceptionAction(id: string, status: 'APPROVED' | 'REJECTED', note?: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiDecideException(session.accessToken, id, status, note);
+    revalidatePath('/training/exceptions');
+    revalidatePath('/training/compliance');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Decision failed' };
+  }
+}
+
 export async function createAssignmentAction(data: AssignmentInput): Promise<{ ok: boolean; error?: string }> {
   const session = await getSession();
   if (!session) return { ok: false, error: 'Not authenticated' };
@@ -941,6 +968,7 @@ export async function inviteUserAction(formData: FormData): Promise<{ ok: boolea
       name: formData.get('name') as string,
       role: (formData.get('role') as string) || undefined,
       regionalOfficeId: (formData.get('regionalOfficeId') as string) || undefined,
+      accessExpiresAt: (formData.get('accessExpiresAt') as string) || undefined,
     });
     revalidatePath('/users');
     return { ok: true };

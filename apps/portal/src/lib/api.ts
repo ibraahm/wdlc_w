@@ -168,6 +168,9 @@ export type CourseSummary = {
   overdue: boolean;
   // Phase 3: reason this course was explicitly assigned (null = via audience).
   assignedReason: string | null;
+  // Phase 5: an approved waiver/equivalency excuses this course for the learner.
+  excused: boolean;
+  excusedType: string | null;
 };
 
 export type QuizQuestion = { i: number; q: string; options: string[] };

@@ -29,6 +29,7 @@ function CourseCard({ c }: { c: CourseSummary }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
             <p className="dash-card-title" style={{ margin: 0, padding: 0, border: 0, fontSize: '0.95rem', letterSpacing: 0, textTransform: 'none', color: 'var(--charcoal)' }}>{c.title}</p>
             {c.overdue && <span style={{ fontSize: '0.62rem', fontWeight: 700, color: '#b91c1c', background: 'rgba(185,28,28,0.08)', padding: '2px 8px', borderRadius: '10px' }}>OVERDUE</span>}
+            {c.excused && <span style={{ fontSize: '0.62rem', fontWeight: 700, color: '#166534', background: 'rgba(22,101,52,0.08)', padding: '2px 8px', borderRadius: '10px' }}>{c.excusedType === 'EQUIVALENCY' ? 'CREDITED' : 'WAIVED'}</span>}
             {c.assignedReason && <span style={{ fontSize: '0.62rem', fontWeight: 600, color: 'var(--muted)', border: '1px solid var(--smoke)', padding: '2px 8px', borderRadius: '10px' }}>{REASON_LABEL[c.assignedReason] ?? 'Assigned'}</span>}
             {c.languages.length > 1 && <span style={{ fontSize: '0.62rem', color: 'var(--muted)', border: '1px solid var(--smoke)', padding: '2px 8px', borderRadius: '10px' }}>{c.languages.map((l) => LANG_LABEL[l] || l.toUpperCase()).join(' · ')}</span>}
           </div>
@@ -72,7 +73,8 @@ export default async function TrainingPage() {
   }
 
   const completed = courses.filter((c) => c.completed);
-  const incomplete = courses.filter((c) => !c.completed);
+  const excused = courses.filter((c) => !c.completed && c.excused);
+  const incomplete = courses.filter((c) => !c.completed && !c.excused);
   const overdue = incomplete.filter((c) => c.overdue);
   const dueSoon = incomplete.filter((c) => !c.overdue && c.dueAt && daysUntil(c.dueAt) <= 14);
   const dueSoonIds = new Set(dueSoon.map((c) => c.slug));
@@ -128,6 +130,13 @@ export default async function TrainingPage() {
             <>
               <GroupHeading label="To do" />
               <div style={{ display: 'grid', gap: '12px' }}>{remaining.map((c) => <CourseCard key={c.slug} c={c} />)}</div>
+            </>
+          )}
+
+          {excused.length > 0 && (
+            <>
+              <GroupHeading label={`Waived (${excused.length})`} />
+              <div style={{ display: 'grid', gap: '12px' }}>{excused.map((c) => <CourseCard key={c.slug} c={c} />)}</div>
             </>
           )}
 

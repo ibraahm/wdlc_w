@@ -49,11 +49,12 @@ export default async function CompliancePage() {
 
       {summary && (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             <Stat label="Required courses" value={summary.totals.courses} />
             <Stat label="Completion" value={`${summary.totals.completionPct}%`} />
             <Stat label="Completed" value={`${summary.totals.completed}/${summary.totals.required}`} />
             <Stat label="Overdue" value={summary.totals.overdue} tone={summary.totals.overdue > 0 ? 'danger' : undefined} />
+            <Stat label="Excused" value={summary.totals.excused} />
             <Stat label="Stale content" value={summary.totals.staleCourses} tone={summary.totals.staleCourses > 0 ? 'warn' : undefined} />
           </div>
 

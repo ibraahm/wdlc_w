@@ -1,6 +1,6 @@
 import { IsEmail, IsString, MinLength, IsOptional, IsIn, IsBoolean } from 'class-validator';
 
-export const ADMIN_ROLES = ['SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR', 'REGIONAL_OFFICER'] as const;
+export const ADMIN_ROLES = ['SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR', 'REGIONAL_OFFICER', 'AUDITOR'] as const;
 
 export class AdminLoginDto {
   @IsEmail()
@@ -38,6 +38,11 @@ export class AdminCreateUserDto {
   @IsOptional()
   @IsString()
   regionalOfficeId?: string;
+
+  // ISO date/time after which a time-bound role (e.g. AUDITOR) loses access.
+  @IsOptional()
+  @IsString()
+  accessExpiresAt?: string;
 }
 
 export class SetUserRegionDto {
@@ -61,6 +66,11 @@ export class AdminInviteUserDto {
   @IsOptional()
   @IsString()
   regionalOfficeId?: string;
+
+  // ISO date/time after which a time-bound role (e.g. AUDITOR) loses access.
+  @IsOptional()
+  @IsString()
+  accessExpiresAt?: string;
 }
 
 export class AdminGoogleLoginDto {

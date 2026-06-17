@@ -30,6 +30,8 @@ model AdminUser {
   lockedUntil     DateTime?
   // For REGIONAL_OFFICER users: the office whose states scope their access.
   regionalOfficeId String?
+  // For time-bound roles (e.g. AUDITOR): access is denied after this instant.
+  accessExpiresAt  DateTime?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -101,6 +103,7 @@ model AgentUser {
   lessonProgress      LessonProgress[]
   policyAcks          PolicyAcknowledgment[]
   trainingAssignments TrainingAssignment[]
+  trainingExceptions  TrainingException[]
 
   @@index([showOnMap, status])
 }
@@ -613,6 +616,7 @@ model Course {
   versions        CourseVersion[]
   acknowledgments PolicyAcknowledgment[]
   assignments     TrainingAssignment[]
+  exceptions      TrainingException[]
 
   @@index([status, order])
   @@index([category])
@@ -688,6 +692,32 @@ model TrainingAssignment {
   @@index([courseId, active])
   @@index([agentId, active])
   @@index([branchCode, active])
+}
+
+// Phase 5: documented, approved deviation from a training requirement.
+// WAIVER/EQUIVALENCY excuse the learner entirely; EXTENSION moves the deadline
+// to expiresAt. Only APPROVED, unexpired exceptions affect compliance.
+model TrainingException {
+  id          String     @id @default(cuid())
+  courseId    String
+  course      Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  agentId     String?
+  agent       AgentUser? @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  branchCode  String?
+  type        String     // WAIVER | EXTENSION | EQUIVALENCY
+  reason      String
+  note        String?
+  status      String     @default("PENDING") // PENDING | APPROVED | REJECTED
+  expiresAt   DateTime?  // EXTENSION: new deadline. WAIVER/EQUIVALENCY: optional expiry.
+  requestedBy String?    // admin id who raised it
+  decidedBy   String?    // admin id who approved/rejected
+  decidedAt   DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([courseId, status])
+  @@index([agentId, status])
+  @@index([branchCode, status])
 }
 
 // A curriculum section groups ordered lessons within a course (Udemy-style).

@@ -4,10 +4,10 @@ import { useState, useTransition } from 'react';
 import type { AdminUser, RegionalOffice } from '@/lib/api';
 import { inviteUserAction, setUserActiveAction } from '@/lib/actions';
 
-const ROLES = ['SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR', 'REGIONAL_OFFICER'];
+const ROLES = ['SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR', 'REGIONAL_OFFICER', 'AUDITOR'];
 const ROLE_LABEL: Record<string, string> = {
   SUPER_ADMIN: 'Super Admin', COMPLIANCE_OFFICER: 'Compliance Officer', MANAGER: 'Manager',
-  EDITOR: 'Editor', REGIONAL_OFFICER: 'Regional Officer',
+  EDITOR: 'Editor', REGIONAL_OFFICER: 'Regional Officer', AUDITOR: 'Auditor (read-only)',
 };
 
 interface UserRowProps {
@@ -199,6 +199,18 @@ export default function UsersManager({ initialUsers, offices = [] }: UsersManage
                 </select>
               </div>
             </div>
+
+            {newRole === 'AUDITOR' && (
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Access expires</label>
+                <input
+                  name="accessExpiresAt"
+                  type="date"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <p className="text-xs text-gray-400 mt-1">Read-only access to training compliance, reports and evidence. Leave blank for no expiry; after this date the account can no longer sign in.</p>
+              </div>
+            )}
 
             {newRole === 'REGIONAL_OFFICER' && (
               <div>

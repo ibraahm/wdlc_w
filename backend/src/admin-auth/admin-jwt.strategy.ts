@@ -39,6 +39,10 @@ export class AdminJwtStrategy extends PassportStrategy(Strategy, 'admin-jwt') im
     if (user.lockedUntil && user.lockedUntil > new Date()) {
       throw new UnauthorizedException('Account temporarily locked');
     }
+    // Time-bound roles (e.g. AUDITOR) lose access after their expiry.
+    if (user.accessExpiresAt && user.accessExpiresAt < new Date()) {
+      throw new UnauthorizedException('Access period has expired');
+    }
     return { id: user.id, email: user.email, role: user.role, name: user.name, portal: 'admin' as const };
   }
 }
