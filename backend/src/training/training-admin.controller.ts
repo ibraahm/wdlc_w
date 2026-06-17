@@ -1,4 +1,5 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
+import type { Request, Response } from 'express';
 import { AdminJwtAuthGuard } from '../admin-auth/admin-jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -169,5 +170,47 @@ export class TrainingAdminController {
   @Get('report')
   report(@CurrentUser() user: AuthUser) {
     return this.training.adminReportSummary(user.id, user.role);
+  }
+
+  // ── Compliance dashboard + evidence export (Phase 4) ────────────────────────
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'REGIONAL_OFFICER')
+  @Get('compliance')
+  compliance(@CurrentUser() user: AuthUser) {
+    return this.training.adminComplianceSummary(user.id, user.role);
+  }
+
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'REGIONAL_OFFICER')
+  @Get('evidence.csv')
+  async evidenceCsv(@CurrentUser() user: AuthUser, @Query() q: any, @Res() res: Response) {
+    const { csv, filename } = await this.training.adminEvidenceCsv(this.evidenceFilter(q), user.id, user.role);
+    res.set({
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+    });
+    res.end(csv);
+  }
+
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'REGIONAL_OFFICER')
+  @Get('evidence.pdf')
+  async evidencePdf(@CurrentUser() user: AuthUser, @Query() q: any, @Res() res: Response) {
+    const by = (user as any).name || (user as any).email || user.id;
+    const { pdf, filename } = await this.training.adminEvidencePdf(this.evidenceFilter(q), by, user.id, user.role);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': pdf.length,
+    });
+    res.end(pdf);
+  }
+
+  private evidenceFilter(q: any) {
+    return {
+      courseId: q.courseId || undefined,
+      branchCode: q.branchCode || undefined,
+      state: q.state || undefined,
+      from: q.from || undefined,
+      to: q.to || undefined,
+      passedOnly: q.passedOnly === 'true' || q.passedOnly === '1',
+    };
   }
 }

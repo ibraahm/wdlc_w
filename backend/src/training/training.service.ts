@@ -6,6 +6,7 @@ import { sanitizeLessonHtml, safeHttpUrl } from './sanitize';
 import { RegionalService } from '../regional/regional.service';
 import { normalizeVideoUrl } from './video.util';
 import { buildCertificatePdf } from './certificate';
+import { buildEvidencePacketPdf } from './evidence';
 
 interface Question {
   q: string;
@@ -961,5 +962,226 @@ export class TrainingService {
       byState: Array.from(byState.entries()).map(([state, set]) => ({ state, completions: set.size })).sort((a, b) => a.state.localeCompare(b.state)),
       byBranch: Array.from(byBranch.entries()).map(([branchCode, set]) => ({ branchCode, completions: set.size })).sort((a, b) => b.completions - a.completions),
     };
+  }
+
+  // ── ADMIN: compliance dashboard (Phase 4) ──────────────────────────────────
+  // Content older than this many days is flagged for review.
+  private readonly STALE_DAYS = 365;
+
+  async adminComplianceSummary(adminId?: string, role?: string) {
+    const now = new Date();
+    const scopedBranches = await this.scopedBranchCodes(adminId, role);
+
+    const courses = await this.prisma.course.findMany({
+      where: { status: 'PUBLISHED' },
+      select: {
+        id: true, title: true, category: true, order: true, translationGroup: true,
+        audience: true, targetStates: true, targetBranches: true, requireAck: true, dueAt: true,
+      },
+      orderBy: { order: 'asc' },
+    });
+
+    const agents = await this.prisma.agentUser.findMany({
+      where: { active: true, ...(scopedBranches ? { branchCode: { in: scopedBranches.length ? scopedBranches : ['__none__'] } } : {}) },
+      select: { id: true, branchCode: true },
+    });
+    const branchCodes = [...new Set(agents.map((a) => a.branchCode).filter(Boolean) as string[])];
+    const ddFiles = branchCodes.length
+      ? await this.prisma.agentDDFile.findMany({ where: { branchCode: { in: branchCodes } }, select: { branchCode: true, states: true } })
+      : [];
+    const statesByBranch = new Map(ddFiles.map((f) => [f.branchCode, CSV(f.states)] as const));
+
+    const assignments = await this.prisma.trainingAssignment.findMany({
+      where: { active: true }, select: { courseId: true, agentId: true, branchCode: true, dueAt: true },
+    });
+    const completions = await this.prisma.courseCompletion.findMany({
+      where: { passed: true }, select: { courseId: true, agentId: true },
+    });
+    const passedByCourse = new Map<string, Set<string>>();
+    for (const c of completions) {
+      if (!passedByCourse.has(c.courseId)) passedByCourse.set(c.courseId, new Set());
+      passedByCourse.get(c.courseId)!.add(c.agentId);
+    }
+
+    // Latest version per course (for staleness + acknowledgment counts).
+    const versions = await this.prisma.courseVersion.findMany({ select: { id: true, courseId: true, version: true, effectiveAt: true } });
+    const latestByCourse = new Map<string, { id: string; effectiveAt: Date; version: number }>();
+    for (const v of versions) {
+      const cur = latestByCourse.get(v.courseId);
+      if (!cur || v.version > cur.version) latestByCourse.set(v.courseId, { id: v.id, effectiveAt: v.effectiveAt, version: v.version });
+    }
+    const latestVersionIds = [...latestByCourse.values()].map((v) => v.id);
+    const acks = latestVersionIds.length
+      ? await this.prisma.policyAcknowledgment.findMany({ where: { courseVersionId: { in: latestVersionIds } }, select: { agentId: true, courseVersionId: true } })
+      : [];
+    const ackAgentsByCourse = new Map<string, Set<string>>();
+    const courseByVersion = new Map([...latestByCourse.entries()].map(([cid, v]) => [v.id, cid] as const));
+    for (const a of acks) {
+      const cid = courseByVersion.get(a.courseVersionId);
+      if (!cid) continue;
+      if (!ackAgentsByCourse.has(cid)) ackAgentsByCourse.set(cid, new Set());
+      ackAgentsByCourse.get(cid)!.add(a.agentId);
+    }
+
+    // Group translations so an agent is counted once per logical course.
+    const groups = new Map<string, typeof courses>();
+    for (const c of courses) {
+      const key = c.translationGroup || c.id;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(c);
+    }
+
+    const staleCutoff = new Date(now.getTime() - this.STALE_DAYS * 86_400_000);
+    let totRequired = 0, totCompleted = 0, totOverdue = 0;
+
+    const courseRows = Array.from(groups.values()).map((variants) => {
+      const variantIds = new Set(variants.map((v) => v.id));
+      const groupAssigns = assignments.filter((a) => variantIds.has(a.courseId));
+      const due0 = variants.map((v) => v.dueAt).find(Boolean) ?? null;
+      const requireAck = variants.some((v) => v.requireAck);
+      const passedAgents = new Set<string>();
+      const ackAgents = new Set<string>();
+      for (const v of variants) {
+        passedByCourse.get(v.id)?.forEach((id) => passedAgents.add(id));
+        ackAgentsByCourse.get(v.id)?.forEach((id) => ackAgents.add(id));
+      }
+      // Newest version effective date across the group → staleness.
+      const effectiveAt = variants
+        .map((v) => latestByCourse.get(v.id)?.effectiveAt)
+        .filter(Boolean)
+        .sort((a, b) => (b as Date).getTime() - (a as Date).getTime())[0] as Date | undefined;
+
+      let required = 0, completed = 0, overdue = 0, acknowledged = 0;
+      for (const agent of agents) {
+        const states = agent.branchCode ? statesByBranch.get(agent.branchCode) ?? [] : [];
+        const audienceMatch = variants.some((v) => this.matches(v, agent.branchCode, states));
+        const assign = groupAssigns.find((a) => a.agentId === agent.id || (!!a.branchCode && a.branchCode === agent.branchCode));
+        if (!audienceMatch && !assign) continue;
+        required++;
+        if (requireAck && ackAgents.has(agent.id)) acknowledged++;
+        if (passedAgents.has(agent.id)) { completed++; continue; }
+        const due = assign?.dueAt ?? due0;
+        if (due && due < now) overdue++;
+      }
+      totRequired += required; totCompleted += completed; totOverdue += overdue;
+      const head = variants[0];
+      return {
+        id: head.translationGroup || head.id,
+        title: head.title,
+        category: head.category,
+        requireAck,
+        dueAt: due0,
+        requiredCount: required,
+        completedCount: completed,
+        completionPct: required ? Math.round((completed / required) * 100) : 0,
+        overdueCount: overdue,
+        ackCount: requireAck ? acknowledged : null,
+        ackPct: requireAck && required ? Math.round((acknowledged / required) * 100) : null,
+        versionEffectiveAt: effectiveAt ?? null,
+        stale: !!effectiveAt && effectiveAt < staleCutoff,
+      };
+    });
+
+    return {
+      generatedAt: now,
+      totals: {
+        courses: courseRows.length,
+        required: totRequired,
+        completed: totCompleted,
+        overdue: totOverdue,
+        completionPct: totRequired ? Math.round((totCompleted / totRequired) * 100) : 0,
+        staleCourses: courseRows.filter((c) => c.stale).length,
+      },
+      courses: courseRows,
+    };
+  }
+
+  // ── ADMIN: evidence export (Phase 4) ───────────────────────────────────────
+  private async adminEvidenceRows(
+    filter: { courseId?: string; branchCode?: string; state?: string; from?: string; to?: string; passedOnly?: boolean },
+    adminId?: string,
+    role?: string,
+  ) {
+    const where: any = {};
+    if (filter.courseId) where.courseId = filter.courseId;
+    if (filter.branchCode) where.branchCode = filter.branchCode.toUpperCase();
+    if (filter.state) where.agentState = { contains: filter.state.toUpperCase() };
+    if (filter.passedOnly) where.passed = true;
+    if (filter.from || filter.to) {
+      where.completedAt = {};
+      if (filter.from) where.completedAt.gte = new Date(filter.from);
+      if (filter.to) { const d = new Date(filter.to); d.setHours(23, 59, 59, 999); where.completedAt.lte = d; }
+    }
+    const scopedBranches = await this.scopedBranchCodes(adminId, role);
+    if (scopedBranches) where.branchCode = { in: scopedBranches.length ? scopedBranches : ['__none__'] };
+
+    const rows = await this.prisma.courseCompletion.findMany({
+      where, orderBy: { completedAt: 'desc' }, take: 5000,
+      include: {
+        course: { select: { id: true, title: true, category: true } },
+        agent: { select: { firstName: true, lastName: true, email: true } },
+      },
+    });
+
+    const courseIds = [...new Set(rows.map((r) => r.courseId))];
+    const versions = courseIds.length
+      ? await this.prisma.courseVersion.findMany({ where: { courseId: { in: courseIds } }, select: { id: true, courseId: true, version: true } })
+      : [];
+    const latestByCourse = new Map<string, string>();
+    const maxVer = new Map<string, number>();
+    for (const v of versions) {
+      if ((maxVer.get(v.courseId) ?? -1) < v.version) { maxVer.set(v.courseId, v.version); latestByCourse.set(v.courseId, v.id); }
+    }
+    const latestVersionIds = [...latestByCourse.values()];
+    const acks = latestVersionIds.length
+      ? await this.prisma.policyAcknowledgment.findMany({ where: { courseVersionId: { in: latestVersionIds } }, select: { agentId: true, courseVersionId: true, acknowledgedAt: true } })
+      : [];
+    const ackMap = new Map(acks.map((a) => [`${a.agentId}:${a.courseVersionId}`, a.acknowledgedAt] as const));
+
+    return rows.map((r) => ({
+      learnerName: `${r.agent.firstName} ${r.agent.lastName}`,
+      email: r.agent.email,
+      courseTitle: r.course.title,
+      category: r.course.category,
+      score: r.score,
+      passed: r.passed,
+      attempt: r.attempt,
+      branchCode: r.branchCode,
+      agentState: r.agentState,
+      completedAt: r.completedAt,
+      acknowledgedAt: ackMap.get(`${r.agentId}:${latestByCourse.get(r.courseId) ?? ''}`) ?? null,
+    }));
+  }
+
+  private toCsv(headers: string[], rows: (string | number | null)[][]): string {
+    const esc = (v: string | number | null) => {
+      const s = v == null ? '' : String(v);
+      return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    return [headers, ...rows].map((r) => r.map(esc).join(',')).join('\r\n');
+  }
+
+  async adminEvidenceCsv(filter: any, adminId?: string, role?: string): Promise<{ csv: string; filename: string }> {
+    const rows = await this.adminEvidenceRows(filter, adminId, role);
+    const headers = ['Learner', 'Email', 'Course', 'Category', 'Score', 'Result', 'Attempt', 'Branch', 'State', 'Completed', 'Acknowledged'];
+    const body = rows.map((r) => [
+      r.learnerName, r.email, r.courseTitle, r.category, r.score, r.passed ? 'PASS' : 'FAIL',
+      r.attempt, r.branchCode, r.agentState, r.completedAt.toISOString(), r.acknowledgedAt ? r.acknowledgedAt.toISOString() : '',
+    ]);
+    return { csv: this.toCsv(headers, body), filename: `training-evidence-${new Date().toISOString().slice(0, 10)}.csv` };
+  }
+
+  async adminEvidencePdf(filter: any, generatedBy: string, adminId?: string, role?: string): Promise<{ pdf: Buffer; filename: string }> {
+    const rows = await this.adminEvidenceRows(filter, adminId, role);
+    const courseTitle = filter.courseId
+      ? (await this.prisma.course.findUnique({ where: { id: filter.courseId }, select: { title: true } }))?.title ?? filter.courseId
+      : 'All courses';
+    const range = `${filter.from ?? 'start'} → ${filter.to ?? 'today'}`;
+    const filterSummary = `Course: ${courseTitle} · Branch: ${filter.branchCode ?? 'All'} · State: ${filter.state ?? 'All'} · ${range}`;
+    const pdf = await buildEvidencePacketPdf({ generatedAt: new Date(), generatedBy, filterSummary, rows });
+    if (adminId) {
+      await this.audit.log({ action: 'training.evidence.export', adminId, entity: 'Course', entityId: filter.courseId ?? 'all', after: { records: rows.length, filterSummary } });
+    }
+    return { pdf, filename: `training-evidence-${new Date().toISOString().slice(0, 10)}.pdf` };
   }
 }

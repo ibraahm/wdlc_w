@@ -1369,3 +1369,41 @@ export async function apiUpdateAssignment(accessToken: string, id: string, data:
   const res = await authFetch(`/admin/training/assignments/${id}`, accessToken, { method: 'PATCH', body: JSON.stringify(data) });
   return handleResponse<TrainingAssignment>(res);
 }
+
+// ---------------------------------------------------------------------------
+// Compliance dashboard (Phase 4)
+// ---------------------------------------------------------------------------
+
+export type ComplianceCourse = {
+  id: string;
+  title: string;
+  category: string;
+  requireAck: boolean;
+  dueAt: string | null;
+  requiredCount: number;
+  completedCount: number;
+  completionPct: number;
+  overdueCount: number;
+  ackCount: number | null;
+  ackPct: number | null;
+  versionEffectiveAt: string | null;
+  stale: boolean;
+};
+
+export type ComplianceSummary = {
+  generatedAt: string;
+  totals: {
+    courses: number;
+    required: number;
+    completed: number;
+    overdue: number;
+    completionPct: number;
+    staleCourses: number;
+  };
+  courses: ComplianceCourse[];
+};
+
+export async function apiComplianceSummary(accessToken: string): Promise<ComplianceSummary> {
+  const res = await authFetch('/admin/training/compliance', accessToken);
+  return handleResponse<ComplianceSummary>(res);
+}
