@@ -40,7 +40,7 @@ function CourseCard({ c }: { c: CourseSummary }) {
             {c.dueAt && <> · Due {fmtDate(c.dueAt)}{due !== null && !c.completed && due >= 0 ? ` (${due}d)` : ''}</>}
           </p>
           <div style={{ marginTop: '10px', maxWidth: '320px' }}>
-            <div style={{ height: '4px', background: 'var(--smoke)', borderRadius: '2px' }}>
+            <div role="progressbar" aria-valuenow={c.completed ? 100 : c.progressPct} aria-valuemin={0} aria-valuemax={100} aria-label={`${c.title} progress`} style={{ height: '4px', background: 'var(--smoke)', borderRadius: '2px' }}>
               <div style={{ height: '100%', width: `${c.completed ? 100 : c.progressPct}%`, background: c.completed ? '#166534' : 'var(--gold)', borderRadius: '2px' }} />
             </div>
           </div>
@@ -107,7 +107,7 @@ export default async function TrainingPage() {
               <span>{completed.length} of {courses.length} complete{overdue.length > 0 ? ` · ${overdue.length} overdue` : ''}{dueSoon.length > 0 ? ` · ${dueSoon.length} due soon` : ''}</span>
               <span>{pct}%</span>
             </div>
-            <div style={{ height: '6px', background: 'var(--smoke)', borderRadius: '3px' }}>
+            <div role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Overall training completion" style={{ height: '6px', background: 'var(--smoke)', borderRadius: '3px' }}>
               <div style={{ height: '100%', width: `${pct}%`, background: 'var(--gold)', borderRadius: '3px', transition: 'width 0.4s' }} />
             </div>
           </div>

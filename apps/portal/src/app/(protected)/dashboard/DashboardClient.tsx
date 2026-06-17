@@ -23,7 +23,7 @@ function ComplianceChecklist({ agent, trainingDone }: { agent: Agent; trainingDo
           <span>{completed} of {steps.length} complete</span>
           <span>{Math.round((completed / steps.length) * 100)}%</span>
         </div>
-        <div style={{ height: '4px', background: 'var(--smoke)', borderRadius: '2px' }}>
+        <div role="progressbar" aria-valuenow={Math.round((completed / steps.length) * 100)} aria-valuemin={0} aria-valuemax={100} aria-label="Onboarding checklist progress" style={{ height: '4px', background: 'var(--smoke)', borderRadius: '2px' }}>
           <div style={{ height: '100%', width: `${(completed / steps.length) * 100}%`, background: 'var(--gold)', borderRadius: '2px', transition: 'width 0.4s' }} />
         </div>
       </div>
@@ -142,7 +142,7 @@ export default function DashboardClient({ agent, courses }: { agent: Agent; cour
           <p style={{ fontSize: '0.95rem', color: 'var(--charcoal)', fontWeight: 600 }}>{nextCourse.title}</p>
           {nextCourse.lessonCount > 0 && (
             <div style={{ marginTop: '10px', maxWidth: '320px' }}>
-              <div style={{ height: '4px', background: 'var(--smoke)', borderRadius: '2px' }}>
+              <div role="progressbar" aria-valuenow={nextCourse.progressPct} aria-valuemin={0} aria-valuemax={100} aria-label={`${nextCourse.title} progress`} style={{ height: '4px', background: 'var(--smoke)', borderRadius: '2px' }}>
                 <div style={{ height: '100%', width: `${nextCourse.progressPct}%`, background: 'var(--gold)', borderRadius: '2px' }} />
               </div>
               <span style={{ fontSize: '0.72rem', color: 'var(--muted)', marginTop: '4px', display: 'block' }}>

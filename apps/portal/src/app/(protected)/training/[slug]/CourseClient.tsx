@@ -131,7 +131,7 @@ export default function CourseClient({ course }: { course: CourseDetail }) {
           <span>{done.size} of {flatLessons.length} lessons{course.lastAttempt?.passed ? ' · quiz passed' : ''}</span>
           <span>{progressPct}%</span>
         </div>
-        <div style={{ height: '6px', background: 'var(--smoke)', borderRadius: '3px' }}>
+        <div role="progressbar" aria-valuenow={progressPct} aria-valuemin={0} aria-valuemax={100} aria-label="Course progress" style={{ height: '6px', background: 'var(--smoke)', borderRadius: '3px' }}>
           <div style={{ height: '100%', width: `${progressPct}%`, background: course.lastAttempt?.passed ? '#166534' : 'var(--gold)', borderRadius: '3px', transition: 'width 0.4s' }} />
         </div>
         {course.certificateAvailable && (
@@ -415,8 +415,8 @@ function Quiz({ course, lessonsComplete, blockedByAck, onPassed }: { course: Cou
     <>
       {error && <div className="auth-error" style={{ marginBottom: '16px' }}>{error}</div>}
       {course.questions.map((q, qi) => (
-        <div key={q.i} className="dash-card">
-          <p style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--charcoal)', marginBottom: '12px' }}>{qi + 1}. {q.q}</p>
+        <fieldset key={q.i} className="dash-card" style={{ border: 0, margin: 0 }}>
+          <legend style={{ fontSize: '0.92rem', fontWeight: 600, color: 'var(--charcoal)', marginBottom: '12px', padding: 0 }}>{qi + 1}. {q.q}</legend>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             {q.options.map((opt, oi) => (
               <label key={oi} style={{ display: 'flex', alignItems: 'center', gap: '10px', minHeight: '48px', padding: '12px 14px', border: `1px solid ${answers[qi] === oi ? 'var(--gold)' : 'var(--smoke)'}`, borderRadius: '8px', cursor: 'pointer', background: answers[qi] === oi ? 'rgba(200,150,12,0.08)' : 'transparent' }}>
@@ -425,7 +425,7 @@ function Quiz({ course, lessonsComplete, blockedByAck, onPassed }: { course: Cou
               </label>
             ))}
           </div>
-        </div>
+        </fieldset>
       ))}
       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
         <button onClick={submit} disabled={pending} className="auth-submit course-cta" style={{ width: 'auto', padding: '14px 28px', minHeight: '48px' }}>

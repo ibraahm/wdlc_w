@@ -183,7 +183,10 @@ export async function setLanguageAction(language: string): Promise<{ ok?: boolea
   if (!accessToken) return { error: 'Not authenticated.' };
   try {
     await apiSetLanguage(accessToken, language);
+    // Mirror the choice into a cookie so the root layout can set <html lang/dir>.
+    cookies().set('plang', language, { path: '/', maxAge: 60 * 60 * 24 * 365, sameSite: 'lax' });
     revalidatePath('/training');
+    revalidatePath('/', 'layout');
     return { ok: true };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Could not change language.' };

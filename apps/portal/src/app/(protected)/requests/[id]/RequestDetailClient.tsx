@@ -67,8 +67,8 @@ export default function RequestDetailClient({ request }: { request: AgentRequest
         )}
         {error && <div className="auth-error" style={{ margin: '12px 0' }}>{error}</div>}
         <div style={{ display: 'flex', gap: '8px', marginTop: '14px' }}>
-          <input value={body} onChange={(e) => setBody(e.target.value)} className="auth-input" placeholder="Write a message…" onKeyDown={(e) => { if (e.key === 'Enter') send(); }} />
-          <button onClick={send} disabled={pending} className="auth-submit" style={{ width: 'auto', padding: '0 20px' }}>{pending ? '…' : 'Send'}</button>
+          <input value={body} onChange={(e) => setBody(e.target.value)} className="auth-input" aria-label="Write a message" placeholder="Write a message…" onKeyDown={(e) => { if (e.key === 'Enter') send(); }} />
+          <button onClick={send} disabled={pending} aria-busy={pending} aria-label={pending ? 'Sending message' : 'Send message'} className="auth-submit" style={{ width: 'auto', padding: '0 20px' }}>{pending ? '…' : 'Send'}</button>
         </div>
       </div>
     </div>

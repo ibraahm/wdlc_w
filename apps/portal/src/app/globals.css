@@ -12,7 +12,8 @@
   --cream: #f5f2eb;
   --smoke: #e8e4dc;
   --charcoal: #2c2c2c;
-  --muted: rgba(44, 44, 44, 0.58);
+  /* 0.66 keeps secondary text above the WCAG AA 4.5:1 contrast threshold on the ivory/cream surfaces. */
+  --muted: rgba(44, 44, 44, 0.66);
   --display: "Cormorant Garamond", Georgia, serif;
   --body: "DM Sans", system-ui, sans-serif;
 }
@@ -305,3 +306,42 @@ a { color: inherit; text-decoration: none; }
 .course-content table { border-collapse: collapse; margin: 0.8em 0; width: 100%; }
 .course-content th, .course-content td { border: 1px solid var(--smoke); padding: 8px 10px; text-align: left; }
 .course-content strong, .course-content b { font-weight: 700; }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Accessibility (WCAG 2.1 AA): visible keyboard focus, reduced motion, RTL
+   ────────────────────────────────────────────────────────────────────────── */
+
+/* Visible focus for keyboard users across all interactive elements. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role='button']:focus-visible,
+.auth-input:focus-visible,
+.auth-submit:focus-visible,
+.course-contents-toggle:focus-visible,
+.portal-logout-btn:focus-visible,
+.pshell-drawer-close:focus-visible,
+label:focus-within {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Honour the OS "reduce motion" setting. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Right-to-left language support (e.g. Arabic). */
+[dir='rtl'] {
+  text-align: right;
+}

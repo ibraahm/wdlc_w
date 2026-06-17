@@ -88,7 +88,7 @@ export default function RequestsClient({ requests }: { requests: AgentRequest[] 
                   {links.map((l, i) => (
                     <li key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', padding: '3px 0' }}>
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.url}</span>
-                      <button onClick={() => setLinks((arr) => arr.filter((_, j) => j !== i))} style={{ color: '#b91c1c', background: 'none', border: 0, cursor: 'pointer' }}>✕</button>
+                      <button type="button" aria-label={`Remove link ${l.url}`} onClick={() => setLinks((arr) => arr.filter((_, j) => j !== i))} style={{ color: '#b91c1c', background: 'none', border: 0, cursor: 'pointer' }}>✕</button>
                     </li>
                   ))}
                 </ul>
