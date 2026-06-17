@@ -44,8 +44,10 @@ function addressLine(f: DDFile) {
   ].filter(Boolean).join(' - ');
 }
 
+// Used for the review-due date, a date-only value stored at UTC midnight —
+// format in UTC so it doesn't shift back a day in western timezones.
 function formatDate(value?: string | null) {
-  return value ? new Date(value).toLocaleDateString() : 'Not set';
+  return value ? new Date(value).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }) : 'Not set';
 }
 
 function matchesQuery(file: DDFile, query: string) {

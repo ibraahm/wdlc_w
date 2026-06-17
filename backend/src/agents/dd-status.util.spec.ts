@@ -30,6 +30,17 @@ describe('computeDocStatus', () => {
     expect(computeDocStatus({ present: true, hasExpiry: true, expiry: days(-1), now: NOW })).toBe('EXPIRED');
   });
 
+  it('treats a document as valid through its whole expiry day (no off-by-one)', () => {
+    // Expiry date is "today" (UTC midnight) but the clock is partway through the
+    // day — it must still read EXPIRING, not EXPIRED.
+    const midDay = new Date('2026-01-01T18:30:00Z');
+    const expiresToday = new Date('2026-01-01T00:00:00Z');
+    expect(computeDocStatus({ present: true, hasExpiry: true, expiry: expiresToday, now: midDay })).toBe('EXPIRING');
+    // The day after, it is EXPIRED.
+    const nextDay = new Date('2026-01-02T00:30:00Z');
+    expect(computeDocStatus({ present: true, hasExpiry: true, expiry: expiresToday, now: nextDay })).toBe('EXPIRED');
+  });
+
   it('treats a present expiry-tracked doc with no date as OK (date not yet recorded)', () => {
     expect(computeDocStatus({ present: true, hasExpiry: true, expiry: null, now: NOW })).toBe('OK');
   });

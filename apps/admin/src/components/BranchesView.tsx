@@ -15,6 +15,12 @@ function fmtDate(v?: string | null) {
   return v ? new Date(v).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '-';
 }
 
+// Date-only fields (e.g. review-due dates) are stored at UTC midnight; format
+// them in UTC so they don't shift back a day in western timezones.
+function fmtDateOnly(v?: string | null) {
+  return v ? new Date(v).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }) : '-';
+}
+
 function UserChip({ u }: { u: BranchUser }) {
   const router = useRouter();
   const isPrincipal = u.role === 'PRINCIPAL';
@@ -106,7 +112,7 @@ function BranchCard({ b }: { b: AgentBranch }) {
         </div>
         <div className="text-right text-xs">
           <p className={b.reviewDue ? 'font-semibold text-amber-700' : 'text-gray-500'}>
-            {b.reviewDue ? '⚠ Review due' : 'Next review'}: {fmtDate(b.nextReviewDueAt)}
+            {b.reviewDue ? '⚠ Review due' : 'Next review'}: {fmtDateOnly(b.nextReviewDueAt)}
           </p>
           <p className="text-gray-400">Last reviewed {fmtDate(b.lastReviewedAt)}</p>
           <Link href={`/agent-dd/${b.id}`} className="mt-1 inline-block font-semibold text-navy hover:underline">Open DD file →</Link>
