@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { submitQuizAction, completeLessonAction, setLanguageAction, acknowledgePolicyAction } from '@/lib/actions';
 import type { CourseDetail, QuizResult, LessonView } from '@/lib/api';
@@ -347,10 +347,37 @@ function currItemStyle(active: boolean): React.CSSProperties {
 }
 
 function Quiz({ course, lessonsComplete, blockedByAck, onPassed }: { course: CourseDetail; lessonsComplete: boolean; blockedByAck: boolean; onPassed: () => void }) {
-  const [answers, setAnswers] = useState<(number | null)[]>(() => course.questions.map(() => null));
-  const [result, setResult] = useState<QuizResult | null>(null);
+  // Keep in-progress answers in the browser so they survive switching to a
+  // lesson and back, or a page reload, until the quiz is submitted.
+  const storageKey = `wdlc-quiz:${course.slug}`;
+  const [answers, setAnswers] = useState<(number | null)[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = JSON.parse(window.localStorage.getItem(storageKey) || 'null');
+        if (Array.isArray(saved) && saved.length === course.questions.length) return saved;
+      } catch { /* ignore */ }
+    }
+    return course.questions.map(() => null);
+  });
+  // Show the learner's saved result when they return to a course they've taken.
+  const [result, setResult] = useState<QuizResult | null>(() => {
+    const a = course.lastAttempt;
+    if (!a) return null;
+    const total = course.questions.length;
+    return {
+      score: a.score, passed: a.passed, passingScore: course.passingScore,
+      correct: Math.round((a.score / 100) * total), total, results: [],
+      certificateAvailable: a.passed,
+    };
+  });
   const [error, setError] = useState('');
   const [pending, startTransition] = useTransition();
+
+  // Persist answers while the learner is still working through the quiz.
+  useEffect(() => {
+    if (result) return;
+    try { window.localStorage.setItem(storageKey, JSON.stringify(answers)); } catch { /* ignore */ }
+  }, [answers, result, storageKey]);
 
   const blocked = course.requireLessons && !lessonsComplete;
   const allAnswered = answers.every((a) => a !== null);
@@ -373,10 +400,19 @@ function Quiz({ course, lessonsComplete, blockedByAck, onPassed }: { course: Cou
     startTransition(async () => {
       const res = await submitQuizAction(course.slug, answers as number[]);
       if (res.error) setError(res.error);
-      else if (res.result) { setResult(res.result); if (res.result.passed) onPassed(); }
+      else if (res.result) {
+        setResult(res.result);
+        try { window.localStorage.removeItem(storageKey); } catch { /* ignore */ }
+        if (res.result.passed) onPassed();
+      }
     });
   }
-  function retake() { setAnswers(course.questions.map(() => null)); setResult(null); setError(''); }
+  function retake() {
+    setAnswers(course.questions.map(() => null));
+    setResult(null);
+    setError('');
+    try { window.localStorage.removeItem(storageKey); } catch { /* ignore */ }
+  }
 
   if (blocked) {
     return (
@@ -404,9 +440,19 @@ function Quiz({ course, lessonsComplete, blockedByAck, onPassed }: { course: Cou
             </a>
           )}
         </div>
-        {!result.passed && (
-          <button onClick={retake} className="auth-submit course-cta" style={{ width: 'auto', padding: '14px 24px' }}>Retake quiz</button>
-        )}
+        {/* Retake is always available — failed learners must, passed learners may. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <button
+            onClick={retake}
+            className="auth-submit course-cta"
+            style={{ width: 'auto', padding: '14px 24px', ...(result.passed ? { background: '#fff', color: 'var(--navy)', border: '2px solid var(--smoke)' } : {}) }}
+          >
+            {result.passed ? 'Retake quiz' : 'Retake quiz'}
+          </button>
+          {result.passed && (
+            <span style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>You&apos;ve already passed — retaking won&apos;t lower your result.</span>
+          )}
+        </div>
       </>
     );
   }

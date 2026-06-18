@@ -562,9 +562,12 @@ export class TrainingService {
     const lessonsDone = allLessons.filter((l) => doneLessons.has(l.id)).length;
 
     const questions = parseQuestions(course.questions).map((q, i) => ({ i, q: q.q, options: q.options }));
+    // The learner's standing on this course: a passing attempt outranks a fail,
+    // then the highest score, then the most recent — so a later failed retake
+    // never hides a pass they already earned.
     const last = await this.prisma.courseCompletion.findFirst({
       where: { agentId, courseId: course.id },
-      orderBy: { completedAt: 'desc' },
+      orderBy: [{ passed: 'desc' }, { score: 'desc' }, { completedAt: 'desc' }],
     });
 
     // Phase 2: current content version + this agent's acknowledgment of it.
