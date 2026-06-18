@@ -105,6 +105,26 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
     return pathname === href || pathname.startsWith(href + '/');
   }
 
+  // Collapsible nav groups: only the section you're in is open by default, so
+  // the sidebar stays short and uncluttered.
+  const activeGroupHeading = navGroups.find((g) => g.items.some((i) => isActive(i.href)))?.heading;
+  // Training has its own in-page tab bar, so we don't auto-expand it in the
+  // sidebar (avoids showing the same links twice).
+  const autoOpen = activeGroupHeading && activeGroupHeading !== 'Training' ? activeGroupHeading : null;
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set(autoOpen ? [autoOpen] : []));
+  function toggleGroup(heading: string) {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(heading)) next.delete(heading); else next.add(heading);
+      return next;
+    });
+  }
+  useEffect(() => {
+    if (autoOpen) {
+      setOpenGroups((prev) => (prev.has(autoOpen) ? prev : new Set(prev).add(autoOpen)));
+    }
+  }, [autoOpen]);
+
   useEffect(() => {
     setDrawerOpen(false);
   }, [pathname]);
@@ -139,28 +159,41 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
 
   const renderNav = () => (
     <nav className="admin-nav" aria-label="Main navigation">
-      {navGroups.map((group) => (
-        <div key={group.heading} className="admin-nav-group">
-          <p className="admin-nav-heading">{group.heading}</p>
-          {group.items.map((item) => {
-            const active = isActive(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                aria-current={active ? 'page' : undefined}
-                aria-label={`${item.label}: ${item.description}`}
-                className={`admin-nav-link ${active ? 'is-active' : ''}`}
-              >
-                <span className="admin-nav-indicator" aria-hidden="true" />
-                <span className="admin-nav-copy">
-                  <span className="admin-nav-label">{item.label}</span>
-                </span>
-              </Link>
-            );
-          })}
-        </div>
-      ))}
+      {navGroups.map((group) => {
+        const open = openGroups.has(group.heading);
+        const hasActive = group.items.some((i) => isActive(i.href));
+        return (
+          <div key={group.heading} className="admin-nav-group">
+            <button
+              type="button"
+              className="admin-nav-heading"
+              aria-expanded={open}
+              onClick={() => toggleGroup(group.heading)}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, width: '100%', background: 'none', border: 0, cursor: 'pointer', textAlign: 'left' }}
+            >
+              <span>{group.heading}{!open && hasActive ? ' •' : ''}</span>
+              <span aria-hidden="true" style={{ opacity: 0.55, fontSize: '0.7em', transition: 'transform .15s ease', transform: open ? 'rotate(90deg)' : 'none' }}>▶</span>
+            </button>
+            {open && group.items.map((item) => {
+              const active = isActive(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={active ? 'page' : undefined}
+                  aria-label={`${item.label}: ${item.description}`}
+                  className={`admin-nav-link ${active ? 'is-active' : ''}`}
+                >
+                  <span className="admin-nav-indicator" aria-hidden="true" />
+                  <span className="admin-nav-copy">
+                    <span className="admin-nav-label">{item.label}</span>
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        );
+      })}
     </nav>
   );
 
