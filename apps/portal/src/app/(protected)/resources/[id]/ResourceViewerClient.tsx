@@ -4,28 +4,19 @@ import { useEffect, useState } from 'react';
 import { ackResourceAction } from '@/lib/actions';
 import type { ResourceItem } from '@/lib/api';
 
-// Turn common share links into something a browser can show inline.
-// (For external hosts this is best-effort — some block embedding entirely, which
-// is why we always offer an "open in a new tab" fallback below the viewer.)
-function embedUrl(url: string): string {
+// Choose how to show the document in the in-page viewer. Google Drive has its
+// own embeddable preview; everything else is streamed through our own origin
+// (/resources/<id>/file) so hosts that block iframes (e.g. Dropbox) still show.
+function embedUrl(resource: ResourceItem): string {
   try {
-    const u = new URL(url);
-    const host = u.hostname;
-    // Dropbox: serve the raw file (renders PDFs/images inline) instead of the
-    // preview page, which refuses to be embedded.
-    if (host.includes('dropbox.com')) {
-      u.searchParams.delete('dl');
-      u.searchParams.set('raw', '1');
-      return u.toString();
+    const u = new URL(resource.url);
+    if (u.hostname.includes('drive.google.com')) {
+      return resource.url.replace('/view', '/preview').replace('/edit', '/preview');
     }
-    // Google Drive: use the embeddable /preview form.
-    if (host.includes('drive.google.com')) {
-      return url.replace('/view', '/preview').replace('/edit', '/preview');
-    }
-    return url;
   } catch {
-    return url;
+    /* fall through to the proxy */
   }
+  return `/resources/${resource.id}/file`;
 }
 
 export default function ResourceViewerClient({ resource }: { resource: ResourceItem }) {
@@ -41,7 +32,7 @@ export default function ResourceViewerClient({ resource }: { resource: ResourceI
     return () => { cancelled = true; };
   }, [resource.id, resource.acknowledged]);
 
-  const src = embedUrl(resource.url);
+  const src = embedUrl(resource);
 
   return (
     <div className="portal-content" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -67,7 +58,7 @@ export default function ResourceViewerClient({ resource }: { resource: ResourceI
           Can&apos;t see the document above?
         </p>
         <a
-          href={resource.url}
+          href={src}
           target="_blank"
           rel="noopener noreferrer"
           style={{ display: 'inline-block', padding: '10px 20px', borderRadius: '8px', fontSize: '0.95rem', fontWeight: 700, background: 'var(--gold)', color: '#fff', textDecoration: 'none' }}
@@ -76,10 +67,7 @@ export default function ResourceViewerClient({ resource }: { resource: ResourceI
         </a>
         {resource.allowDownload && (
           <a
-            href={resource.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            download
+            href={`/resources/${resource.id}/file?download=1`}
             style={{ display: 'inline-block', padding: '10px 20px', borderRadius: '8px', fontSize: '0.95rem', fontWeight: 700, background: '#fff', color: 'var(--charcoal)', border: '2px solid var(--smoke)', textDecoration: 'none' }}
           >
             ⬇ Download
