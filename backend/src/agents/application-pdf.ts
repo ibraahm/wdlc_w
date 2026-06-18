@@ -20,8 +20,10 @@ type PdfApplication = {
   productsOffered: string | null;
   currentlyProvides: boolean;
   currentProvider: string | null;
+  currentProviderOther?: string | null;
   providedPast: boolean;
   pastProvider: string | null;
+  pastProviderOther?: string | null;
   declinedBefore: boolean;
   declinedExplain: string | null;
   preferredLanguage: string | null;
@@ -33,99 +35,136 @@ type PdfApplication = {
   signatureTitle: string | null;
   signatureConsent: boolean;
   signatureConsentText: string | null;
-  signatureClientTimestamp: Date | null;
   signatureAcceptedAt: Date | null;
-  signatureIp: string | null;
-  signatureUserAgent: string | null;
   createdAt: Date;
+  // NOTE: signer IP and user-agent are intentionally NOT rendered on this form.
 };
 
-function value(input: unknown): string {
-  if (input === null || input === undefined || input === '') return 'Not provided';
-  if (input instanceof Date) return input.toISOString();
-  if (typeof input === 'boolean') return input ? 'Yes' : 'No';
-  return String(input);
+const NAVY = '#0f2742';
+const GOLD = '#c8960c';
+const M = 48;
+
+function fmtDate(d?: Date | null): string {
+  return d ? d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
 }
 
 function choice(primary: string | null, other?: string | null): string {
-  if (primary === 'Other' && other) return other;
-  return value(primary);
+  if (primary === 'Other' && other) return other.trim();
+  return (primary ?? '').trim() || '—';
 }
 
-function addSection(doc: PDFKit.PDFDocument, title: string) {
-  doc.moveDown(0.8);
-  doc.font('Helvetica-Bold').fontSize(12).fillColor('#0B1F3A').text(title);
-  doc.moveDown(0.2);
-  doc.strokeColor('#d9e0e8').moveTo(doc.x, doc.y).lineTo(540, doc.y).stroke();
-  doc.moveDown(0.5);
+function yesNo(flag: boolean, detail?: string | null): string {
+  if (!flag) return 'No';
+  const d = (detail ?? '').trim();
+  return d ? `Yes — ${d}` : 'Yes';
 }
 
-function addRow(doc: PDFKit.PDFDocument, label: string, rowValue: unknown) {
-  const startY = doc.y;
-  doc.font('Helvetica-Bold').fontSize(9).fillColor('#4b5563').text(label, 54, startY, { width: 155 });
-  doc.font('Helvetica').fontSize(9).fillColor('#111827').text(value(rowValue), 215, startY, { width: 325 });
-  doc.moveDown(0.55);
-}
-
-export async function buildAgentApplicationPdf(app: PdfApplication): Promise<Buffer> {
+// A clean, professional one-page rendering of the agent application form.
+// Intentionally excludes signer IP and user-agent (server/network metadata).
+export async function buildAgentApplicationPdf(app: PdfApplication, brand?: { logo?: Buffer }): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: 'LETTER', margin: 54 });
+    const doc = new PDFDocument({ size: 'LETTER', margin: M });
     const chunks: Buffer[] = [];
-
-    doc.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+    doc.on('data', (c) => chunks.push(Buffer.from(c)));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
-    doc.font('Helvetica-Bold').fontSize(18).fillColor('#0B1F3A').text('World Direct Link');
-    doc.font('Helvetica').fontSize(10).fillColor('#6b7280').text('Become an Agent Application');
-    doc.moveDown();
+    const W = doc.page.width;
+    const right = W - M;
+    const contentW = right - M;
+    let y = M;
 
-    addSection(doc, 'Application');
-    addRow(doc, 'Application ID', app.id);
-    addRow(doc, 'Submitted', app.createdAt);
-    addRow(doc, 'Applicant type', app.applicantType === 'INDIVIDUAL' ? 'Individual' : 'Business');
-    addRow(doc, 'Owner / principal', `${app.firstName} ${app.lastName}`.trim());
-    addRow(doc, 'Company / business', app.company);
-    addRow(doc, 'Business type', choice(app.businessType, app.businessTypeOther));
+    // ── Header ────────────────────────────────────────────────────────────────
+    let logoBottom = M;
+    if (brand?.logo) {
+      try {
+        doc.image(brand.logo, M, M, { fit: [150, 46] });
+        logoBottom = M + 46;
+      } catch {
+        /* ignore unreadable logo */
+      }
+    }
+    doc.fillColor(NAVY).font('Helvetica-Bold').fontSize(18).text('Agent Application', M, M + 2, { width: contentW, align: 'right' });
+    doc.fillColor(GOLD).font('Helvetica').fontSize(9).text('World Direct Link, Corp.  ·  NMLS #1119263', M, M + 25, { width: contentW, align: 'right' });
+    doc.fillColor('#666').font('Helvetica').fontSize(8.5)
+      .text(`Application ${app.id.slice(-8).toUpperCase()}   ·   Submitted ${fmtDate(app.createdAt)}`, M, M + 39, { width: contentW, align: 'right' });
 
-    addSection(doc, 'Contact & Location');
-    addRow(doc, 'Email', app.email);
-    addRow(doc, 'Phone', app.businessPhone);
-    addRow(doc, 'Street', app.businessStreet);
-    addRow(doc, 'City', app.businessCity);
-    addRow(doc, 'State', app.businessState);
-    addRow(doc, 'ZIP', app.businessZip);
-    addRow(doc, 'Country', app.businessCountry);
+    y = Math.max(logoBottom, M + 52) + 10;
+    doc.moveTo(M, y).lineTo(right, y).lineWidth(1).strokeColor(NAVY).stroke();
+    y += 12;
 
-    addSection(doc, 'Products & Experience');
-    addRow(doc, 'Products to offer', app.productsOffered);
-    addRow(doc, 'Currently offers money transfer', app.currentlyProvides);
-    addRow(doc, 'Current company name', app.currentProvider);
-    addRow(doc, 'Offered money transfer in past', app.providedPast);
-    addRow(doc, 'Previous company name', app.pastProvider);
-    addRow(doc, 'Declined / cancelled before', app.declinedBefore);
-    addRow(doc, 'Decline explanation', app.declinedExplain);
-    addRow(doc, 'Preferred language', choice(app.preferredLanguage, app.preferredLanguageOther));
-    addRow(doc, 'Monthly volume', app.monthlyVolume);
-    addRow(doc, 'Total locations', app.totalLocations);
-    addRow(doc, 'How found', choice(app.howFound, app.howFoundOther));
-    addRow(doc, 'Comments', app.comments);
+    // ── Layout helpers ─────────────────────────────────────────────────────────
+    const colW = (contentW - 16) / 2;
+    const col2X = M + colW + 16;
 
-    addSection(doc, 'Electronic Signature Audit');
-    addRow(doc, 'Signature name', app.signatureName);
-    addRow(doc, 'Title / role', app.signatureTitle);
-    addRow(doc, 'Consent accepted', app.signatureConsent);
-    addRow(doc, 'Consent text', app.signatureConsentText);
-    addRow(doc, 'Client timestamp', app.signatureClientTimestamp);
-    addRow(doc, 'Server accepted at', app.signatureAcceptedAt);
-    addRow(doc, 'IP address', app.signatureIp);
-    addRow(doc, 'User agent', app.signatureUserAgent);
+    function heading(title: string) {
+      doc.rect(M, y, contentW, 16).fill(NAVY);
+      doc.fillColor('#fff').font('Helvetica-Bold').fontSize(9).text(title.toUpperCase(), M + 6, y + 4.5, { characterSpacing: 1 });
+      y += 23;
+    }
 
-    doc.moveDown();
-    doc.font('Helvetica').fontSize(8).fillColor('#6b7280').text(
-      'This document is an application intake record. Approval is subject to World Direct Link review, due diligence, and applicable compliance requirements.',
-      { align: 'left' },
-    );
+    function fieldAt(x: number, w: number, label: string, val?: string | null): number {
+      const v = (val ?? '').toString().trim() || '—';
+      doc.fillColor('#8a8a8a').font('Helvetica-Bold').fontSize(7).text(label.toUpperCase(), x, y, { width: w, characterSpacing: 0.5 });
+      const lh = doc.heightOfString(label.toUpperCase(), { width: w, characterSpacing: 0.5 });
+      doc.fillColor('#1a1a1a').font('Helvetica').fontSize(9.5).text(v, x, y + lh + 1, { width: w });
+      const vh = doc.heightOfString(v, { width: w });
+      return lh + vh + 9;
+    }
+
+    function row(l1: string, v1?: string | null, l2?: string, v2?: string | null) {
+      const h1 = fieldAt(M, l2 ? colW : contentW, l1, v1);
+      const h2 = l2 ? fieldAt(col2X, colW, l2, v2) : 0;
+      y += Math.max(h1, h2);
+    }
+
+    const address = [
+      app.businessStreet,
+      [app.businessCity, app.businessState, app.businessZip].filter(Boolean).join(', '),
+      app.businessCountry,
+    ].filter(Boolean).join(' · ');
+
+    // ── Applicant ──────────────────────────────────────────────────────────────
+    heading('Applicant');
+    row('Applicant type', app.applicantType === 'INDIVIDUAL' ? 'Individual' : 'Business',
+      'Business / legal name', app.company || `${app.firstName} ${app.lastName}`.trim());
+    row('Contact name', `${app.firstName} ${app.lastName}`.trim(), 'Preferred language', choice(app.preferredLanguage, app.preferredLanguageOther));
+    row('Email', app.email, 'Business phone', app.businessPhone);
+
+    // ── Business location ───────────────────────────────────────────────────────
+    heading('Business location');
+    row('Business address', address);
+    row('Business type', choice(app.businessType, app.businessTypeOther), 'How they found us', choice(app.howFound, app.howFoundOther));
+
+    // ── Operations ──────────────────────────────────────────────────────────────
+    heading('Operations');
+    row('Products to offer', app.productsOffered, 'Anticipated monthly volume', app.monthlyVolume);
+    row('Total locations', app.totalLocations);
+
+    // ── Money-services history ──────────────────────────────────────────────────
+    heading('Money-services history');
+    row('Currently provides money services', yesNo(app.currentlyProvides, choice(app.currentProvider, app.currentProviderOther) === '—' ? null : choice(app.currentProvider, app.currentProviderOther)),
+      'Provided in the past', yesNo(app.providedPast, choice(app.pastProvider, app.pastProviderOther) === '—' ? null : choice(app.pastProvider, app.pastProviderOther)));
+    row('Previously declined by a provider', yesNo(app.declinedBefore, app.declinedExplain));
+    if ((app.comments ?? '').trim()) row('Additional comments', app.comments);
+
+    // ── Certification & signature (no IP / user-agent) ──────────────────────────
+    heading('Certification & electronic signature');
+    row('Signed by', [app.signatureName, app.signatureTitle].filter(Boolean).join(' — ') || '—', 'Accepted on', fmtDate(app.signatureAcceptedAt));
+    if ((app.signatureConsentText ?? '').trim()) {
+      doc.fillColor('#555').font('Helvetica-Oblique').fontSize(8).text(app.signatureConsentText!.trim(), M, y, { width: contentW });
+      y += doc.heightOfString(app.signatureConsentText!.trim(), { width: contentW }) + 6;
+    }
+    doc.fillColor(app.signatureConsent ? '#166534' : '#b91c1c').font('Helvetica-Bold').fontSize(9)
+      .text(app.signatureConsent ? '✓ Consent to electronic signature provided' : 'Consent to electronic signature not recorded', M, y);
+
+    // ── Footer ──────────────────────────────────────────────────────────────────
+    const footY = doc.page.height - M + 8;
+    doc.fillColor('#999').font('Helvetica').fontSize(7.5)
+      .text(
+        'This document reproduces the application submitted to World Direct Link, Corp. Approval is subject to review, due diligence, and applicable compliance requirements.',
+        M, footY, { width: contentW, align: 'center' },
+      );
 
     doc.end();
   });

@@ -9,6 +9,7 @@ import { generateToken, hashToken } from '../common/crypto.util';
 import { DD_CATALOG } from './dd-catalog';
 import { computeDocStatus } from './dd-status.util';
 import { buildDdFilePdf, type DdFileDocRow } from './dd-file-pdf';
+import { buildAgentApplicationPdf } from './application-pdf';
 import {
   CreateDDFileDto,
   UpdateDocumentDto,
@@ -305,6 +306,33 @@ export class DDService {
     return file;
   }
 
+  // The shared company logo (siteSetting brand.logo) as a decoded buffer.
+  private async brandLogoBuffer(): Promise<Buffer | undefined> {
+    const row = await this.prisma.siteSetting.findUnique({ where: { key: 'brand.logo' } });
+    if (!row) return undefined;
+    const url = JSON.parse(row.value) as string | null;
+    if (!url) return undefined;
+    const comma = url.indexOf(',');
+    return Buffer.from(comma >= 0 ? url.slice(comma + 1) : url, 'base64');
+  }
+
+  private safeFileName(name: string): string {
+    return (name || 'agent').replace(/[^a-z0-9]+/gi, '-').toLowerCase().replace(/^-|-$/g, '') || 'agent';
+  }
+
+  // Professional one-page PDF of the agent's application form (no IP / user-agent).
+  async exportApplicationPdf(id: string, adminId?: string, role?: string): Promise<{ pdf: Buffer; filename: string }> {
+    const file = await this.get(id, adminId, role);
+    const app = (file as any).application;
+    if (!app) throw new BadRequestException('No application is linked to this DD file');
+    const logo = await this.brandLogoBuffer();
+    const pdf = await buildAgentApplicationPdf(app, logo ? { logo } : undefined);
+    if (adminId) {
+      await this.audit.log({ action: 'agent.application.export', adminId, entity: 'AgentApplication', entityId: app.id });
+    }
+    return { pdf, filename: `application-${this.safeFileName(file.agentName)}.pdf` };
+  }
+
   // Branded, regulator-presentable PDF of the whole DD file.
   async exportFilePdf(id: string, generatedBy: string, adminId?: string, role?: string): Promise<{ pdf: Buffer; filename: string }> {
     const file = await this.get(id, adminId, role);
@@ -324,15 +352,7 @@ export class DDService {
           .filter(Boolean).join(' · ')
       : null;
 
-    const logoRow = await this.prisma.siteSetting.findUnique({ where: { key: 'brand.logo' } });
-    let logo: Buffer | undefined;
-    if (logoRow) {
-      const url = JSON.parse(logoRow.value) as string | null;
-      if (url) {
-        const comma = url.indexOf(',');
-        logo = Buffer.from(comma >= 0 ? url.slice(comma + 1) : url, 'base64');
-      }
-    }
+    const logo = await this.brandLogoBuffer();
 
     const pdf = await buildDdFilePdf(
       {
@@ -356,8 +376,7 @@ export class DDService {
     if (adminId) {
       await this.audit.log({ action: 'agent.dd.file.export', adminId, entity: 'AgentDDFile', entityId: id, after: { records: documents.length } });
     }
-    const safeName = (file.agentName || 'agent').replace(/[^a-z0-9]+/gi, '-').toLowerCase().replace(/^-|-$/g, '');
-    return { pdf, filename: `dd-file-${safeName || 'agent'}.pdf` };
+    return { pdf, filename: `dd-checklist-${this.safeFileName(file.agentName)}.pdf` };
   }
 
   /** Cross-file dashboard of documents needing attention + reviews due. */

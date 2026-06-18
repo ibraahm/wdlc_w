@@ -224,13 +224,22 @@ export default function DDFileDetail({
             <Link href="/agent-dd" className="text-sm text-gray-400 hover:text-gray-600">Back to DD files</Link>
             <Link href={`/agent-profile/${f.id}`} className="text-sm font-medium text-gold hover:underline">360 view →</Link>
             <a
+              href={`/api/agent-dd/${f.id}/application`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+              title="Download the agent's application form (PDF)"
+            >
+              ⬇ Download application
+            </a>
+            <a
               href={`/api/agent-dd/${f.id}/pdf`}
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-lg border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-700 hover:bg-gray-50"
-              title="Download a branded PDF of this due-diligence file"
+              title="Download the due-diligence checklist (PDF)"
             >
-              ⬇ Download PDF
+              ⬇ Download DD checklist
             </a>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-2">

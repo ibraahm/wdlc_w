@@ -54,6 +54,18 @@ export class DDAdminController {
     res.end(pdf);
   }
 
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'REGIONAL_OFFICER')
+  @Get(':id/application.pdf')
+  async exportApplicationPdf(@Param('id') id: string, @CurrentUser() user: AuthUser, @Res() res: Response) {
+    const { pdf, filename } = await this.dd.exportApplicationPdf(id, user.id, user.role);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Content-Length': pdf.length,
+    });
+    res.end(pdf);
+  }
+
   @Post('users/:userId/resend-setup')
   resendSetup(@Param('userId') userId: string, @CurrentUser('id') adminId: string) {
     return this.dd.resendPortalSetup(userId, adminId);
