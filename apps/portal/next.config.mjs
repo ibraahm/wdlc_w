@@ -21,9 +21,12 @@ const CSP = [
   "img-src 'self' data: blob: https:",
   `connect-src 'self' ${apiOrigin()} https://accounts.google.com`,
   // Google sign-in iframe + lesson video embeds (allowlisted server-side to
-  // these exact hosts in backend video.util.ts).
-  "frame-src 'self' https://accounts.google.com https://www.youtube.com https://player.vimeo.com https://www.loom.com",
-  "frame-ancestors 'none'",
+  // these exact hosts in backend video.util.ts) + the same-origin resource
+  // viewer and Google Drive document previews.
+  "frame-src 'self' https://accounts.google.com https://www.youtube.com https://player.vimeo.com https://www.loom.com https://drive.google.com https://docs.google.com",
+  // Allow the portal to frame its own pages (the in-app resource viewer streams
+  // documents through a same-origin route); still blocks external clickjacking.
+  "frame-ancestors 'self'",
   "base-uri 'self'",
   "form-action 'self'",
 ].join('; ');
@@ -39,7 +42,7 @@ const config = {
         headers: [
           { key: 'Content-Security-Policy', value: CSP },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
         ],
       },

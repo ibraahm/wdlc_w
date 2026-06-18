@@ -57,8 +57,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     'Content-Type': contentType,
     'Content-Disposition': download ? 'attachment' : 'inline',
     'Cache-Control': 'private, no-store',
-    // Same-origin framing is fine; keep it explicit.
-    'X-Frame-Options': 'SAMEORIGIN',
   };
   const len = upstream.headers.get('content-length');
   if (len) headers['Content-Length'] = len;
