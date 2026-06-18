@@ -89,27 +89,27 @@ export async function buildAgentApplicationPdf(app: PdfApplication, brand?: { lo
     doc.fillColor('#666').font('Helvetica').fontSize(8.5)
       .text(`Application ${app.id.slice(-8).toUpperCase()}   ·   Submitted ${fmtDate(app.createdAt)}`, M, M + 39, { width: contentW, align: 'right' });
 
-    y = Math.max(logoBottom, M + 52) + 10;
+    y = Math.max(logoBottom, M + 52) + 8;
     doc.moveTo(M, y).lineTo(right, y).lineWidth(1).strokeColor(NAVY).stroke();
-    y += 12;
+    y += 10;
 
     // ── Layout helpers ─────────────────────────────────────────────────────────
     const colW = (contentW - 16) / 2;
     const col2X = M + colW + 16;
 
     function heading(title: string) {
-      doc.rect(M, y, contentW, 16).fill(NAVY);
-      doc.fillColor('#fff').font('Helvetica-Bold').fontSize(9).text(title.toUpperCase(), M + 6, y + 4.5, { characterSpacing: 1 });
-      y += 23;
+      doc.rect(M, y, contentW, 14).fill(NAVY);
+      doc.fillColor('#fff').font('Helvetica-Bold').fontSize(8.5).text(title.toUpperCase(), M + 6, y + 3.8, { characterSpacing: 1 });
+      y += 19;
     }
 
     function fieldAt(x: number, w: number, label: string, val?: string | null): number {
       const v = (val ?? '').toString().trim() || '—';
-      doc.fillColor('#8a8a8a').font('Helvetica-Bold').fontSize(7).text(label.toUpperCase(), x, y, { width: w, characterSpacing: 0.5 });
+      doc.fillColor('#8a8a8a').font('Helvetica-Bold').fontSize(6.5).text(label.toUpperCase(), x, y, { width: w, characterSpacing: 0.5 });
       const lh = doc.heightOfString(label.toUpperCase(), { width: w, characterSpacing: 0.5 });
-      doc.fillColor('#1a1a1a').font('Helvetica').fontSize(9.5).text(v, x, y + lh + 1, { width: w });
+      doc.fillColor('#1a1a1a').font('Helvetica').fontSize(9).text(v, x, y + lh + 0.5, { width: w });
       const vh = doc.heightOfString(v, { width: w });
-      return lh + vh + 9;
+      return lh + vh + 6;
     }
 
     function row(l1: string, v1?: string | null, l2?: string, v2?: string | null) {
@@ -159,11 +159,12 @@ export async function buildAgentApplicationPdf(app: PdfApplication, brand?: { lo
       .text(app.signatureConsent ? '✓ Consent to electronic signature provided' : 'Consent to electronic signature not recorded', M, y);
 
     // ── Footer ──────────────────────────────────────────────────────────────────
-    const footY = doc.page.height - M + 8;
+    // Keep it inside the printable area, otherwise pdfkit spills onto a 2nd page.
+    const footY = doc.page.height - M - 40;
     doc.fillColor('#999').font('Helvetica').fontSize(7.5)
       .text(
         'This document reproduces the application submitted to World Direct Link, Corp. Approval is subject to review, due diligence, and applicable compliance requirements.',
-        M, footY, { width: contentW, align: 'center' },
+        M, footY, { width: contentW, align: 'center', lineBreak: false },
       );
 
     doc.end();
