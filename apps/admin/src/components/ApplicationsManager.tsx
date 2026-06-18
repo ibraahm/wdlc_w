@@ -386,7 +386,7 @@ export default function ApplicationsManager({
                     <Detail label="Previously offered money services" value={yesNo(a.providedPast, a.pastProvider)} />
                     <Detail label="Declined before" value={yesNo(a.declinedBefore, a.declinedExplain)} />
                     <Detail label="Preferred language" value={choice(a.preferredLanguage, a.preferredLanguageOther)} />
-                    <Detail label="Anticipated monthly volume" value={a.monthlyVolume} />
+                    <Detail label="Anticipated monthly volume (USD)" value={a.anticipatedDollarVolume || a.monthlyVolume} />
                     <Detail label="Total locations" value={a.totalLocations} />
                     <Detail label="Electronic signature" value={signatureLine(a)} />
                     <Detail label="Signature accepted" value={formatDateTime(a.signatureAcceptedAt)} />

@@ -61,6 +61,7 @@ export class ApplicationsService {
         preferredLanguage: dto.preferredLanguage ?? null,
         preferredLanguageOther: dto.preferredLanguageOther ?? null,
         monthlyVolume: dto.monthlyVolume ?? null,
+        anticipatedDollarVolume: dto.anticipatedDollarVolume ?? null,
         totalLocations: dto.totalLocations ?? null,
         comments: dto.comments ?? null,
         signatureName: dto.signatureName.trim(),
@@ -70,9 +71,11 @@ export class ApplicationsService {
         signatureClientTimestamp: dto.signatureClientTimestamp ? new Date(dto.signatureClientTimestamp) : null,
         signatureAcceptedAt: new Date(),
         signatureIp: ctx?.ip ?? null,
-        signatureUserAgent: ctx?.userAgent ?? null,
+        // Prefer the browser-reported user-agent so the signature record is the
+        // real browser, not the server-to-server hop ("node").
+        signatureUserAgent: dto.signatureUserAgent?.trim() || ctx?.userAgent || null,
         ip: ctx?.ip ?? null,
-        userAgent: ctx?.userAgent ?? null,
+        userAgent: dto.signatureUserAgent?.trim() || ctx?.userAgent || null,
       },
     });
 

@@ -58,8 +58,6 @@ const PRODUCTS = ['Money Transmission'];
 
 const LANGUAGES = ['English', 'Spanish', 'French', 'Arabic', 'Somali', 'Amharic', 'Other'];
 
-const VOLUMES = ['1 - 50 items', '51 - 250 items', '251 - 1,000 items', 'Over 1,000 items'];
-
 const DOLLAR_VOLUMES = ['$0 - $50,000', '$50,000 - $100,000', '$100,000 - $250,000', '$250,000 - $500,000', '$500,000 - $1,000,000', 'Over $1,000,000'];
 
 const inputCls =
@@ -598,11 +596,8 @@ export default function AgentApplicationForm({
       if (declinedBefore === null) return 'Please indicate whether you have been declined or had services cancelled.';
       if (declinedBefore && !declinedExplain.trim()) return 'Please briefly explain.';
       if (preferredLanguage === 'Other' && !preferredLanguageOther.trim()) return 'Please name the preferred language.';
-      if (isBusiness) {
-        if (!monthlyVolume) return 'Please select your anticipated monthly volume.';
-        if (!anticipatedDollarVolume) return 'Please select your anticipated monthly dollar volume.';
-        if (!totalLocations.trim()) return 'Please enter your total number of locations.';
-      }
+      if (!anticipatedDollarVolume) return 'Please select your anticipated monthly dollar volume (USD).';
+      if (isBusiness && !totalLocations.trim()) return 'Please enter your total number of locations.';
     }
     if (s === 4) {
       if (!howFound) return 'Please tell us how you found out about us.';
@@ -684,8 +679,7 @@ export default function AgentApplicationForm({
       declinedExplain: declinedBefore ? declinedExplain.trim() : undefined,
       preferredLanguage: preferredLanguage || undefined,
       preferredLanguageOther: preferredLanguage === 'Other' ? preferredLanguageOther.trim() : undefined,
-      monthlyVolume: isBusiness ? monthlyVolume || undefined : undefined,
-      anticipatedDollarVolume: isBusiness ? anticipatedDollarVolume || undefined : undefined,
+      anticipatedDollarVolume: anticipatedDollarVolume || undefined,
       totalLocations: isBusiness ? totalLocations.trim() || undefined : undefined,
       comments: comments.trim(),
       signatureName: signatureName.trim(),
@@ -693,6 +687,9 @@ export default function AgentApplicationForm({
       signatureConsent,
       signatureConsentText: ESIGN_CONSENT_TEXT,
       signatureClientTimestamp: new Date().toISOString(),
+      // Capture the signer's real browser so the record never shows the server
+      // hop ("node"); the IP still comes from the request (forwarded by nginx).
+      signatureUserAgent: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 500) : undefined,
       humanVerificationToken: humanChallenge?.token,
       humanVerificationAnswer: humanAnswer.trim(),
     };
@@ -992,25 +989,19 @@ export default function AgentApplicationForm({
               </Field>
             )}
 
-            {isBusiness && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <Field label="Anticipated monthly volume" required>
-                  <select value={monthlyVolume} onChange={(e) => setMonthlyVolume(e.target.value)} className={inputCls}>
-                    <option value="" disabled>Select…</option>
-                    {VOLUMES.map((v) => <option key={v} value={v}>{v}</option>)}
-                  </select>
-                </Field>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <Field label="Anticipated monthly dollar volume (USD)" required>
+                <select value={anticipatedDollarVolume} onChange={(e) => setAnticipatedDollarVolume(e.target.value)} className={inputCls}>
+                  <option value="" disabled>Select…</option>
+                  {DOLLAR_VOLUMES.map((v) => <option key={v} value={v}>{v}</option>)}
+                </select>
+              </Field>
+              {isBusiness && (
                 <Field label="Total # of Locations" required>
                   <input value={totalLocations} onChange={(e) => setTotalLocations(e.target.value)} className={inputCls} />
                 </Field>
-                <Field label="Anticipated monthly dollar volume (USD)" required>
-                  <select value={anticipatedDollarVolume} onChange={(e) => setAnticipatedDollarVolume(e.target.value)} className={inputCls}>
-                    <option value="" disabled>Select…</option>
-                    {DOLLAR_VOLUMES.map((v) => <option key={v} value={v}>{v}</option>)}
-                  </select>
-                </Field>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
 

@@ -29,6 +29,7 @@ type PdfApplication = {
   preferredLanguage: string | null;
   preferredLanguageOther: string | null;
   monthlyVolume: string | null;
+  anticipatedDollarVolume?: string | null;
   totalLocations: string | null;
   comments: string | null;
   signatureName: string | null;
@@ -138,7 +139,7 @@ export async function buildAgentApplicationPdf(app: PdfApplication, brand?: { lo
 
     // ── Operations ──────────────────────────────────────────────────────────────
     heading('Operations');
-    row('Products to offer', app.productsOffered, 'Anticipated monthly volume', app.monthlyVolume);
+    row('Products to offer', app.productsOffered, 'Anticipated monthly volume (USD)', app.anticipatedDollarVolume || app.monthlyVolume);
     row('Total locations', app.totalLocations);
 
     // ── Money-services history ──────────────────────────────────────────────────

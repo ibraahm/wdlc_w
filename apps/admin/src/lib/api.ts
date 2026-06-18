@@ -395,6 +395,7 @@ export type AgentApplication = {
   preferredLanguage: string | null;
   preferredLanguageOther: string | null;
   monthlyVolume: string | null;
+  anticipatedDollarVolume: string | null;
   totalLocations: string | null;
   comments: string | null;
   signatureName: string | null;
@@ -604,6 +605,7 @@ export interface DDFile {
     preferredLanguage: string | null;
     preferredLanguageOther: string | null;
     monthlyVolume: string | null;
+    anticipatedDollarVolume: string | null;
     totalLocations: string | null;
     comments: string | null;
     signatureName: string | null;

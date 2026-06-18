@@ -353,7 +353,7 @@ export default function DDFileDetail({
             <Detail label="Previously offered money services" value={yesNo(f.application.providedPast, f.application.pastProvider)} />
             <Detail label="Declined before" value={yesNo(f.application.declinedBefore, f.application.declinedExplain)} />
             <Detail label="Preferred language" value={choice(f.application.preferredLanguage, f.application.preferredLanguageOther)} />
-            <Detail label="Anticipated monthly volume" value={f.application.monthlyVolume} />
+            <Detail label="Anticipated monthly volume (USD)" value={f.application.anticipatedDollarVolume || f.application.monthlyVolume} />
             <Detail label="Total locations" value={f.application.totalLocations} />
             <Detail label="Electronic signature" value={signatureLine(f)} />
             <Detail label="Signature accepted" value={formatDateTime(f.application.signatureAcceptedAt)} />

@@ -50,6 +50,9 @@ export class CreateApplicationDto {
   @IsBoolean() signatureConsent: boolean;
   @IsString() @MaxLength(1000) signatureConsentText: string;
   @IsOptional() @IsDateString() signatureClientTimestamp?: string;
+  // The signer's browser user-agent, captured client-side so the record is the
+  // real browser rather than the server-to-server hop.
+  @IsOptional() @IsString() @MaxLength(500) signatureUserAgent?: string;
 
   @IsOptional() @IsString() @MaxLength(60) anticipatedDollarVolume?: string;
   @IsOptional() @IsString() @MaxLength(1000) humanVerificationToken?: string;

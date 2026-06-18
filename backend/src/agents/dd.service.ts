@@ -47,6 +47,7 @@ const APPLICATION_SELECT = {
   preferredLanguage: true,
   preferredLanguageOther: true,
   monthlyVolume: true,
+  anticipatedDollarVolume: true,
   totalLocations: true,
   comments: true,
   signatureName: true,
