@@ -76,6 +76,11 @@ export class DDAdminController {
     return this.dd.verifyPortalUser(userId, adminId);
   }
 
+  @Post('users/:userId/generate-password')
+  generatePassword(@Param('userId') userId: string, @CurrentUser('id') adminId: string) {
+    return this.dd.generatePortalPassword(userId, adminId);
+  }
+
   @Post()
   create(@Body() dto: CreateDDFileDto, @CurrentUser('id') adminId: string) {
     return this.dd.createFile(dto, adminId);

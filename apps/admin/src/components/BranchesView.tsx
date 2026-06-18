@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import type { AgentBranch, BranchUser } from '@/lib/api';
-import { resendBranchUserSetupAction, verifyBranchUserAction } from '@/lib/actions';
+import { resendBranchUserSetupAction, verifyBranchUserAction, generateBranchUserPasswordAction } from '@/lib/actions';
 
 const STAGE_COLOR: Record<string, string> = {
   ACTIVE: 'bg-green-100 text-green-700',
@@ -27,9 +27,11 @@ function UserChip({ u }: { u: BranchUser }) {
   const notSetUp = !u.lastLoginAt; // never signed in → hasn't completed account setup
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState('');
+  const [cred, setCred] = useState<{ email: string; password: string } | null>(null);
+  const [copied, setCopied] = useState(false);
 
   function resend() {
-    setMsg('');
+    setMsg(''); setCred(null);
     start(async () => {
       const res = await resendBranchUserSetupAction(u.id);
       setMsg(res.ok ? 'Setup email sent ✓' : res.error ?? 'Failed');
@@ -38,11 +40,28 @@ function UserChip({ u }: { u: BranchUser }) {
   }
 
   function verify() {
-    setMsg('');
+    setMsg(''); setCred(null);
     start(async () => {
       const res = await verifyBranchUserAction(u.id);
       setMsg(res.ok ? 'Verified & activated ✓' : res.error ?? 'Failed');
       if (res.ok) router.refresh();
+    });
+  }
+
+  function generatePassword() {
+    setMsg(''); setCred(null); setCopied(false);
+    start(async () => {
+      const res = await generateBranchUserPasswordAction(u.id);
+      if (res.ok && res.password) { setCred({ email: res.email!, password: res.password }); router.refresh(); }
+      else setMsg(res.error ?? 'Failed');
+    });
+  }
+
+  function copyCred() {
+    if (!cred) return;
+    navigator.clipboard?.writeText(`Email: ${cred.email}\nPassword: ${cred.password}`).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     });
   }
 
@@ -85,8 +104,31 @@ function UserChip({ u }: { u: BranchUser }) {
             Verify &amp; activate
           </button>
         )}
+        <button
+          type="button"
+          onClick={generatePassword}
+          disabled={pending}
+          title="Set this user's password to BRANCHCODE@2026WDLC and activate the account"
+          className="rounded-md border border-indigo-300 px-2 py-1 text-[11px] font-semibold text-indigo-700 hover:bg-indigo-50 disabled:opacity-50"
+        >
+          Generate password
+        </button>
         {msg && <span className={`text-[11px] ${msg.includes('✓') ? 'text-green-600' : 'text-red-600'}`}>{msg}</span>}
       </div>
+
+      {cred && (
+        <div className="mt-2 rounded-md border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs">
+          <p className="font-semibold text-indigo-900">Login created — share securely with this user:</p>
+          <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-indigo-900">
+            <span>Email: <span className="font-bold">{cred.email}</span></span>
+            <span>Password: <span className="font-bold">{cred.password}</span></span>
+          </div>
+          <button type="button" onClick={copyCred} className="mt-1 rounded border border-indigo-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-indigo-700 hover:bg-indigo-100">
+            {copied ? 'Copied ✓' : 'Copy login'}
+          </button>
+          <p className="mt-1 text-[10px] text-indigo-700">This password won&apos;t be shown again. The user can change it after signing in.</p>
+        </div>
+      )}
     </div>
   );
 }

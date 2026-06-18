@@ -914,6 +914,11 @@ export async function apiVerifyBranchUser(accessToken: string, userId: string): 
   await handleResponse<void>(res);
 }
 
+export async function apiGenerateBranchUserPassword(accessToken: string, userId: string): Promise<{ email: string; password: string }> {
+  const res = await authFetch(`/admin/agent-dd/users/${userId}/generate-password`, accessToken, { method: 'POST' });
+  return handleResponse<{ email: string; password: string }>(res);
+}
+
 // ---------------------------------------------------------------------------
 // Training / LMS - courses, quizzes, resources, reporting
 // ---------------------------------------------------------------------------

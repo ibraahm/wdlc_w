@@ -291,6 +291,39 @@ export class DDService {
     return { ok: true };
   }
 
+  /**
+   * Set a portal user's password to the standard branch-based credential
+   * (<BRANCHCODE>@2026WDLC) and activate the account, so an admin can hand a
+   * working login to an agent or teller. Returns the plaintext exactly once so
+   * it can be shared; it is never written to the audit log.
+   */
+  async generatePortalPassword(userId: string, adminId: string) {
+    const user = await this.prisma.agentUser.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Portal user not found');
+    if (!user.branchCode) throw new BadRequestException('User is not assigned to a branch');
+
+    const password = `${user.branchCode.toUpperCase()}@2026WDLC`;
+    await this.prisma.agentUser.update({
+      where: { id: userId },
+      data: {
+        passwordHash: await bcrypt.hash(password, 12),
+        active: true,
+        emailVerified: true,
+        emailVerifyToken: null,
+        emailVerifyExpiry: null,
+        resetToken: null,
+        resetTokenExpiry: null,
+        failedAttempts: 0,
+        lockedUntil: null,
+      },
+    });
+    await this.audit.log({
+      action: 'agent.portal.password_generated', adminId, entity: 'AgentUser', entityId: userId,
+      after: { email: user.email, role: user.role, branchCode: user.branchCode },
+    });
+    return { ok: true, email: user.email, password };
+  }
+
   async get(id: string, adminId?: string, role?: string) {
     const file = await this.prisma.agentDDFile.findUnique({
       where: { id },

@@ -32,6 +32,7 @@ import {
   apiUpdateTellerApplication,
   apiResendBranchUserSetup,
   apiVerifyBranchUser,
+  apiGenerateBranchUserPassword,
   apiSetSubmissionStatus,
   apiAddSubmissionNote,
   apiReplySubmission,
@@ -683,6 +684,20 @@ export async function verifyBranchUserAction(userId: string): Promise<{ ok: bool
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Verify failed' };
+  }
+}
+
+export async function generateBranchUserPasswordAction(
+  userId: string,
+): Promise<{ ok: boolean; email?: string; password?: string; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    const res = await apiGenerateBranchUserPassword(session.accessToken, userId);
+    revalidatePath('/branches');
+    return { ok: true, email: res.email, password: res.password };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Could not generate password' };
   }
 }
 
