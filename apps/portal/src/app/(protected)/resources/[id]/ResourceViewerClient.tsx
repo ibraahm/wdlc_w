@@ -4,19 +4,23 @@ import { useEffect, useState } from 'react';
 import { ackResourceAction } from '@/lib/actions';
 import type { ResourceItem } from '@/lib/api';
 
-// Best-effort transform of common share links into something that renders
-// inline in an <iframe>. (For external hosts this is a deterrent, not a hard
-// download block — the host's own UI may still allow saving.)
+// Turn common share links into something a browser can show inline.
+// (For external hosts this is best-effort — some block embedding entirely, which
+// is why we always offer an "open in a new tab" fallback below the viewer.)
 function embedUrl(url: string): string {
   try {
     const u = new URL(url);
-    if (u.hostname.includes('dropbox.com')) {
+    const host = u.hostname;
+    // Dropbox: serve the raw file (renders PDFs/images inline) instead of the
+    // preview page, which refuses to be embedded.
+    if (host.includes('dropbox.com')) {
       u.searchParams.delete('dl');
       u.searchParams.set('raw', '1');
       return u.toString();
     }
-    if (u.hostname.includes('drive.google.com')) {
-      return url.replace('/view', '/preview');
+    // Google Drive: use the embeddable /preview form.
+    if (host.includes('drive.google.com')) {
+      return url.replace('/view', '/preview').replace('/edit', '/preview');
     }
     return url;
   } catch {
@@ -41,41 +45,47 @@ export default function ResourceViewerClient({ resource }: { resource: ResourceI
 
   return (
     <div className="portal-content" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
-        <div>
-          <a href="/resources" style={{ fontSize: '0.78rem', color: 'var(--muted)', textDecoration: 'none' }}>← Resources</a>
-          <h1 className="dash-title" style={{ margin: '4px 0 0' }}>{resource.title}</h1>
-          {resource.description && <p style={{ fontSize: '0.84rem', color: 'var(--muted)', marginTop: '4px' }}>{resource.description}</p>}
-          {acked && <p style={{ fontSize: '0.74rem', color: '#166534', marginTop: '6px', fontWeight: 600 }}>✓ Acknowledged</p>}
-        </div>
+      <div>
+        <a href="/resources" style={{ fontSize: '0.9rem', color: 'var(--muted)', textDecoration: 'none' }}>← Back to Resources</a>
+        <h1 className="dash-title" style={{ margin: '6px 0 0' }}>{resource.title}</h1>
+        {resource.description && <p style={{ fontSize: '0.92rem', color: 'var(--charcoal)', marginTop: '4px', lineHeight: 1.6 }}>{resource.description}</p>}
+        {acked && <p style={{ fontSize: '0.85rem', color: '#166534', marginTop: '6px', fontWeight: 700 }}>✓ You have viewed this document</p>}
+      </div>
+
+      <div className="dash-card" style={{ padding: 0, overflow: 'hidden', height: '75vh', minHeight: '420px' }}>
+        <iframe
+          src={src}
+          title={resource.title}
+          style={{ width: '100%', height: '100%', border: 0 }}
+          referrerPolicy="no-referrer"
+        />
+      </div>
+
+      {/* Always-available fallback: some document hosts block in-page viewing. */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px' }}>
+        <p style={{ fontSize: '0.9rem', color: 'var(--charcoal)', margin: 0 }}>
+          Can&apos;t see the document above?
+        </p>
+        <a
+          href={resource.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ display: 'inline-block', padding: '10px 20px', borderRadius: '8px', fontSize: '0.95rem', fontWeight: 700, background: 'var(--gold)', color: '#fff', textDecoration: 'none' }}
+        >
+          Open in a new tab ↗
+        </a>
         {resource.allowDownload && (
           <a
             href={resource.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="auth-submit"
-            style={{ width: 'auto', padding: '10px 18px', flexShrink: 0, whiteSpace: 'nowrap', textDecoration: 'none' }}
+            download
+            style={{ display: 'inline-block', padding: '10px 20px', borderRadius: '8px', fontSize: '0.95rem', fontWeight: 700, background: '#fff', color: 'var(--charcoal)', border: '2px solid var(--smoke)', textDecoration: 'none' }}
           >
-            ⬇ Download / open ↗
+            ⬇ Download
           </a>
         )}
       </div>
-
-      <div className="dash-card" style={{ padding: 0, overflow: 'hidden', height: '78vh' }}>
-        <iframe
-          src={src}
-          title={resource.title}
-          style={{ width: '100%', height: '100%', border: 0 }}
-          // Sandbox without allow-downloads when downloads aren't permitted.
-          sandbox={resource.allowDownload ? 'allow-scripts allow-same-origin allow-popups allow-downloads' : 'allow-scripts allow-same-origin'}
-        />
-      </div>
-
-      {!resource.allowDownload && (
-        <p style={{ fontSize: '0.74rem', color: 'var(--muted)' }}>
-          This document is view-only. Contact World Direct Link if you need a downloadable copy.
-        </p>
-      )}
     </div>
   );
 }
