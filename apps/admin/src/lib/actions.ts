@@ -107,7 +107,11 @@ export async function logoutAction(): Promise<void> {
   } else {
     await clearSessionCookies();
   }
-  redirect('/login');
+  // Redirect to the configured public login URL when set, so a server-action
+  // redirect behind a proxy can't fall back to localhost:port; relative path
+  // is used for local dev.
+  const base = process.env.NEXT_PUBLIC_ADMIN_URL?.replace(/\/+$/, '');
+  redirect(base ? `${base}/login` : '/login');
 }
 
 export async function forgotPasswordAction(formData: FormData): Promise<{ ok: boolean; error?: string }> {
