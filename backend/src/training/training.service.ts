@@ -720,7 +720,7 @@ export class TrainingService {
     const agent = await this.prisma.agentUser.findUnique({ where: { id: agentId } });
     if (!agent) throw new NotFoundException('Account not found');
 
-    const [cfg, logo] = await Promise.all([this.resolveCertConfigForCourse(course.id), this.brandLogoBuffer()]);
+    const [cfg, logo, address] = await Promise.all([this.resolveCertConfigForCourse(course.id), this.brandLogoBuffer(), this.brandAddress()]);
     const pdf = await buildCertificatePdf(
       {
         learnerName: `${agent.firstName} ${agent.lastName}`,
@@ -731,6 +731,7 @@ export class TrainingService {
         completedAt: completion.completedAt,
         branchCode: completion.branchCode,
         certificateId: completion.id.slice(-10).toUpperCase(),
+        address,
       },
       cfg.templateImage ? { image: this.dataUrlToBuffer(cfg.templateImage), layout: cfg.layout } : undefined,
       { logo },
@@ -748,18 +749,25 @@ export class TrainingService {
     return Buffer.from(comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl, 'base64');
   }
 
-  async getCertificateConfig(): Promise<{ templateImage: string | null; layout: CertLayout; brandLogo: string | null }> {
-    const [imgRow, layoutRow, logoRow] = await Promise.all([
+  async getCertificateConfig(): Promise<{ templateImage: string | null; layout: CertLayout; brandLogo: string | null; brandAddress: string | null }> {
+    const [imgRow, layoutRow, logoRow, addrRow] = await Promise.all([
       this.prisma.siteSetting.findUnique({ where: { key: 'cert.templateImage' } }),
       this.prisma.siteSetting.findUnique({ where: { key: 'cert.layout' } }),
       this.prisma.siteSetting.findUnique({ where: { key: 'brand.logo' } }),
+      this.prisma.siteSetting.findUnique({ where: { key: 'brand.address' } }),
     ]);
     const templateImage = imgRow ? (JSON.parse(imgRow.value) as string | null) : null;
     const brandLogo = logoRow ? (JSON.parse(logoRow.value) as string | null) : null;
+    const brandAddress = addrRow ? (JSON.parse(addrRow.value) as string | null) : null;
     const layout = layoutRow
       ? { ...DEFAULT_CERT_LAYOUT, ...(JSON.parse(layoutRow.value) as Partial<CertLayout>) }
       : DEFAULT_CERT_LAYOUT;
-    return { templateImage, layout, brandLogo };
+    return { templateImage, layout, brandLogo, brandAddress };
+  }
+
+  private async brandAddress(): Promise<string | null> {
+    const row = await this.prisma.siteSetting.findUnique({ where: { key: 'brand.address' } });
+    return row ? (JSON.parse(row.value) as string | null) : null;
   }
 
   // The company logo (data URL) shared by the built-in certificate and the DD
@@ -771,7 +779,15 @@ export class TrainingService {
     return url ? this.dataUrlToBuffer(url) : undefined;
   }
 
-  async saveCertificateConfig(dto: { templateImage?: string | null; layout?: CertLayout; brandLogo?: string | null }, adminId: string) {
+  async saveCertificateConfig(dto: { templateImage?: string | null; layout?: CertLayout; brandLogo?: string | null; brandAddress?: string | null }, adminId: string) {
+    if (dto.brandAddress !== undefined) {
+      const addr = (dto.brandAddress ?? '').toString().slice(0, 200) || null;
+      await this.prisma.siteSetting.upsert({
+        where: { key: 'brand.address' },
+        update: { value: JSON.stringify(addr) },
+        create: { key: 'brand.address', value: JSON.stringify(addr) },
+      });
+    }
     if (dto.templateImage !== undefined) {
       this.validateTemplateImage(dto.templateImage);
       await this.prisma.siteSetting.upsert({
@@ -864,7 +880,7 @@ export class TrainingService {
 
   // Render a sample certificate from the supplied (possibly unsaved) config so
   // admins can preview placement before saving.
-  async certificatePreviewPdf(dto: { templateImage?: string | null; layout?: CertLayout; brandLogo?: string | null }): Promise<Buffer> {
+  async certificatePreviewPdf(dto: { templateImage?: string | null; layout?: CertLayout; brandLogo?: string | null; brandAddress?: string | null }): Promise<Buffer> {
     const sample = {
       learnerName: 'Jordan A. Sample',
       courseTitle: 'Anti-Money-Laundering Essentials',
@@ -874,6 +890,7 @@ export class TrainingService {
       completedAt: new Date(),
       branchCode: 'USWDLC',
       certificateId: 'SAMPLE1234',
+      address: dto.brandAddress !== undefined ? (dto.brandAddress || null) : await this.brandAddress(),
     };
     const layout = { ...DEFAULT_CERT_LAYOUT, ...(dto.layout ?? {}) };
     // Use the unsaved logo if the editor sent one, else the saved brand logo.
@@ -892,7 +909,7 @@ export class TrainingService {
   async adminCourseCertificatePreview(courseId: string): Promise<Buffer> {
     const course = await this.prisma.course.findUnique({ where: { id: courseId }, select: { title: true, category: true, description: true } });
     if (!course) throw new NotFoundException('Course not found');
-    const [cfg, logo] = await Promise.all([this.resolveCertConfigForCourse(courseId), this.brandLogoBuffer()]);
+    const [cfg, logo, address] = await Promise.all([this.resolveCertConfigForCourse(courseId), this.brandLogoBuffer(), this.brandAddress()]);
     return buildCertificatePdf(
       {
         learnerName: 'Jordan A. Sample',
@@ -903,6 +920,7 @@ export class TrainingService {
         completedAt: new Date(),
         branchCode: 'USWDLC',
         certificateId: 'SAMPLE1234',
+        address,
       },
       cfg.templateImage ? { image: this.dataUrlToBuffer(cfg.templateImage), layout: cfg.layout } : undefined,
       { logo },

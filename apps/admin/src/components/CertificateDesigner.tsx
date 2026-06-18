@@ -34,7 +34,7 @@ export default function CertificateDesigner({
   courseId,
   hasOverride = false,
 }: {
-  initial: { templateImage: string | null; layout: CertLayout; brandLogo?: string | null };
+  initial: { templateImage: string | null; layout: CertLayout; brandLogo?: string | null; brandAddress?: string | null };
   scope?: 'global' | 'course';
   courseId?: string;
   hasOverride?: boolean;
@@ -42,6 +42,7 @@ export default function CertificateDesigner({
   const router = useRouter();
   const [templateImage, setTemplateImage] = useState<string | null>(initial.templateImage);
   const [brandLogo, setBrandLogo] = useState<string | null>(initial.brandLogo ?? null);
+  const [brandAddress, setBrandAddress] = useState<string>(initial.brandAddress ?? '');
   const [layout, setLayout] = useState<CertLayout>(initial.layout);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
@@ -79,7 +80,7 @@ export default function CertificateDesigner({
     startTransition(async () => {
       const res = scope === 'course' && courseId
         ? await saveCourseCertAction(courseId, { templateImage, layout })
-        : await saveCertificateAction({ templateImage, layout, brandLogo });
+        : await saveCertificateAction({ templateImage, layout, brandLogo, brandAddress: brandAddress.trim() || null });
       if (res.ok) { setSaved(true); if (scope === 'course') router.refresh(); }
       else setError(res.error ?? 'Save failed');
     });
@@ -100,7 +101,7 @@ export default function CertificateDesigner({
     const res = await fetch('/api/training/certificate-preview', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ templateImage, layout, brandLogo }),
+      body: JSON.stringify({ templateImage, layout, brandLogo, brandAddress: brandAddress.trim() || null }),
     });
     if (!res.ok) { setError('Could not generate preview.'); return; }
     const blob = await res.blob();
@@ -181,6 +182,21 @@ export default function CertificateDesigner({
             {brandLogo && (
               <button type="button" onClick={() => { setBrandLogo(null); setSaved(false); }} className="text-xs text-red-700 hover:underline">Remove logo</button>
             )}
+          </div>
+        )}
+
+        {scope === 'global' && (
+          <div className="bg-gray-100 border border-gray-200 rounded-lg p-4 space-y-1">
+            <label htmlFor="cert-address" className="block text-xs font-medium text-gray-700">Company address (shown in the certificate footer)</label>
+            <input
+              id="cert-address"
+              type="text"
+              value={brandAddress}
+              maxLength={200}
+              onChange={(e) => { setBrandAddress(e.target.value); setSaved(false); }}
+              placeholder="e.g. 1234 Brickell Ave, Suite 200, Miami, FL 33131"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            />
           </div>
         )}
 

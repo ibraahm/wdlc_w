@@ -9,6 +9,7 @@ export interface CertificateData {
   completedAt: Date;
   branchCode?: string | null;
   certificateId: string;
+  address?: string | null; // company address line, shown in the footer
 }
 
 // ── Template-driven layout ──────────────────────────────────────────────────
@@ -93,60 +94,70 @@ export async function buildCertificatePdf(
       return;
     }
 
-    // ── Built-in design (fallback when no template is uploaded) ───────────────
+    // ── Built-in design (clean, corporate; used when no template is uploaded) ──
     const navy = '#0f2742';
     const gold = '#c8960c';
+    const ink = '#3a3a3a';
+    const cx = W / 2;
 
-    doc.rect(24, 24, W - 48, H - 48).lineWidth(2).stroke(navy);
-    doc.rect(34, 34, W - 68, H - 68).lineWidth(0.5).stroke(gold);
+    // Double frame with gold corner accents.
+    doc.rect(26, 26, W - 52, H - 52).lineWidth(2.5).stroke(navy);
+    doc.rect(36, 36, W - 72, H - 72).lineWidth(0.75).stroke(gold);
+    const corner = (x: number, y: number, dx: number, dy: number) => {
+      doc.moveTo(x, y + dy * 16).lineTo(x, y).lineTo(x + dx * 16, y).lineWidth(2).stroke(gold);
+    };
+    corner(46, 46, 1, 1); corner(W - 46, 46, -1, 1); corner(46, H - 46, 1, -1); corner(W - 46, H - 46, -1, -1);
 
-    // Brand: the uploaded company logo if available, otherwise the wordmark.
+    // Brand lockup: uploaded logo, else a typographic wordmark.
+    let logoDrawn = false;
     if (brand?.logo) {
-      try {
-        doc.image(brand.logo, W / 2 - 110, 46, { fit: [220, 70], align: 'center' });
-      } catch {
-        doc.fillColor(navy).font('Helvetica-Bold').fontSize(28).text('World Direct Link, Corp.', 0, 70, { align: 'center' });
-      }
-    } else {
-      doc.fillColor(navy).font('Helvetica-Bold').fontSize(28).text('World Direct Link, Corp.', 0, 70, { align: 'center' });
+      try { doc.image(brand.logo, cx - 100, 52, { fit: [200, 56], align: 'center' }); logoDrawn = true; } catch { /* fall back */ }
     }
-    doc.fillColor(gold).font('Helvetica').fontSize(11)
-      .text('CERTIFICATE OF COMPLETION', 0, 124, { align: 'center', characterSpacing: 3 });
+    if (!logoDrawn) {
+      doc.fillColor(navy).font('Helvetica-Bold').fontSize(26).text('WORLD DIRECT LINK, CORP.', 0, 60, { align: 'center', characterSpacing: 1 });
+      doc.fillColor(gold).font('Helvetica').fontSize(8.5).text('MONEY SERVICES COMPLIANCE TRAINING', 0, 92, { align: 'center', characterSpacing: 3 });
+    }
 
-    doc.fillColor('#444').font('Helvetica').fontSize(13)
-      .text('This certifies that', 0, 168, { align: 'center' });
+    doc.moveTo(cx - 150, 116).lineTo(cx + 150, 116).lineWidth(0.75).stroke(gold);
+    doc.fillColor(gold).font('Helvetica-Bold').fontSize(12).text('CERTIFICATE OF COMPLETION', 0, 126, { align: 'center', characterSpacing: 4 });
 
-    doc.fillColor(navy).font('Helvetica-Bold').fontSize(30)
-      .text(data.learnerName, 0, 190, { align: 'center' });
+    doc.fillColor(ink).font('Helvetica').fontSize(12).text('This is to certify that', 0, 166, { align: 'center' });
 
-    doc.fillColor('#444').font('Helvetica').fontSize(13)
-      .text('has successfully completed the training course', 0, 238, { align: 'center' });
+    doc.fillColor(navy).font('Helvetica-Bold').fontSize(30).text(data.learnerName, 0, 188, { align: 'center' });
+    doc.moveTo(cx - 150, 230).lineTo(cx + 150, 230).lineWidth(0.5).stroke('#cbb26a');
 
-    doc.fillColor(navy).font('Helvetica-Bold').fontSize(20)
-      .text(data.courseTitle, 72, 264, { align: 'center', width: W - 144 });
+    doc.fillColor(ink).font('Helvetica').fontSize(12).text('has successfully completed the training course', 0, 244, { align: 'center' });
 
-    // Optional course description (kept short so the layout stays balanced).
+    doc.fillColor(navy).font('Helvetica-Bold').fontSize(19).text(data.courseTitle, 80, 268, { align: 'center', width: W - 160 });
+
     const description = (data.description ?? '').trim();
     if (description) {
-      doc.fillColor('#555').font('Helvetica-Oblique').fontSize(11)
-        .text(description, 120, 296, { align: 'center', width: W - 240, height: 30, ellipsis: true, lineGap: 1 });
+      doc.fillColor('#666').font('Helvetica-Oblique').fontSize(10.5)
+        .text(description, 130, 296, { align: 'center', width: W - 260, height: 26, ellipsis: true });
     }
+    doc.fillColor(ink).font('Helvetica').fontSize(11.5)
+      .text(`${data.category}    •    Score ${data.score}%    •    ${fmtDate(data.completedAt)}`, 0, description ? 326 : 318, { align: 'center' });
 
-    doc.fillColor('#444').font('Helvetica').fontSize(12)
-      .text(
-        `${data.category}  •  Score ${data.score}%  •  ${fmtDate(data.completedAt)}`,
-        0, description ? 332 : 322, { align: 'center' },
-      );
+    // Seal medallion (centered, lower third).
+    const sy = 408;
+    doc.circle(cx, sy, 30).lineWidth(2).stroke(gold);
+    doc.circle(cx, sy, 24).lineWidth(0.6).stroke(gold);
+    doc.moveTo(cx - 11, sy + 1).lineTo(cx - 3, sy + 10).lineTo(cx + 13, sy - 10).lineWidth(3).lineJoin('round').stroke(navy);
 
-    const footY = H - 96;
-    doc.moveTo(120, footY).lineTo(330, footY).lineWidth(0.5).stroke('#999');
-    doc.moveTo(W - 330, footY).lineTo(W - 120, footY).stroke('#999');
-    doc.fillColor('#666').fontSize(9)
-      .text('World Direct Link, Corp. - NMLS #1119263', 120, footY + 6, { width: 210, align: 'center' });
-    doc.text(`Certificate ID: ${data.certificateId}`, W - 330, footY + 6, { width: 210, align: 'center' });
-    if (data.branchCode) {
-      doc.text(`Branch: ${data.branchCode}`, 0, footY + 22, { align: 'center' });
-    }
+    // Signature lines flanking the seal.
+    const lineY = sy + 8;
+    doc.moveTo(110, lineY).lineTo(300, lineY).lineWidth(0.5).stroke('#999');
+    doc.moveTo(W - 300, lineY).lineTo(W - 110, lineY).stroke('#999');
+    doc.fillColor('#555').font('Helvetica').fontSize(9)
+      .text('Compliance Department', 110, lineY + 5, { width: 190, align: 'center' });
+    doc.text(`Issued ${fmtDate(data.completedAt)}`, W - 300, lineY + 5, { width: 190, align: 'center' });
+
+    // Footer: NMLS, address, certificate id.
+    const address = (data.address ?? '').trim();
+    doc.fillColor('#777').font('Helvetica').fontSize(8.5)
+      .text(`World Direct Link, Corp.    •    NMLS #1119263${address ? `    •    ${address}` : ''}`, 60, H - 58, { width: W - 120, align: 'center' });
+    doc.fillColor('#999').fontSize(8)
+      .text(`Certificate ID: ${data.certificateId}${data.branchCode ? `    •    Branch: ${data.branchCode}` : ''}`, 60, H - 46, { width: W - 120, align: 'center' });
 
     doc.end();
   });

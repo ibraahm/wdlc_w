@@ -718,7 +718,7 @@ export async function createCourseAction(data: CourseInput): Promise<{ ok: boole
 }
 
 export async function saveCertificateAction(
-  data: { templateImage?: string | null; layout?: CertLayout; brandLogo?: string | null },
+  data: { templateImage?: string | null; layout?: CertLayout; brandLogo?: string | null; brandAddress?: string | null },
 ): Promise<{ ok: boolean; error?: string }> {
   const session = await getSession();
   if (!session) return { ok: false, error: 'Not authenticated' };

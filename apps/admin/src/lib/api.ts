@@ -1493,6 +1493,7 @@ export type CertConfig = {
   templateImage: string | null;
   layout: CertLayout;
   brandLogo: string | null;
+  brandAddress: string | null;
 };
 
 export async function apiGetCertificateConfig(accessToken: string): Promise<CertConfig> {
@@ -1502,7 +1503,7 @@ export async function apiGetCertificateConfig(accessToken: string): Promise<Cert
 
 export async function apiSaveCertificateConfig(
   accessToken: string,
-  data: { templateImage?: string | null; layout?: CertLayout; brandLogo?: string | null },
+  data: { templateImage?: string | null; layout?: CertLayout; brandLogo?: string | null; brandAddress?: string | null },
 ): Promise<CertConfig> {
   const res = await authFetch('/admin/training/certificate', accessToken, { method: 'PATCH', body: JSON.stringify(data) });
   return handleResponse<CertConfig>(res);
