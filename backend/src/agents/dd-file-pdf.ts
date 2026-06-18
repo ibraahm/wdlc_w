@@ -66,7 +66,7 @@ const SECTIONS: { key: DdFileDocRow['section']; title: string }[] = [
 // document and resolves the assembled Buffer.
 export async function buildDdFilePdf(
   data: DdFilePdfData,
-  brand?: { logo?: Buffer },
+  brand?: { logo?: Buffer; address?: string | null },
 ): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'LETTER', layout: 'portrait', margin: 48 });
@@ -95,6 +95,9 @@ export async function buildDdFilePdf(
       .text('Agent Due Diligence File', titleX, M, { width: titleW });
     doc.fillColor(GOLD).font('Helvetica').fontSize(10)
       .text('World Direct Link, Corp. — NMLS #1119263', titleX, doc.y + 2, { width: titleW });
+    if (brand?.address) {
+      doc.fillColor(GRAY).font('Helvetica').fontSize(8.5).text(brand.address, titleX, doc.y + 1, { width: titleW });
+    }
 
     // Thin rule below the header.
     let y = Math.max(doc.y, M + 48) + 12;

@@ -61,7 +61,7 @@ function yesNo(flag: boolean, detail?: string | null): string {
 
 // A clean, professional one-page rendering of the agent application form.
 // Intentionally excludes signer IP and user-agent (server/network metadata).
-export async function buildAgentApplicationPdf(app: PdfApplication, brand?: { logo?: Buffer }): Promise<Buffer> {
+export async function buildAgentApplicationPdf(app: PdfApplication, brand?: { logo?: Buffer; address?: string | null }): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'LETTER', margin: M });
     const chunks: Buffer[] = [];
@@ -85,7 +85,7 @@ export async function buildAgentApplicationPdf(app: PdfApplication, brand?: { lo
       }
     }
     doc.fillColor(NAVY).font('Helvetica-Bold').fontSize(18).text('Agent Application', M, M + 2, { width: contentW, align: 'right' });
-    doc.fillColor(GOLD).font('Helvetica').fontSize(9).text('World Direct Link, Corp.  ·  NMLS #1119263', M, M + 25, { width: contentW, align: 'right' });
+    doc.fillColor(GOLD).font('Helvetica').fontSize(9).text(`World Direct Link, Corp.  ·  NMLS #1119263${brand?.address ? `  ·  ${brand.address}` : ''}`, M, M + 25, { width: contentW, align: 'right', lineBreak: false });
     doc.fillColor('#666').font('Helvetica').fontSize(8.5)
       .text(`Application ${app.id.slice(-8).toUpperCase()}   ·   Submitted ${fmtDate(app.createdAt)}`, M, M + 39, { width: contentW, align: 'right' });
 

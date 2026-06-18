@@ -350,6 +350,12 @@ export class DDService {
     return Buffer.from(comma >= 0 ? url.slice(comma + 1) : url, 'base64');
   }
 
+  // The configurable company address (siteSetting brand.address) for PDF headers.
+  private async brandAddress(): Promise<string | null> {
+    const row = await this.prisma.siteSetting.findUnique({ where: { key: 'brand.address' } });
+    return row ? (JSON.parse(row.value) as string | null) : null;
+  }
+
   private safeFileName(name: string): string {
     return (name || 'agent').replace(/[^a-z0-9]+/gi, '-').toLowerCase().replace(/^-|-$/g, '') || 'agent';
   }
@@ -359,8 +365,8 @@ export class DDService {
     const file = await this.get(id, adminId, role);
     const app = (file as any).application;
     if (!app) throw new BadRequestException('No application is linked to this DD file');
-    const logo = await this.brandLogoBuffer();
-    const pdf = await buildAgentApplicationPdf(app, logo ? { logo } : undefined);
+    const [logo, address] = await Promise.all([this.brandLogoBuffer(), this.brandAddress()]);
+    const pdf = await buildAgentApplicationPdf(app, { logo, address });
     if (adminId) {
       await this.audit.log({ action: 'agent.application.export', adminId, entity: 'AgentApplication', entityId: app.id });
     }
@@ -386,7 +392,7 @@ export class DDService {
           .filter(Boolean).join(' · ')
       : null;
 
-    const logo = await this.brandLogoBuffer();
+    const [logo, companyAddress] = await Promise.all([this.brandLogoBuffer(), this.brandAddress()]);
 
     const pdf = await buildDdFilePdf(
       {
@@ -405,7 +411,7 @@ export class DDService {
         business: { company: app?.company ?? null, address, email: app?.email ?? null, phone: app?.businessPhone ?? null },
         documents,
       },
-      logo ? { logo } : undefined,
+      { logo, address: companyAddress },
     );
     if (adminId) {
       await this.audit.log({ action: 'agent.dd.file.export', adminId, entity: 'AgentDDFile', entityId: id, after: { records: documents.length } });
