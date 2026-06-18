@@ -50,15 +50,14 @@ function drawField(doc: PDFKit.PDFDocument, f: CertField | undefined, text: stri
   if (!f || f.show === false) return;
   const y = (f.yPct / 100) * doc.page.height;
   doc.fillColor(f.color || '#0f2742').font(f.bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(f.fontSize);
-  if (f.align === 'left') {
-    const x = ((f.xPct ?? 8) / 100) * W;
-    doc.text(text, x, y, { width: W - x, align: 'left', lineBreak: false });
-  } else if (f.align === 'right') {
-    const x = ((f.xPct ?? 92) / 100) * W;
-    doc.text(text, 0, y, { width: x, align: 'right', lineBreak: false });
-  } else {
-    doc.text(text, 0, y, { width: W, align: 'center', lineBreak: false });
-  }
+  // The field anchors at xPct; the alignment decides which edge of the text the
+  // anchor is (left edge / centre / right edge). This matches the admin drag
+  // editor, where a centred field is centred on the point you drop it.
+  const defaultX = f.align === 'left' ? 8 : f.align === 'right' ? 92 : 50;
+  const ax = ((f.xPct ?? defaultX) / 100) * W;
+  const tw = doc.widthOfString(text);
+  const x = f.align === 'left' ? ax : f.align === 'right' ? ax - tw : ax - tw / 2;
+  doc.text(text, x, y, { lineBreak: false });
 }
 
 // A clean, regulator-presentable completion certificate. When a template image
