@@ -100,8 +100,8 @@ export class PortalAuthController {
   }
 
   @Post('change-password')
-  changePassword(@CurrentUser('id') id: string, @Body() dto: AgentChangePasswordDto) {
-    return this.auth.changePassword(id, dto);
+  changePassword(@CurrentUser('id') id: string, @Body() dto: AgentChangePasswordDto, @Req() req: Request) {
+    return this.auth.changePassword(id, dto, req.ip, req.headers['user-agent']);
   }
 
   @Get('login-history')

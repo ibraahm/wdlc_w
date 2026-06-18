@@ -135,7 +135,7 @@ export async function apiChangePassword(
   accessToken: string,
   currentPassword: string,
   newPassword: string,
-): Promise<{ ok: boolean }> {
+): Promise<{ ok: boolean; accessToken?: string; refreshToken?: string; agent?: unknown }> {
   const res = await safeFetch(`${API}/portal/auth/change-password`, {
     method: 'POST',
     headers: {

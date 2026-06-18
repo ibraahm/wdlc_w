@@ -3,8 +3,23 @@ import { NextRequest, NextResponse } from 'next/server';
 const API = process.env.API_URL || 'http://localhost:4000/api';
 const IS_PROD = process.env.NODE_ENV === 'production';
 
-const PROTECTED_PATHS = ['/dashboard', '/training', '/resources', '/requests', '/settings'];
+const PROTECTED_PATHS = ['/dashboard', '/training', '/resources', '/requests', '/settings', '/change-password'];
 const AUTH_PATHS = ['/login', '/signup'];
+
+const CHANGE_PW_PATH = '/change-password';
+
+// The agent object is mirrored into the `pagent` cookie on login/refresh.
+function mustChangePassword(agentCookie?: string): boolean {
+  if (!agentCookie) return false;
+  try { return JSON.parse(agentCookie).mustChangePassword === true; } catch { return false; }
+}
+
+// Where an authenticated request should go given the forced-change flag.
+function gateTarget(must: boolean, pathname: string): string | null {
+  if (must && pathname !== CHANGE_PW_PATH) return CHANGE_PW_PATH;
+  if (!must && pathname === CHANGE_PW_PATH) return '/dashboard';
+  return null;
+}
 
 function isProtected(pathname: string): boolean {
   return PROTECTED_PATHS.some((p) => pathname === p || pathname.startsWith(p + '/'));
@@ -38,7 +53,8 @@ export async function middleware(req: NextRequest) {
 
   if (isProtected(pathname)) {
     if (hasValidPat) {
-      return NextResponse.next();
+      const target = gateTarget(mustChangePassword(req.cookies.get('pagent')?.value), pathname);
+      return target ? NextResponse.redirect(new URL(target, req.url)) : NextResponse.next();
     }
 
     if (prt) {
@@ -51,7 +67,11 @@ export async function middleware(req: NextRequest) {
 
         if (refreshRes.ok) {
           const data = await refreshRes.json();
-          const response = NextResponse.next();
+          // Force the password change before anything else when flagged.
+          const target = gateTarget(data.agent?.mustChangePassword === true, pathname);
+          const response = target
+            ? NextResponse.redirect(new URL(target, req.url))
+            : NextResponse.next();
 
           response.cookies.set('pat', data.accessToken, {
             httpOnly: true,

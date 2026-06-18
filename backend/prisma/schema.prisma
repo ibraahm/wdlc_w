@@ -63,6 +63,7 @@ model AgentUser {
   id                  String    @id @default(cuid())
   email               String    @unique
   passwordHash        String
+  mustChangePassword  Boolean   @default(false) // true after an admin-set password
   firstName           String
   lastName            String
   phone               String?

@@ -134,7 +134,12 @@ export async function changePasswordAction(
   }
 
   try {
-    await apiChangePassword(accessToken, currentPassword, newPassword);
+    const result = await apiChangePassword(accessToken, currentPassword, newPassword);
+    // The backend rotates tokens (and clears the forced-change flag); refresh
+    // our session cookies so the change takes effect immediately.
+    if (result.accessToken && result.refreshToken && result.agent) {
+      await setSessionCookies(result.accessToken, result.refreshToken, result.agent as never);
+    }
     return { ok: true };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Password change failed.' };

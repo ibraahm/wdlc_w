@@ -38,6 +38,7 @@ const safeAgent = (a: any) => ({
   phone: a.phone,
   status: a.status,
   emailVerified: a.emailVerified,
+  mustChangePassword: a.mustChangePassword ?? false,
 });
 
 @Injectable()
@@ -280,16 +281,22 @@ export class PortalAuthService {
     return { ok: true };
   }
 
-  async changePassword(agentId: string, dto: AgentChangePasswordDto) {
+  async changePassword(agentId: string, dto: AgentChangePasswordDto, ip?: string, ua?: string) {
     const agent = await this.prisma.agentUser.findUnique({ where: { id: agentId } });
     if (!agent || !(await bcrypt.compare(dto.currentPassword, agent.passwordHash))) {
       throw new BadRequestException('Current password is incorrect');
     }
     const passwordHash = await bcrypt.hash(dto.newPassword, BCRYPT_ROUNDS);
-    await this.prisma.agentUser.update({ where: { id: agentId }, data: { passwordHash } });
+    const updated = await this.prisma.agentUser.update({
+      where: { id: agentId },
+      data: { passwordHash, mustChangePassword: false },
+    });
+    // Revoke existing sessions, then mint a fresh pair so the caller stays
+    // signed in with a token that no longer carries the forced-change flag.
     await this.tokens.revokeAll(this.rtDelegate, OWNER_KEY, agentId);
     await this.audit.log({ action: 'agent.password_change', agentId });
-    return { ok: true };
+    const tokens = await this.issueTokens(updated, ip, ua);
+    return { ok: true, ...tokens, agent: safeAgent(updated) };
   }
 
   // ── Login history ─────────────────────────────────────────────────────────────

@@ -126,7 +126,7 @@ function UserChip({ u }: { u: BranchUser }) {
           <button type="button" onClick={copyCred} className="mt-1 rounded border border-indigo-300 bg-white px-2 py-0.5 text-[11px] font-semibold text-indigo-700 hover:bg-indigo-100">
             {copied ? 'Copied ✓' : 'Copy login'}
           </button>
-          <p className="mt-1 text-[10px] text-indigo-700">This password won&apos;t be shown again. The user can change it after signing in.</p>
+          <p className="mt-1 text-[10px] text-indigo-700">This password won&apos;t be shown again. It&apos;s temporary — the user must set their own password on first sign-in.</p>
         </div>
       )}
     </div>

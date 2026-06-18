@@ -307,6 +307,7 @@ export class DDService {
       where: { id: userId },
       data: {
         passwordHash: await bcrypt.hash(password, 12),
+        mustChangePassword: true,
         active: true,
         emailVerified: true,
         emailVerifyToken: null,
