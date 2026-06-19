@@ -16,6 +16,7 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
   }
 
   const ip = clientIp(req);
+  const ua = req.headers.get('user-agent');
 
   try {
     const res = await fetch(`${API}/cms/forms/${encodeURIComponent(params.slug)}/submit`, {
@@ -23,6 +24,7 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
       headers: {
         'Content-Type': 'application/json',
         ...(ip ? { 'x-forwarded-for': ip, 'x-real-ip': ip } : {}),
+        ...(ua ? { 'user-agent': ua } : {}),
       },
       body: JSON.stringify(body),
     });

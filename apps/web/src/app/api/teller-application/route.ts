@@ -10,14 +10,17 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
   }
-  // Forward the real client IP across the proxy hop for the e-signature record.
+  // Forward the real client IP and browser user-agent across the proxy hop so
+  // the e-signature record shows the applicant's browser, not the server hop.
   const ip = clientIp(req);
+  const ua = req.headers.get('user-agent');
   try {
     const res = await fetch(`${API}/agents/tellers/apply`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(ip ? { 'x-forwarded-for': ip, 'x-real-ip': ip } : {}),
+        ...(ua ? { 'user-agent': ua } : {}),
       },
       body: JSON.stringify(body),
     });
