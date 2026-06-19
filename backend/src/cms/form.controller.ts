@@ -119,6 +119,13 @@ export class FormController {
       }
     }
 
+    // TEMP DIAGNOSTIC (SIGNER_METADATA_DEBUG): confirm the IP/UA recorded for
+    // public form submissions. Metadata only — no form contents/tokens. Remove
+    // once the user-agent forwarding fix is verified.
+    if (process.env.SIGNER_METADATA_DEBUG === '1') {
+      this.logger.warn(`[signer-metadata] form submit slug=${slug}  ip=${req.ip}  ua=${JSON.stringify(req.headers['user-agent'])}`);
+    }
+
     return this.forms.submit(slug, dto.data, {
       ip: req.ip,
       userAgent: req.headers['user-agent'],

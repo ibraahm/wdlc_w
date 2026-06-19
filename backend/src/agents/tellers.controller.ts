@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Logger, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { IsBoolean, IsEmail, IsIn, IsOptional, IsString, Matches, MaxLength } from 'class-validator';
@@ -36,6 +36,7 @@ class UpdateTellerDto {
 
 @Controller('agents/tellers')
 export class TellersPublicController {
+  private readonly logger = new Logger(TellersPublicController.name);
   constructor(private tellers: TellersService, private humanVerification: HumanVerificationService) {}
 
   @Public()
@@ -46,6 +47,12 @@ export class TellersPublicController {
       throw new ForbiddenException('Security check failed. Please answer the verification question.');
     if (!dto.signatureConsent) throw new ForbiddenException('Consent to the background check is required.');
     const { humanVerificationToken: _t, humanVerificationAnswer: _a, ...data } = dto;
+    // TEMP DIAGNOSTIC (SIGNER_METADATA_DEBUG): confirm what IP/UA actually get
+    // recorded for teller submissions, to validate the missing-user-agent fix.
+    // Logs only metadata — never form contents or tokens. Remove after verifying.
+    if (process.env.SIGNER_METADATA_DEBUG === '1') {
+      this.logger.warn(`[signer-metadata] teller apply  ip=${req.ip}  ua=${JSON.stringify(req.headers['user-agent'])}`);
+    }
     return this.tellers.submit(data, { ip: req.ip, userAgent: req.headers['user-agent'] });
   }
 }
