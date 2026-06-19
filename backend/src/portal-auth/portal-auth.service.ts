@@ -118,7 +118,9 @@ export class PortalAuthService {
 
   // ── Login ──────────────────────────────────────────────────────────────────
   async login(email: string, password: string, ip?: string, ua?: string) {
-    const agent = await this.prisma.agentUser.findUnique({ where: { email } });
+    // Case-insensitive, trimmed email match so a different-case address than the
+    // one on file isn't rejected as wrong credentials.
+    const agent = await this.prisma.agentUser.findFirst({ where: { email: { equals: email.trim(), mode: 'insensitive' } } });
 
     // Always verify the password (dummy compare when the account is missing) so
     // neither the response nor its timing reveals whether the email exists.

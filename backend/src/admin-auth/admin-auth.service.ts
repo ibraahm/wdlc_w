@@ -54,7 +54,9 @@ export class AdminAuthService {
 
   // ── Login ──────────────────────────────────────────────────────────────────
   async login(email: string, password: string, ip?: string, ua?: string) {
-    const user = await this.prisma.adminUser.findUnique({ where: { email } });
+    // Email is matched case-insensitively (and trimmed) so a different-case
+    // address than the one on file doesn't read as wrong credentials.
+    const user = await this.prisma.adminUser.findFirst({ where: { email: { equals: email.trim(), mode: 'insensitive' } } });
 
     // Always verify the password (dummy compare when the account is missing) so
     // neither the response nor its timing reveals whether the email exists.
