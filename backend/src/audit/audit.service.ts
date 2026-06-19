@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface AuditEntry {
@@ -12,12 +12,17 @@ export interface AuditEntry {
   after?: unknown;
   ip?: string;
   userAgent?: string;
+  // When true, a failed audit write is re-thrown so the calling operation fails
+  // closed instead of proceeding without a trail. Default: alert-and-continue.
+  critical?: boolean;
 }
 
 const toJson = (v: unknown) => (v !== undefined ? JSON.stringify(v) : undefined);
 
 @Injectable()
 export class AuditService {
+  private readonly logger = new Logger(AuditService.name);
+
   constructor(private prisma: PrismaService) {}
 
   async log(entry: AuditEntry): Promise<void> {
@@ -38,7 +43,16 @@ export class AuditService {
         },
       });
     } catch (err) {
-      console.error('Audit log write failed:', err);
+      // Never fail silently: emit a structured, alertable error with full
+      // context (the action/actor/entity, never the before/after payloads which
+      // may contain sensitive data).
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.error(
+        `AUDIT WRITE FAILED action=${entry.action} actor=${entry.adminId ?? entry.agentId ?? 'system'} ` +
+          `entity=${entry.entity ?? '-'}:${entry.entityId ?? '-'} critical=${!!entry.critical} reason=${message}`,
+      );
+      // Fail closed for critical actions so the operation surfaces the failure.
+      if (entry.critical) throw err;
     }
   }
 

@@ -36,12 +36,16 @@ describe('AdminAuthService', () => {
     prisma = {
       adminUser: {
         findUnique: jest.fn(),
+        findFirst: jest.fn(),
         update: jest.fn().mockResolvedValue({}),
         create: jest.fn(),
         findMany: jest.fn(),
       },
       adminRefreshToken: {},
     };
+    // login() looks up by email case-insensitively via findFirst; share the mock
+    // with findUnique so existing test setups apply to both.
+    prisma.adminUser.findFirst = prisma.adminUser.findUnique;
     tokens = {
       rotate: jest.fn(),
       issue: jest.fn().mockResolvedValue('raw-refresh'),
