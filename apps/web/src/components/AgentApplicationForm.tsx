@@ -1,6 +1,24 @@
 'use client';
 
 import { useState, useRef, useEffect, type FormEvent } from 'react';
+import {
+  US_COUNTRY,
+  normalizeCountry,
+  US_STATES,
+  HOW_FOUND,
+  BUSINESS_TYPES,
+  PRODUCTS,
+  LANGUAGES,
+  DOLLAR_VOLUMES,
+  inputCls,
+  ESIGN_CONSENT_TEXT,
+  formatUsPhoneInput,
+  isValidUsPhone,
+  toE164UsPhone,
+  formatUsZip,
+  isValidUsZip,
+} from './agent-application-utils';
+import { Field, YesNo, Stepper } from './agent-application-fields';
 
 interface NominatimResult {
   display_name: string;
@@ -18,109 +36,6 @@ interface NominatimResult {
     country?: string;
     country_code?: string;
   };
-}
-
-const US_COUNTRY = 'United States';
-const US_PHONE_PATTERN = /^[2-9]\d{2}[2-9]\d{6}$/;
-const US_ZIP_PATTERN = /^\d{5}(?:-\d{4})?$/;
-
-// Maps a Nominatim country name/code to the single intake country we support.
-function normalizeCountry(name?: string): string {
-  if (!name) return '';
-  const n = name.toLowerCase();
-  if (n.includes('united states')) return US_COUNTRY;
-  if (n === 'usa' || n === 'us') return US_COUNTRY;
-  return '';
-}
-
-const US_STATES = [
-  'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut',
-  'Delaware', 'District of Columbia', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois',
-  'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts',
-  'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada',
-  'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota',
-  'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Puerto Rico', 'Rhode Island', 'South Carolina',
-  'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington',
-  'West Virginia', 'Wisconsin', 'Wyoming',
-];
-
-const HOW_FOUND = [
-  'Advertisement in newspaper / publication', 'Social media (eg Facebook)', 'Word of mouth',
-  'World Direct Link sales representative', 'World Direct Link website', 'Other',
-];
-
-const BUSINESS_TYPES = [
-  'Check Casher', 'Convenience Store', 'Ethnic Grocery', 'Grocery', 'Liquor Store',
-  'Multi Service', 'Pharmacy', 'Port', 'Other', 'Biller (Receiving Payments)',
-];
-
-const PRODUCTS = ['Money Transmission'];
-
-const LANGUAGES = ['English', 'Spanish', 'French', 'Arabic', 'Somali', 'Amharic', 'Other'];
-
-const DOLLAR_VOLUMES = ['$0 - $50,000', '$50,000 - $100,000', '$100,000 - $250,000', '$250,000 - $500,000', '$500,000 - $1,000,000', 'Over $1,000,000'];
-
-const inputCls =
-  'w-full rounded-lg border border-[#d9e0e8] bg-white px-3 py-2 text-ink focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none';
-
-const ESIGN_CONSENT_TEXT =
-  'I certify that the information in this application is true and complete, and I agree that typing my name below is my electronic signature.';
-
-function getUsPhoneDigits(value: string): string {
-  const digits = value.replace(/\D/g, '');
-  if (digits.length === 11 && digits.startsWith('1')) return digits.slice(1);
-  if (digits.length === 10) return digits;
-  return '';
-}
-
-function formatUsPhoneInput(value: string): string {
-  const raw = value.replace(/\D/g, '');
-  const digits = (raw.length > 10 && raw.startsWith('1') ? raw.slice(1) : raw).slice(0, 10);
-  if (digits.length <= 3) return digits;
-  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-}
-
-function isValidUsPhone(value: string): boolean {
-  return US_PHONE_PATTERN.test(getUsPhoneDigits(value));
-}
-
-function toE164UsPhone(value: string): string {
-  return `+1${getUsPhoneDigits(value)}`;
-}
-
-function formatUsZip(value: string): string {
-  const digits = value.replace(/\D/g, '').slice(0, 9);
-  if (digits.length <= 5) return digits;
-  return `${digits.slice(0, 5)}-${digits.slice(5)}`;
-}
-
-function isValidUsZip(value: string): boolean {
-  return US_ZIP_PATTERN.test(value.trim());
-}
-
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="block text-sm font-bold text-primary-strong mb-1">
-        {label}{required && ' *'}
-      </label>
-      {children}
-    </div>
-  );
-}
-
-function YesNo({ name, value, onChange }: { name: string; value: boolean | null; onChange: (v: boolean) => void }) {
-  return (
-    <div className="flex items-center gap-6 pt-1">
-      <label className="inline-flex items-center gap-2 text-sm text-ink">
-        <input type="radio" name={name} checked={value === true} onChange={() => onChange(true)} /> Yes
-      </label>
-      <label className="inline-flex items-center gap-2 text-sm text-ink">
-        <input type="radio" name={name} checked={value === false} onChange={() => onChange(false)} /> No
-      </label>
-    </div>
-  );
 }
 
 interface AddressFill {
@@ -287,34 +202,6 @@ function AddressAutocomplete({
 }
 
 type ApplicantType = 'INDIVIDUAL' | 'BUSINESS';
-
-function Stepper({ steps, current }: { steps: string[]; current: number }) {
-  return (
-    <ol className="flex items-center w-full mb-8">
-      {steps.map((label, i) => {
-        const done = i < current;
-        const active = i === current;
-        return (
-          <li key={label} className={`flex items-center ${i < steps.length - 1 ? 'flex-1' : ''}`}>
-            <div className="flex flex-col items-center text-center">
-              <span
-                className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold transition-colors ${
-                  done ? 'bg-primary text-white' : active ? 'bg-primary text-white ring-4 ring-primary/20' : 'bg-gray-200 text-gray-500'
-                }`}
-              >
-                {done ? '✓' : i + 1}
-              </span>
-              <span className={`mt-1 hidden sm:block text-[11px] font-medium ${active ? 'text-primary' : 'text-gray-400'}`}>{label}</span>
-            </div>
-            {i < steps.length - 1 && (
-              <div className={`mx-2 h-0.5 flex-1 rounded transition-colors ${done ? 'bg-primary' : 'bg-gray-200'}`} />
-            )}
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
 
 interface AgentApplicationFormProps {
   // Minutes of inactivity before a locally saved draft is considered expired.
