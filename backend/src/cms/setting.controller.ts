@@ -16,6 +16,7 @@ const PUBLIC_SETTING_KEYS = new Set([
   'contactPhone',
   'application.draftTimeoutMinutes',
   'maintenanceMode',
+  'announcement',
   'footerText',
 ]);
 

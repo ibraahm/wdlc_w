@@ -2,6 +2,7 @@ import { getSession } from '@/lib/auth';
 import { apiGetSettings } from '@/lib/api';
 import { redirect } from 'next/navigation';
 import SettingsManager from '@/components/SettingsManager';
+import AnnouncementSettings, { type AnnouncementConfig } from '@/components/AnnouncementSettings';
 import ChangePasswordForm from '@/components/ChangePasswordForm';
 
 export default async function SettingsPage() {
@@ -17,6 +18,19 @@ export default async function SettingsPage() {
     fetchError = err instanceof Error ? err.message : 'Failed to load settings';
   }
 
+  // The announcement is edited in its own panel; parse its JSON value and keep
+  // it out of the raw key/value list below.
+  let announcement: Partial<AnnouncementConfig> | null = null;
+  const annRow = settings.find((s) => s.key === 'announcement');
+  if (annRow) {
+    try {
+      announcement = JSON.parse(annRow.value) as Partial<AnnouncementConfig>;
+    } catch {
+      announcement = null;
+    }
+  }
+  const otherSettings = settings.filter((s) => s.key !== 'announcement');
+
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
@@ -30,7 +44,9 @@ export default async function SettingsPage() {
         </div>
       )}
 
-      <SettingsManager initialSettings={settings} />
+      <AnnouncementSettings initial={announcement} />
+
+      <SettingsManager initialSettings={otherSettings} />
 
       {/* Your account - change password */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">

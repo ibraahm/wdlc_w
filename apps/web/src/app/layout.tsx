@@ -5,6 +5,7 @@ import SiteNav from '@/components/SiteNav';
 import Footer from '@/components/Footer';
 import MaintenanceScreen from '@/components/MaintenanceScreen';
 import VisitBeacon from '@/components/VisitBeacon';
+import Announcement, { type AnnouncementConfig } from '@/components/Announcement';
 import { company } from '@/lib/site';
 import { getCmsSetting } from '@/lib/cms';
 
@@ -24,6 +25,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const maintenance = await getCmsSetting<unknown>('maintenanceMode', false);
   const maintenanceOn = maintenance === true || maintenance === 'true';
 
+  // Admin-controlled site notice (top bar and/or popup) shown on every visit.
+  const announcement = await getCmsSetting<AnnouncementConfig | null>('announcement', null);
+
   return (
     <html lang="en">
       <head>
@@ -39,6 +43,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <MaintenanceScreen />
         ) : (
         <>
+        {announcement?.enabled && <Announcement {...announcement} />}
         <div className="progress" id="progress" />
           <SiteNav />
           {children}
