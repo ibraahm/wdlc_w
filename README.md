@@ -4,6 +4,7 @@ Full-stack monorepo for the **World Direct Link, Corp.** money-transmitter platf
 NestJS API, a public marketing website, a secure agent/teller portal (with a corporate
 training LMS), and an admin back-office for compliance and operations.
 
+> New here? Start with **[SETUP.md](./SETUP.md)** to pull, install, and run it locally.
 > Operations & deployment runbook: see **[INSTRUCTIONS.md](./INSTRUCTIONS.md)**.
 
 ---
