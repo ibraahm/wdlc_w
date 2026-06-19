@@ -1109,7 +1109,23 @@ export class TrainingService {
   async adminDeleteCourse(id: string, adminId: string) {
     const existing = await this.prisma.course.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Course not found');
-    await this.prisma.course.delete({ where: { id } });
+    // Block deletion when learner evidence exists — completions and policy
+    // acknowledgements are audit records and must not be wiped. Unpublish instead.
+    const [completions, acks] = await Promise.all([
+      this.prisma.courseCompletion.count({ where: { courseId: id } }),
+      this.prisma.policyAcknowledgment.count({ where: { courseId: id } }),
+    ]);
+    if (completions > 0 || acks > 0) {
+      throw new BadRequestException(
+        `This course has learner evidence (${completions} completion(s), ${acks} acknowledgement(s)) and cannot be deleted. Unpublish it instead.`,
+      );
+    }
+    // No evidence: remove the content versions (now RESTRICT-guarded) then the
+    // course (sections/assignments/exceptions still cascade).
+    await this.prisma.$transaction([
+      this.prisma.courseVersion.deleteMany({ where: { courseId: id } }),
+      this.prisma.course.delete({ where: { id } }),
+    ]);
     await this.audit.log({ action: 'training.course.delete', adminId, entity: 'Course', entityId: id, before: { title: existing.title } });
     return { deleted: true };
   }
@@ -1227,6 +1243,10 @@ export class TrainingService {
   async adminDeleteResource(id: string, adminId: string) {
     const existing = await this.prisma.resource.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Resource not found');
+    const acks = await this.prisma.resourceAck.count({ where: { resourceId: id } });
+    if (acks > 0) {
+      throw new BadRequestException(`This resource has ${acks} acknowledgement(s) on record and cannot be deleted. Unpublish it instead.`);
+    }
     await this.prisma.resource.delete({ where: { id } });
     await this.audit.log({ action: 'training.resource.delete', adminId, entity: 'Resource', entityId: id, before: { title: existing.title } });
     return { deleted: true };

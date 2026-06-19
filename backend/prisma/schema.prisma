@@ -268,7 +268,7 @@ model AgentDDFile {
   id              String    @id @default(cuid())
 
   // Optional link back to the originating public application (lifecycle start).
-  application     AgentApplication? @relation(fields: [applicationId], references: [id])
+  application     AgentApplication? @relation(fields: [applicationId], references: [id], onDelete: Restrict)
   applicationId   String?   @unique
 
   branchCode      String?   @unique // 6-char agent ID, e.g. uswdlc - required before ACTIVE
@@ -491,7 +491,7 @@ model Form {
 model FormSubmission {
   id        String   @id @default(cuid())
   formId    String
-  form      Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  form      Form     @relation(fields: [formId], references: [id], onDelete: Restrict)
   data      String   @default("{}")
   status    String   @default("NEW")   // NEW | IN_PROGRESS | RESPONDED | CLOSED
   assignee  String?                      // admin name handling the case
@@ -630,7 +630,7 @@ model Course {
 model CourseVersion {
   id          String   @id @default(cuid())
   courseId    String
-  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Restrict)
   version     Int                              // 1-based, increments per course
   title       String
   contentHtml String   @default("")
@@ -654,9 +654,9 @@ model CourseVersion {
 model PolicyAcknowledgment {
   id              String        @id @default(cuid())
   courseId        String
-  course          Course        @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course          Course        @relation(fields: [courseId], references: [id], onDelete: Restrict)
   courseVersionId String
-  courseVersion   CourseVersion @relation(fields: [courseVersionId], references: [id], onDelete: Cascade)
+  courseVersion   CourseVersion @relation(fields: [courseVersionId], references: [id], onDelete: Restrict)
   versionNumber   Int
   agentId         String
   agent           AgentUser     @relation(fields: [agentId], references: [id], onDelete: Cascade)
@@ -773,7 +773,7 @@ model LessonProgress {
 model CourseCompletion {
   id          String    @id @default(cuid())
   courseId    String
-  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Restrict)
   agentId     String
   agent       AgentUser @relation(fields: [agentId], references: [id], onDelete: Cascade)
   branchCode  String?   // snapshot of the user's branch at completion time
@@ -821,7 +821,7 @@ model Resource {
 model ResourceAck {
   id             String    @id @default(cuid())
   resourceId     String
-  resource       Resource  @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  resource       Resource  @relation(fields: [resourceId], references: [id], onDelete: Restrict)
   agentId        String
   agent          AgentUser @relation(fields: [agentId], references: [id], onDelete: Cascade)
   branchCode     String?

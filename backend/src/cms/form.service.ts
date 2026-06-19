@@ -116,6 +116,12 @@ export class FormService {
   async remove(id: string, adminId: string) {
     const existing = await this.prisma.form.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException(`Form ${id} not found`);
+    const submissions = await this.prisma.formSubmission.count({ where: { formId: id } });
+    if (submissions > 0) {
+      throw new BadRequestException(
+        `This form has ${submissions} submission(s) on record and cannot be deleted (they are intake evidence). Unpublish it instead.`,
+      );
+    }
     await this.prisma.form.delete({ where: { id } });
     await this.audit.log({ action: 'form.delete', adminId, entity: 'Form', entityId: id, before: { slug: existing.slug } });
     return { ok: true };
