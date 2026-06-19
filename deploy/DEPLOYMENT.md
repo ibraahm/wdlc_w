@@ -93,6 +93,14 @@ but do not run the admin app there in the open (no HTTPS = no secure cookie).
 You can pre-set any value as an env var to skip its prompt (see the header of
 `deploy/generate-env.sh`).
 
+> **URL truth (avoid the localhost trap):** the portal and admin talk to the
+> backend **server-side only**, so `API_URL` is the **internal** address
+> (`http://127.0.0.1:4000/api`) — never a public URL. Anything user-facing uses
+> the **public** URL envs instead: `NEXT_PUBLIC_PORTAL_URL` (portal logout),
+> `NEXT_PUBLIC_ADMIN_URL` (admin logout / portal's "admin sign-in" link), and
+> `NEXT_PUBLIC_WEB_URL` (admin "view on site"). These are inlined at build time,
+> so **rebuild the portal/admin after changing them**.
+
 ## 4. Database migrate + seed
 
 ```bash
@@ -140,18 +148,51 @@ server {
   location / {
     proxy_pass http://127.0.0.1:4000;
     proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;   # real client IP for rate-limit/audit
     proxy_set_header X-Forwarded-Proto $scheme;
   }
 }
 
-# example.com -> web ; portal.example.com -> :3001 ; admin.example.com -> :3002
+# Public apps. EVERY block must forward the same client headers so the real IP
+# and protocol reach the Next app (and the backend it proxies to) — required for
+# e-signature / audit IPs on applications, teller forms and CMS forms, and for
+# correct HTTPS redirects.
+# example.com -> web (:3000)
 server {
   listen 443 ssl;
   server_name example.com;
   location / {
     proxy_pass http://127.0.0.1:3000;
     proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+
+# portal.example.com -> agent portal (:3001)
+server {
+  listen 443 ssl;
+  server_name portal.example.com;
+  location / {
+    proxy_pass http://127.0.0.1:3001;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+  }
+}
+
+# secure.example.com -> admin console (:3002)
+server {
+  listen 443 ssl;
+  server_name secure.example.com;
+  location / {
+    proxy_pass http://127.0.0.1:3002;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
   }
 }

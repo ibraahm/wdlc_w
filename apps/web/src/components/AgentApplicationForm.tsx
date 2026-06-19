@@ -419,19 +419,8 @@ export default function AgentApplicationForm({
       }
       setHumanChallenge(data as HumanVerificationChallenge);
       setHumanAnswer('');
-      if (process.env.NODE_ENV !== 'production') {
-        console.info('[agent-application] human-verification:challenge loaded', {
-          expiresAt: data.expiresAt,
-        });
-      }
-    } catch (err) {
-      const message = 'Verification question unavailable. Please try again.';
-      setHumanError(message);
-      if (process.env.NODE_ENV !== 'production') {
-        console.error('[agent-application] human-verification:challenge failed', {
-          message: err instanceof Error ? err.message : String(err),
-        });
-      }
+    } catch {
+      setHumanError('Verification question unavailable. Please try again.');
     } finally {
       setHumanLoading(false);
     }
@@ -644,9 +633,6 @@ export default function AgentApplicationForm({
     setPending(true);
 
     const humanReady = !!humanChallenge && !!humanAnswer.trim();
-    if (process.env.NODE_ENV !== 'production') {
-      console.info('[agent-application] submit:start', { applicantType, humanReady });
-    }
     if (!humanReady) {
       if (!humanChallenge) void loadHumanChallenge();
       setError('Please answer the verification question.');
@@ -695,25 +681,12 @@ export default function AgentApplicationForm({
     };
 
     try {
-      if (process.env.NODE_ENV !== 'production') {
-        console.info('[agent-application] api:request', {
-          humanTokenPresent: !!payload.humanVerificationToken,
-          product: payload.productsOffered,
-        });
-      }
       const res = await fetch('/api/agent-application', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
-      if (process.env.NODE_ENV !== 'production') {
-        console.info('[agent-application] api:response', {
-          ok: res.ok,
-          status: res.status,
-          error: data.error ?? data.message,
-        });
-      }
       if (!res.ok) {
         const message: string = data.error || data.message || 'Submission failed. Please review the form and try again.';
         if (res.status === 403 || message.toLowerCase().includes('security')) {
@@ -726,12 +699,7 @@ export default function AgentApplicationForm({
       }
       setSubmitted(true);
       try { localStorage.removeItem(DRAFT_KEY); } catch { /* noop */ }
-    } catch (err) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.error('[agent-application] api:request failed', {
-          message: err instanceof Error ? err.message : String(err),
-        });
-      }
+    } catch {
       setError('Service temporarily unavailable. Please try again later.');
     }
     setPending(false);
