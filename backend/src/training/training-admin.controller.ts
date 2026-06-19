@@ -5,12 +5,13 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser, AuthUser } from '../auth/decorators/current-user.decorator';
 import { TrainingService } from './training.service';
+import { CertificateService } from './certificate.service';
 import { UpsertCourseDto, UpsertResourceDto, UpsertSectionDto, UpsertLessonDto, CreateAssignmentDto, UpdateAssignmentDto, CreateExceptionDto, DecideExceptionDto } from './dto/training.dto';
 
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
 @Controller('admin/training')
 export class TrainingAdminController {
-  constructor(private training: TrainingService) {}
+  constructor(private training: TrainingService, private certificate: CertificateService) {}
 
   // ── Courses ───────────────────────────────────────────────────────────────
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR', 'REGIONAL_OFFICER', 'AUDITOR')
@@ -120,19 +121,19 @@ export class TrainingAdminController {
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER')
   @Get('certificate')
   certificateConfig() {
-    return this.training.getCertificateConfig();
+    return this.certificate.getCertificateConfig();
   }
 
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER')
   @Patch('certificate')
   saveCertificate(@Body() dto: any, @CurrentUser('id') adminId: string) {
-    return this.training.saveCertificateConfig(dto, adminId);
+    return this.certificate.saveCertificateConfig(dto, adminId);
   }
 
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER')
   @Post('certificate/preview')
   async certificatePreview(@Body() dto: any, @Res() res: Response) {
-    const pdf = await this.training.certificatePreviewPdf(dto);
+    const pdf = await this.certificate.certificatePreviewPdf(dto);
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': 'inline; filename="certificate-preview.pdf"',
@@ -144,25 +145,25 @@ export class TrainingAdminController {
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER')
   @Get('certificate/course/:id/config')
   courseCertConfig(@Param('id') id: string) {
-    return this.training.getCourseCertConfig(id);
+    return this.certificate.getCourseCertConfig(id);
   }
 
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER')
   @Patch('certificate/course/:id/config')
   saveCourseCertConfig(@Param('id') id: string, @Body() dto: any, @CurrentUser('id') adminId: string) {
-    return this.training.saveCourseCertConfig(id, dto, adminId);
+    return this.certificate.saveCourseCertConfig(id, dto, adminId);
   }
 
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER')
   @Delete('certificate/course/:id/config')
   resetCourseCertConfig(@Param('id') id: string, @CurrentUser('id') adminId: string) {
-    return this.training.deleteCourseCertConfig(id, adminId);
+    return this.certificate.deleteCourseCertConfig(id, adminId);
   }
 
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR', 'REGIONAL_OFFICER', 'AUDITOR')
   @Get('certificate/course/:id/preview')
   async courseCertificatePreview(@Param('id') id: string, @Res() res: Response) {
-    const pdf = await this.training.adminCourseCertificatePreview(id);
+    const pdf = await this.certificate.adminCourseCertificatePreview(id);
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': 'inline; filename="certificate-preview.pdf"',
