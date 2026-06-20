@@ -147,8 +147,18 @@ export default function LicensesExplorer({
                 return (
                   <Fragment key={r.state}>
                     <tr
-                      className="cursor-pointer odd:bg-white even:bg-gray-50 hover:bg-blue-50/50 transition-colors"
+                      className="cursor-pointer odd:bg-white even:bg-gray-50 hover:bg-blue-50/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                       onClick={() => toggle(r.state)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          toggle(r.state);
+                        }
+                      }}
+                      tabIndex={0}
+                      role="button"
+                      aria-expanded={open}
+                      aria-label={`${r.state} license details`}
                     >
                       <td className="px-5 py-3 font-medium text-gray-900">
                         <span className="flex flex-wrap items-center gap-2">
