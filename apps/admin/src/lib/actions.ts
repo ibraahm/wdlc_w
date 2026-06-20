@@ -170,7 +170,7 @@ export async function changePasswordAction(formData: FormData): Promise<{ ok: bo
 // ---------------------------------------------------------------------------
 
 export async function saveSettingsAction(
-  entries: { key: string; value: string }[],
+  entries: { key: string; value: unknown }[],
 ): Promise<{ ok: boolean; error?: string }> {
   const session = await getSession();
   if (!session) return { ok: false, error: 'Not authenticated' };

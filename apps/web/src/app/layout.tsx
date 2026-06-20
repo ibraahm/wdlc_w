@@ -26,7 +26,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const maintenanceOn = maintenance === true || maintenance === 'true';
 
   // Admin-controlled site notice (top bar and/or popup) shown on every visit.
-  const announcement = await getCmsSetting<AnnouncementConfig | null>('announcement', null);
+  const annRaw = await getCmsSetting<unknown>('announcement', null);
+  // Tolerate a legacy double-encoded value (stored as a JSON string of JSON).
+  let announcement: AnnouncementConfig | null = null;
+  if (typeof annRaw === 'string') {
+    try {
+      announcement = JSON.parse(annRaw) as AnnouncementConfig;
+    } catch {
+      announcement = null;
+    }
+  } else if (annRaw && typeof annRaw === 'object') {
+    announcement = annRaw as AnnouncementConfig;
+  }
 
   return (
     <html lang="en">

@@ -53,7 +53,9 @@ export default function AnnouncementSettings({ initial }: { initial: Partial<Ann
     setError('');
     setSaved(false);
     startTransition(async () => {
-      const result = await saveSettingsAction([{ key: 'announcement', value: JSON.stringify(cfg) }]);
+      // Send the object itself; the backend serializes it once. (Pre-stringifying
+      // here would double-encode it and the public site would read back a string.)
+      const result = await saveSettingsAction([{ key: 'announcement', value: cfg }]);
       if (result.ok) {
         setSaved(true);
         setTimeout(() => setSaved(false), 2500);

@@ -24,7 +24,10 @@ export default async function SettingsPage() {
   const annRow = settings.find((s) => s.key === 'announcement');
   if (annRow) {
     try {
-      announcement = JSON.parse(annRow.value) as Partial<AnnouncementConfig>;
+      let parsed: unknown = JSON.parse(annRow.value);
+      // Tolerate a legacy double-encoded value (a JSON string of JSON).
+      if (typeof parsed === 'string') parsed = JSON.parse(parsed);
+      if (parsed && typeof parsed === 'object') announcement = parsed as Partial<AnnouncementConfig>;
     } catch {
       announcement = null;
     }

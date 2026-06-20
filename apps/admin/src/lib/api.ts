@@ -201,7 +201,7 @@ export async function apiGetSettings(accessToken: string): Promise<Setting[]> {
 export async function apiSetSetting(
   accessToken: string,
   key: string,
-  value: string,
+  value: unknown,
 ): Promise<void> {
   const res = await authFetch(`/cms/settings/${key}`, accessToken, {
     method: 'PUT',
