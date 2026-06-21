@@ -539,17 +539,24 @@ export default function AgentApplicationForm({
         {step === 2 && (
           <div className="space-y-5">
             <h2 className="text-lg font-bold text-primary-strong">{isBusiness ? 'Business location' : 'Your address'}</h2>
-            <Field label="Street Address" required>
+            <p className="text-sm text-ink/60">
+              {isBusiness
+                ? 'Enter the physical address of the store or office where you will serve customers — not your home address or a PO box (unless that is genuinely your place of business).'
+                : 'Enter the physical address where you will offer services — not a PO box.'}
+            </p>
+            <Field label={isBusiness ? 'Business street address' : 'Street address'} required>
               <input
                 name="wdlc-street-entry"
                 autoComplete="new-password"
                 required
                 value={street}
                 onChange={(e) => setStreet(e.target.value)}
-                placeholder="Street address"
+                placeholder={isBusiness ? 'Address where you will serve customers' : 'Street address'}
                 className={inputCls}
               />
-              <p className="mt-1 text-xs text-ink/50">U.S. locations only. City and state fill from ZIP.</p>
+              <p className="mt-1 text-xs text-ink/50">
+                U.S. locations only. City and state fill from ZIP.{isBusiness ? ' Use your business location, not your home.' : ''}
+              </p>
             </Field>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <Field label="Country" required>
