@@ -191,7 +191,7 @@ export class DDService {
   // ── Reads ─────────────────────────────────────────────────────────────────
   async list(stage?: string, adminId?: string, role?: string) {
     const scope = adminId ? await this.regional.scopeForAdmin(adminId, role) : null;
-    const where: any = {};
+    const where: any = { archivedAt: null };
     if (stage) where.stage = stage;
     if (scope) where.regionalOfficeId = scope.officeId ?? '__none__';
     const files = await this.prisma.agentDDFile.findMany({
@@ -219,7 +219,7 @@ export class DDService {
    */
   async listActiveBranches() {
     const files = await this.prisma.agentDDFile.findMany({
-      where: { stage: { in: ['ACTIVE', 'SUSPENDED'] }, branchCode: { not: null } },
+      where: { stage: { in: ['ACTIVE', 'SUSPENDED'] }, branchCode: { not: null }, archivedAt: null },
       orderBy: [{ stage: 'asc' }, { nextReviewDueAt: 'asc' }],
       include: { documents: { select: { status: true } }, application: { select: APPLICATION_SELECT } },
     });

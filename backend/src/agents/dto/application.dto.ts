@@ -62,3 +62,14 @@ export class CreateApplicationDto {
 export class UpdateApplicationStatusDto {
   @IsString() @IsIn(['NEW', 'REVIEWING', 'APPROVED', 'REJECTED']) status: string;
 }
+
+// Admin correction of the business/service address (e.g. an applicant entered a
+// home address). Allowed even on locked records; always audited.
+export class UpdateApplicationAddressDto {
+  @IsString() @MaxLength(300) businessStreet: string;
+  @IsString() @IsIn(['United States']) businessCountry: string;
+  @IsString() @IsIn(US_STATES) businessState: string;
+  @IsString() @MaxLength(120) businessCity: string;
+  @IsString() @MaxLength(10) @Matches(/^\d{5}(?:-\d{4})?$/, { message: 'businessZip must be a valid U.S. ZIP code' }) businessZip: string;
+  @IsString() @MaxLength(12) @Matches(/^\+1[2-9]\d{2}[2-9]\d{6}$/, { message: 'businessPhone must be a valid U.S. phone number' }) businessPhone: string;
+}

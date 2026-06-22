@@ -250,12 +250,15 @@ model AgentApplication {
   status                String   @default("NEW")
   ip                    String?
   userAgent             String?
+  archivedAt            DateTime?
+  archivedBy            String?
   createdAt             DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
   ddFile               AgentDDFile?
 
   @@index([status, createdAt])
+  @@index([archivedAt])
 }
 
 // ─────────────────────────────────────────────
@@ -292,6 +295,9 @@ model AgentDDFile {
   reviewedBy      String?
   nextReviewDueAt DateTime?
 
+  archivedAt      DateTime?
+  archivedBy      String?
+
   documents       AgentDocument[]
 
   createdAt       DateTime  @default(now())
@@ -300,6 +306,7 @@ model AgentDDFile {
   @@index([stage])
   @@index([nextReviewDueAt])
   @@index([regionalOfficeId])
+  @@index([archivedAt])
 }
 
 // ─────────────────────────────────────────────

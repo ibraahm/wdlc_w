@@ -3,9 +3,27 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import type { AgentApplication } from '@/lib/api';
-import { setApplicationStatusAction, deleteApplicationAction } from '@/lib/actions';
+import type { AgentApplication, ApplicationAddress } from '@/lib/api';
+import {
+  setApplicationStatusAction,
+  deleteApplicationAction,
+  archiveApplicationAction,
+  unarchiveApplicationAction,
+  forceDeleteApplicationAction,
+  updateApplicationAddressAction,
+} from '@/lib/actions';
 import { EmptyState } from './ui-admin';
+
+const US_STATES = [
+  'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut',
+  'Delaware', 'District of Columbia', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois',
+  'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts',
+  'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada',
+  'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota',
+  'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Puerto Rico', 'Rhode Island', 'South Carolina',
+  'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington',
+  'West Virginia', 'Wisconsin', 'Wyoming',
+];
 
 const STATUSES = ['NEW', 'REVIEWING', 'APPROVED', 'REJECTED'] as const;
 
@@ -113,13 +131,106 @@ function CountCard({ label, value, active, onClick }: {
   );
 }
 
+function AddressEditor({
+  app,
+  pending,
+  onSave,
+  onCancel,
+}: {
+  app: AgentApplication;
+  pending: boolean;
+  onSave: (address: ApplicationAddress) => void;
+  onCancel: () => void;
+}) {
+  const [street, setStreet] = useState(app.businessStreet);
+  const [city, setCity] = useState(app.businessCity);
+  const [stateField, setStateField] = useState(app.businessState ?? '');
+  const [zip, setZip] = useState(app.businessZip);
+  const [phone, setPhone] = useState((app.businessPhone || '').replace(/^\+1/, ''));
+  const [err, setErr] = useState('');
+
+  const fieldCls = 'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy/30';
+
+  function submit() {
+    setErr('');
+    const digits = phone.replace(/\D/g, '').replace(/^1/, '');
+    if (!street.trim() || !city.trim() || !stateField || !zip.trim()) {
+      setErr('Street, city, state and ZIP are required.');
+      return;
+    }
+    if (!/^\d{5}(?:-\d{4})?$/.test(zip.trim())) {
+      setErr('Enter a valid U.S. ZIP code.');
+      return;
+    }
+    if (!/^[2-9]\d{2}[2-9]\d{6}$/.test(digits)) {
+      setErr('Enter a valid 10-digit U.S. phone number.');
+      return;
+    }
+    onSave({
+      businessStreet: street.trim(),
+      businessCountry: 'United States',
+      businessState: stateField,
+      businessCity: city.trim(),
+      businessZip: zip.trim(),
+      businessPhone: `+1${digits}`,
+    });
+  }
+
+  return (
+    <div className="rounded-lg border border-navy/20 bg-blue-50/40 p-4">
+      <p className="mb-3 text-sm font-semibold text-gray-900">Correct business address</p>
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="md:col-span-2 block">
+          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">Street address</span>
+          <input value={street} onChange={(e) => setStreet(e.target.value)} className={fieldCls} placeholder="Business location, not a home address" />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">City</span>
+          <input value={city} onChange={(e) => setCity(e.target.value)} className={fieldCls} />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">State</span>
+          <select value={stateField} onChange={(e) => setStateField(e.target.value)} className={fieldCls}>
+            <option value="">Select…</option>
+            {US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">ZIP</span>
+          <input value={zip} onChange={(e) => setZip(e.target.value)} className={fieldCls} />
+        </label>
+        <label className="block">
+          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">Phone</span>
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} className={fieldCls} placeholder="(404) 555-0123" />
+        </label>
+      </div>
+      {err && <p className="mt-2 text-xs text-red-600">{err}</p>}
+      <div className="mt-3 flex gap-2">
+        <button type="button" onClick={submit} disabled={pending} className="rounded-lg bg-navy px-4 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50">
+          {pending ? 'Saving…' : 'Save address'}
+        </button>
+        <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">
+          Cancel
+        </button>
+      </div>
+      <p className="mt-2 text-[11px] text-gray-500">Changes the address on this application{app.ddFile ? ' and its DD file' : ''}. This action is audited.</p>
+    </div>
+  );
+}
+
 export default function ApplicationsManager({
   applications,
+  archivedApplications,
   canApprove,
+  canManage,
+  canHardDelete,
   initialExpandedId,
 }: {
   applications: AgentApplication[];
+  archivedApplications: AgentApplication[];
   canApprove: boolean;
+  canManage: boolean;
+  canHardDelete: boolean;
   initialExpandedId?: string;
 }) {
   const router = useRouter();
@@ -129,6 +240,8 @@ export default function ApplicationsManager({
   const [statusFilter, setStatusFilter] = useState<'ALL' | typeof STATUSES[number]>('ALL');
   const [query, setQuery] = useState('');
   const [awaitingDdOnly, setAwaitingDdOnly] = useState(false);
+  const [viewArchived, setViewArchived] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<string | null>(null);
 
   const counts = useMemo(() => {
     const next: Record<string, number> = { ALL: applications.length, NEW: 0, REVIEWING: 0, APPROVED: 0, REJECTED: 0 };
@@ -144,9 +257,12 @@ export default function ApplicationsManager({
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return applications.filter((app) => {
-      if (statusFilter !== 'ALL' && app.status !== statusFilter) return false;
-      if (awaitingDdOnly && !(app.status === 'APPROVED' && !app.ddFile)) return false;
+    const source = viewArchived ? archivedApplications : applications;
+    return source.filter((app) => {
+      if (!viewArchived) {
+        if (statusFilter !== 'ALL' && app.status !== statusFilter) return false;
+        if (awaitingDdOnly && !(app.status === 'APPROVED' && !app.ddFile)) return false;
+      }
       if (!q) return true;
       return [
         fullName(app),
@@ -157,7 +273,7 @@ export default function ApplicationsManager({
         app.productsOffered,
       ].filter(Boolean).join(' ').toLowerCase().includes(q);
     });
-  }, [applications, query, statusFilter, awaitingDdOnly]);
+  }, [applications, archivedApplications, query, statusFilter, awaitingDdOnly, viewArchived]);
 
   function changeStatus(id: string, status: string) {
     setError('');
@@ -170,7 +286,7 @@ export default function ApplicationsManager({
 
   function remove(a: AgentApplication) {
     if (a.status === 'APPROVED' || a.ddFile) {
-      setError('Approved or DD-linked applications are locked. Keep the DD file as the system of record.');
+      setError('Approved or DD-linked applications are locked. Archive it, or use permanent delete (no evidence only).');
       return;
     }
     if (!confirm(`Delete unapproved application for ${businessName(a)}? This keeps audit history but removes the lead from review.`)) return;
@@ -182,7 +298,48 @@ export default function ApplicationsManager({
     });
   }
 
-  if (applications.length === 0) {
+  function archive(a: AgentApplication) {
+    if (!confirm(`Archive the application for ${businessName(a)}? It will be hidden from the active queue${a.ddFile ? ' along with its DD file' : ''}, but kept on record. You can restore it later.`)) return;
+    setError('');
+    startTransition(async () => {
+      const res = await archiveApplicationAction(a.id);
+      if (!res.ok) setError(res.error ?? 'Archive failed');
+      else router.refresh();
+    });
+  }
+
+  function unarchive(a: AgentApplication) {
+    setError('');
+    startTransition(async () => {
+      const res = await unarchiveApplicationAction(a.id);
+      if (!res.ok) setError(res.error ?? 'Restore failed');
+      else router.refresh();
+    });
+  }
+
+  function forceDelete(a: AgentApplication) {
+    if (!confirm(`PERMANENTLY delete the application for ${businessName(a)}${a.ddFile ? ' and its DD file' : ''}? This cannot be undone. It is blocked if any evidence has been collected.`)) return;
+    setError('');
+    startTransition(async () => {
+      const res = await forceDeleteApplicationAction(a.id);
+      if (!res.ok) setError(res.error ?? 'Delete failed');
+      else router.refresh();
+    });
+  }
+
+  function saveAddress(id: string, address: ApplicationAddress) {
+    setError('');
+    startTransition(async () => {
+      const res = await updateApplicationAddressAction(id, address);
+      if (!res.ok) setError(res.error ?? 'Update failed');
+      else {
+        setEditingAddress(null);
+        router.refresh();
+      }
+    });
+  }
+
+  if (applications.length === 0 && archivedApplications.length === 0) {
     return (
       <EmptyState
         icon="A"
@@ -201,14 +358,14 @@ export default function ApplicationsManager({
       )}
 
       <div className="grid gap-3 md:grid-cols-5">
-        <CountCard label="All applications" value={counts.ALL} active={statusFilter === 'ALL'} onClick={() => setStatusFilter('ALL')} />
+        <CountCard label="All applications" value={counts.ALL} active={!viewArchived && statusFilter === 'ALL'} onClick={() => { setViewArchived(false); setStatusFilter('ALL'); }} />
         {STATUSES.map((status) => (
           <CountCard
             key={status}
             label={status.replace(/_/g, ' ')}
             value={counts[status] ?? 0}
-            active={statusFilter === status}
-            onClick={() => setStatusFilter(status)}
+            active={!viewArchived && statusFilter === status}
+            onClick={() => { setViewArchived(false); setStatusFilter(status); }}
           />
         ))}
       </div>
@@ -216,29 +373,39 @@ export default function ApplicationsManager({
       <div className="flex flex-wrap gap-1.5">
         <span className="self-center text-xs font-medium text-gray-400">Saved views:</span>
         <button
-          onClick={() => { setAwaitingDdOnly(false); setStatusFilter('ALL'); }}
-          className={`rounded-full px-3 py-1 text-xs font-semibold ${!awaitingDdOnly && statusFilter === 'ALL' ? 'bg-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          onClick={() => { setViewArchived(false); setAwaitingDdOnly(false); setStatusFilter('ALL'); }}
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${!viewArchived && !awaitingDdOnly && statusFilter === 'ALL' ? 'bg-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
         >
           All ({counts.ALL})
         </button>
         <button
-          onClick={() => { setStatusFilter('NEW'); setAwaitingDdOnly(false); }}
-          className={`rounded-full px-3 py-1 text-xs font-semibold ${statusFilter === 'NEW' && !awaitingDdOnly ? 'bg-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          onClick={() => { setViewArchived(false); setStatusFilter('NEW'); setAwaitingDdOnly(false); }}
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${!viewArchived && statusFilter === 'NEW' && !awaitingDdOnly ? 'bg-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
         >
           Needs triage ({counts.NEW ?? 0})
         </button>
         <button
-          onClick={() => { setAwaitingDdOnly(true); setStatusFilter('ALL'); }}
-          className={`rounded-full px-3 py-1 text-xs font-semibold ${awaitingDdOnly ? 'bg-navy text-white' : awaitingDdCount > 0 ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          onClick={() => { setViewArchived(false); setAwaitingDdOnly(true); setStatusFilter('ALL'); }}
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${!viewArchived && awaitingDdOnly ? 'bg-navy text-white' : awaitingDdCount > 0 ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
         >
           Awaiting DD file ({awaitingDdCount})
+        </button>
+        <button
+          onClick={() => { setViewArchived(true); setAwaitingDdOnly(false); setStatusFilter('ALL'); }}
+          className={`rounded-full px-3 py-1 text-xs font-semibold ${viewArchived ? 'bg-navy text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+        >
+          Archived ({archivedApplications.length})
         </button>
       </div>
 
       <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-sm font-semibold text-gray-900">Review queue</h2>
-          <p className="text-xs text-gray-400">Approve opens a linked DD file. Approved records are locked from deletion.</p>
+          <h2 className="text-sm font-semibold text-gray-900">{viewArchived ? 'Archived applications' : 'Review queue'}</h2>
+          <p className="text-xs text-gray-400">
+            {viewArchived
+              ? 'Hidden from the active queue but kept on record. Restore to bring back, or permanently delete (no evidence only).'
+              : 'Approve opens a linked DD file. Approved records are locked — archive or permanently delete instead.'}
+          </p>
         </div>
         <input
           value={query}
@@ -251,7 +418,7 @@ export default function ApplicationsManager({
       <div className="space-y-4">
         {visible.length === 0 && (
           <div className="rounded-xl border border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-400">
-            No applications match the current filters.
+            {viewArchived ? 'No archived applications.' : 'No applications match the current filters.'}
           </div>
         )}
 
@@ -314,49 +481,122 @@ export default function ApplicationsManager({
                   >
                     {isExpanded ? 'Hide packet' : 'View packet'}
                   </button>
-                  {canApprove && a.status !== 'APPROVED' && (
-                    <button
-                      type="button"
-                      onClick={() => changeStatus(a.id, 'APPROVED')}
-                      disabled={isPending}
-                      className="rounded-lg bg-green-700 px-3 py-2 text-xs font-semibold text-white hover:bg-green-800 disabled:opacity-50"
-                    >
-                      Approve + open DD
-                    </button>
-                  )}
-                  {canApprove && a.status === 'NEW' && (
-                    <button
-                      type="button"
-                      onClick={() => changeStatus(a.id, 'REVIEWING')}
-                      disabled={isPending}
-                      className="rounded-lg bg-navy px-3 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
-                    >
-                      Start review
-                    </button>
-                  )}
-                  {canApprove && a.status !== 'REJECTED' && a.status !== 'APPROVED' && (
-                    <button
-                      type="button"
-                      onClick={() => changeStatus(a.id, 'REJECTED')}
-                      disabled={isPending}
-                      className="rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
-                    >
-                      Reject
-                    </button>
-                  )}
-                  {canApprove && (
-                    <button
-                      type="button"
-                      onClick={() => remove(a)}
-                      disabled={isPending || locked}
-                      className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-                      title={locked ? 'Approved and DD-linked records cannot be deleted' : 'Delete unapproved lead'}
-                    >
-                      {locked ? 'Locked' : 'Delete'}
-                    </button>
+
+                  {viewArchived ? (
+                    <>
+                      {canManage && (
+                        <button
+                          type="button"
+                          onClick={() => unarchive(a)}
+                          disabled={isPending}
+                          className="rounded-lg bg-navy px-3 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                        >
+                          Restore
+                        </button>
+                      )}
+                      {canHardDelete && (
+                        <button
+                          type="button"
+                          onClick={() => forceDelete(a)}
+                          disabled={isPending}
+                          className="rounded-lg border border-red-300 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                          title="Permanently delete (blocked if evidence exists)"
+                        >
+                          Delete permanently
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {canApprove && a.status !== 'APPROVED' && (
+                        <button
+                          type="button"
+                          onClick={() => changeStatus(a.id, 'APPROVED')}
+                          disabled={isPending}
+                          className="rounded-lg bg-green-700 px-3 py-2 text-xs font-semibold text-white hover:bg-green-800 disabled:opacity-50"
+                        >
+                          Approve + open DD
+                        </button>
+                      )}
+                      {canApprove && a.status === 'NEW' && (
+                        <button
+                          type="button"
+                          onClick={() => changeStatus(a.id, 'REVIEWING')}
+                          disabled={isPending}
+                          className="rounded-lg bg-navy px-3 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                        >
+                          Start review
+                        </button>
+                      )}
+                      {canApprove && a.status !== 'REJECTED' && a.status !== 'APPROVED' && (
+                        <button
+                          type="button"
+                          onClick={() => changeStatus(a.id, 'REJECTED')}
+                          disabled={isPending}
+                          className="rounded-lg border border-red-200 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                        >
+                          Reject
+                        </button>
+                      )}
+                      {canManage && (
+                        <button
+                          type="button"
+                          onClick={() => setEditingAddress(editingAddress === a.id ? null : a.id)}
+                          disabled={isPending}
+                          className="rounded-lg border border-gray-300 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                          title="Correct the business/service address"
+                        >
+                          {editingAddress === a.id ? 'Close address' : 'Edit address'}
+                        </button>
+                      )}
+                      {canManage && (
+                        <button
+                          type="button"
+                          onClick={() => archive(a)}
+                          disabled={isPending}
+                          className="rounded-lg border border-amber-200 px-3 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-50"
+                          title="Hide from the active queue but keep on record"
+                        >
+                          Archive
+                        </button>
+                      )}
+                      {canApprove && !locked && (
+                        <button
+                          type="button"
+                          onClick={() => remove(a)}
+                          disabled={isPending}
+                          className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                          title="Delete unapproved lead (keeps audit history)"
+                        >
+                          Delete
+                        </button>
+                      )}
+                      {canHardDelete && locked && (
+                        <button
+                          type="button"
+                          onClick={() => forceDelete(a)}
+                          disabled={isPending}
+                          className="rounded-lg border border-red-300 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50"
+                          title="Permanently delete incl. DD file (blocked if evidence exists)"
+                        >
+                          Delete permanently
+                        </button>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
+
+              {editingAddress === a.id && !viewArchived && (
+                <div className="border-t border-gray-200 bg-gray-50 p-4">
+                  <AddressEditor
+                    app={a}
+                    pending={isPending}
+                    onSave={(addr) => saveAddress(a.id, addr)}
+                    onCancel={() => setEditingAddress(null)}
+                  />
+                </div>
+              )}
 
               {isExpanded && (
                 <div className="border-t border-gray-200 bg-gray-50 p-4">

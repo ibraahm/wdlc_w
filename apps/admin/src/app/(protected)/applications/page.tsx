@@ -13,15 +13,22 @@ export default async function ApplicationsPage({
   if (!session) redirect('/login');
 
   let applications: AgentApplication[] = [];
+  let archivedApplications: AgentApplication[] = [];
   let error = '';
 
   try {
-    applications = await apiListApplications(session.accessToken);
+    [applications, archivedApplications] = await Promise.all([
+      apiListApplications(session.accessToken),
+      apiListApplications(session.accessToken, true),
+    ]);
   } catch (err) {
     error = err instanceof Error ? err.message : 'Failed to load applications';
   }
 
-  const canApprove = ['SUPER_ADMIN', 'COMPLIANCE_OFFICER'].includes(session.user.role);
+  const role = session.user.role;
+  const canApprove = ['SUPER_ADMIN', 'COMPLIANCE_OFFICER'].includes(role);
+  const canManage = ['SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER'].includes(role);
+  const canHardDelete = role === 'SUPER_ADMIN';
 
   return (
     <div className="space-y-6">
@@ -41,7 +48,10 @@ export default async function ApplicationsPage({
       ) : (
         <ApplicationsManager
           applications={applications}
+          archivedApplications={archivedApplications}
           canApprove={canApprove}
+          canManage={canManage}
+          canHardDelete={canHardDelete}
           initialExpandedId={searchParams?.application}
         />
       )}

@@ -376,17 +376,61 @@ export type AgentApplication = {
   signatureUserAgent: string | null;
   status: string;
   createdAt: string;
+  archivedAt?: string | null;
   ddFile?: {
     id: string;
     stage: string;
     riskRating: 'LOW' | 'MEDIUM' | 'HIGH' | null;
     updatedAt: string;
+    archivedAt?: string | null;
   } | null;
 };
 
-export async function apiListApplications(accessToken: string): Promise<AgentApplication[]> {
-  const res = await authFetch('/admin/agent-applications', accessToken);
+export type ApplicationAddress = {
+  businessStreet: string;
+  businessCountry: string;
+  businessState: string;
+  businessCity: string;
+  businessZip: string;
+  businessPhone: string;
+};
+
+export async function apiListApplications(
+  accessToken: string,
+  archived = false,
+): Promise<AgentApplication[]> {
+  const res = await authFetch(
+    `/admin/agent-applications${archived ? '?archived=true' : ''}`,
+    accessToken,
+  );
   return handleResponse<AgentApplication[]>(res);
+}
+
+export async function apiArchiveApplication(accessToken: string, id: string): Promise<void> {
+  const res = await authFetch(`/admin/agent-applications/${id}/archive`, accessToken, { method: 'PATCH' });
+  await handleResponse<void>(res);
+}
+
+export async function apiUnarchiveApplication(accessToken: string, id: string): Promise<void> {
+  const res = await authFetch(`/admin/agent-applications/${id}/unarchive`, accessToken, { method: 'PATCH' });
+  await handleResponse<void>(res);
+}
+
+export async function apiForceDeleteApplication(accessToken: string, id: string): Promise<void> {
+  const res = await authFetch(`/admin/agent-applications/${id}/force`, accessToken, { method: 'DELETE' });
+  await handleResponse<void>(res);
+}
+
+export async function apiUpdateApplicationAddress(
+  accessToken: string,
+  id: string,
+  address: ApplicationAddress,
+): Promise<AgentApplication> {
+  const res = await authFetch(`/admin/agent-applications/${id}/address`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify(address),
+  });
+  return handleResponse<AgentApplication>(res);
 }
 
 export async function apiSetApplicationStatus(

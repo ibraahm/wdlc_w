@@ -17,6 +17,11 @@ import {
   apiDeleteLocation,
   apiSetApplicationStatus,
   apiDeleteApplication,
+  apiArchiveApplication,
+  apiUnarchiveApplication,
+  apiForceDeleteApplication,
+  apiUpdateApplicationAddress,
+  type ApplicationAddress,
   apiCreatePartner,
   apiUpdatePartner,
   apiDeletePartner,
@@ -307,6 +312,61 @@ export async function deleteApplicationAction(id: string): Promise<{ ok: boolean
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };
+  }
+}
+
+export async function archiveApplicationAction(id: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiArchiveApplication(session.accessToken, id);
+    revalidatePath('/applications');
+    revalidatePath('/agent-dd');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Archive failed' };
+  }
+}
+
+export async function unarchiveApplicationAction(id: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiUnarchiveApplication(session.accessToken, id);
+    revalidatePath('/applications');
+    revalidatePath('/agent-dd');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Restore failed' };
+  }
+}
+
+export async function forceDeleteApplicationAction(id: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiForceDeleteApplication(session.accessToken, id);
+    revalidatePath('/applications');
+    revalidatePath('/agent-dd');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };
+  }
+}
+
+export async function updateApplicationAddressAction(
+  id: string,
+  address: ApplicationAddress,
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiUpdateApplicationAddress(session.accessToken, id, address);
+    revalidatePath('/applications');
+    revalidatePath('/agent-dd');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
   }
 }
 

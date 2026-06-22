@@ -98,7 +98,7 @@ export class ApplicationsService {
     return { ok: true, id: app.id };
   }
 
-  async listAll(status?: string, adminId?: string, role?: string) {
+  async listAll(status?: string, adminId?: string, role?: string, archived = false) {
     if (status && !APPLICATION_STATUSES.includes(status as (typeof APPLICATION_STATUSES)[number])) {
       throw new BadRequestException('Invalid application status');
     }
@@ -107,6 +107,8 @@ export class ApplicationsService {
     const where: any = {};
     if (status) where.status = status;
     if (scope) where.businessState = scope.states.length ? { in: scope.states } : '__none__';
+    // Active queue hides archived records; the archived view shows only them.
+    where.archivedAt = archived ? { not: null } : null;
 
     return this.prisma.agentApplication.findMany({
       where,
@@ -117,11 +119,165 @@ export class ApplicationsService {
             stage: true,
             riskRating: true,
             updatedAt: true,
+            archivedAt: true,
           },
         },
       },
       orderBy: { createdAt: 'desc' },
     });
+  }
+
+  // Archive (and reversibly hide) an application and any linked DD file. Keeps
+  // the full record + audit trail — the compliance-safe alternative to delete.
+  async archive(id: string, adminId?: string) {
+    const existing = await this.prisma.agentApplication.findUnique({
+      where: { id },
+      include: { ddFile: { select: { id: true } } },
+    });
+    if (!existing) throw new NotFoundException('Application not found');
+    if (existing.archivedAt) return { ok: true };
+
+    const now = new Date();
+    await this.prisma.agentApplication.update({
+      where: { id },
+      data: { archivedAt: now, archivedBy: adminId ?? null },
+    });
+    if (existing.ddFile) {
+      await this.prisma.agentDDFile.update({
+        where: { id: existing.ddFile.id },
+        data: { archivedAt: now, archivedBy: adminId ?? null },
+      });
+    }
+    await this.audit.log({
+      action: 'agent.application.archive',
+      adminId,
+      entity: 'AgentApplication',
+      entityId: id,
+      after: { archivedAt: now, ddFileArchived: !!existing.ddFile },
+    });
+    return { ok: true };
+  }
+
+  async unarchive(id: string, adminId?: string) {
+    const existing = await this.prisma.agentApplication.findUnique({
+      where: { id },
+      include: { ddFile: { select: { id: true } } },
+    });
+    if (!existing) throw new NotFoundException('Application not found');
+
+    await this.prisma.agentApplication.update({
+      where: { id },
+      data: { archivedAt: null, archivedBy: null },
+    });
+    if (existing.ddFile) {
+      await this.prisma.agentDDFile.update({
+        where: { id: existing.ddFile.id },
+        data: { archivedAt: null, archivedBy: null },
+      });
+    }
+    await this.audit.log({
+      action: 'agent.application.unarchive',
+      adminId,
+      entity: 'AgentApplication',
+      entityId: id,
+    });
+    return { ok: true };
+  }
+
+  // Hard delete, including a linked DD file — but ONLY when no evidence has been
+  // collected, so compliance records are never destroyed. SUPER_ADMIN only
+  // (enforced at the controller). Use archive for everything else.
+  async forceRemove(id: string, adminId?: string) {
+    const existing = await this.prisma.agentApplication.findUnique({
+      where: { id },
+      include: {
+        ddFile: { include: { documents: { select: { present: true, dropboxUrl: true } } } },
+      },
+    });
+    if (!existing) throw new NotFoundException('Application not found');
+
+    if (existing.ddFile) {
+      const hasEvidence = existing.ddFile.documents.some(
+        (d) => d.present || (d.dropboxUrl && d.dropboxUrl.trim()),
+      );
+      if (hasEvidence) {
+        throw new BadRequestException(
+          'This DD file has collected evidence and cannot be permanently deleted. Archive it instead.',
+        );
+      }
+      // Documents cascade with the DD file; the application FK is Restrict, so
+      // the file must be removed before the application.
+      await this.prisma.agentDDFile.delete({ where: { id: existing.ddFile.id } });
+    }
+
+    await this.prisma.agentApplication.delete({ where: { id } });
+    await this.audit.log({
+      action: 'agent.application.force_delete',
+      adminId,
+      entity: 'AgentApplication',
+      entityId: id,
+      before: {
+        status: existing.status,
+        applicant: `${existing.firstName} ${existing.lastName}`.trim(),
+        company: existing.company,
+        hadDdFile: !!existing.ddFile,
+      },
+    });
+    return { ok: true };
+  }
+
+  // Correct the business/service address on an application (e.g. a home address
+  // was entered). Allowed even when locked; the DD file reads address from here.
+  async updateAddress(
+    id: string,
+    dto: {
+      businessStreet: string;
+      businessCountry: string;
+      businessState: string;
+      businessCity: string;
+      businessZip: string;
+      businessPhone: string;
+    },
+    adminId?: string,
+  ) {
+    const existing = await this.prisma.agentApplication.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Application not found');
+
+    const before = {
+      businessStreet: existing.businessStreet,
+      businessCity: existing.businessCity,
+      businessState: existing.businessState,
+      businessZip: existing.businessZip,
+      businessCountry: existing.businessCountry,
+      businessPhone: existing.businessPhone,
+    };
+    const updated = await this.prisma.agentApplication.update({
+      where: { id },
+      data: {
+        businessStreet: dto.businessStreet,
+        businessCountry: dto.businessCountry,
+        businessState: dto.businessState,
+        businessCity: dto.businessCity,
+        businessZip: dto.businessZip,
+        businessPhone: dto.businessPhone,
+      },
+    });
+    await this.audit.log({
+      action: 'agent.application.address.update',
+      adminId,
+      entity: 'AgentApplication',
+      entityId: id,
+      before,
+      after: {
+        businessStreet: dto.businessStreet,
+        businessCity: dto.businessCity,
+        businessState: dto.businessState,
+        businessZip: dto.businessZip,
+        businessCountry: dto.businessCountry,
+        businessPhone: dto.businessPhone,
+      },
+    });
+    return updated;
   }
 
   async setStatus(id: string, status: string, adminId?: string) {
