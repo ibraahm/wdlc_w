@@ -682,8 +682,57 @@ export interface DDFile {
   createdAt: string;
   updatedAt: string;
   documents?: DDDocument[];
+  signatures?: DDSignatureDoc[];
   summary?: Record<string, number>;
   compliant?: boolean;
+}
+
+export type DDSignatureDoc = {
+  id: string;
+  label: string;
+  status: 'PENDING' | 'SENT' | 'SIGNED' | 'DECLINED';
+  method: string | null;
+  sentAt: string | null;
+  signedAt: string | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export async function apiAddDDSignature(
+  accessToken: string,
+  ddFileId: string,
+  data: { label: string; method?: string },
+): Promise<DDSignatureDoc> {
+  const res = await authFetch(`/admin/agent-dd/${ddFileId}/signatures`, accessToken, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return handleResponse<DDSignatureDoc>(res);
+}
+
+export async function apiUpdateDDSignature(
+  accessToken: string,
+  sigId: string,
+  data: Partial<{ label: string; status: string; method: string | null; sentAt: string | null; signedAt: string | null; notes: string | null }>,
+): Promise<DDSignatureDoc> {
+  const res = await authFetch(`/admin/agent-dd/signatures/${sigId}`, accessToken, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+  return handleResponse<DDSignatureDoc>(res);
+}
+
+export async function apiDeleteDDSignature(accessToken: string, sigId: string): Promise<void> {
+  const res = await authFetch(`/admin/agent-dd/signatures/${sigId}`, accessToken, { method: 'DELETE' });
+  await handleResponse<void>(res);
+}
+
+export async function apiGetDocuSignConfig(
+  accessToken: string,
+): Promise<{ enabled: boolean; configured: boolean; available: boolean }> {
+  const res = await authFetch('/admin/agent-applications/docusign/config', accessToken);
+  return handleResponse(res);
 }
 
 export interface DDDashboard {

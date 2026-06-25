@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import SettingsManager from '@/components/SettingsManager';
 import AnnouncementSettings, { type AnnouncementConfig } from '@/components/AnnouncementSettings';
 import SystemStatusBoard from '@/components/SystemStatusBoard';
+import IntegrationsSettings from '@/components/IntegrationsSettings';
 import ChangePasswordForm from '@/components/ChangePasswordForm';
 
 export default async function SettingsPage() {
@@ -33,7 +34,21 @@ export default async function SettingsPage() {
       announcement = null;
     }
   }
-  const otherSettings = settings.filter((s) => s.key !== 'announcement');
+  const otherSettings = settings.filter((s) => s.key !== 'announcement' && s.key !== 'docusign.enabled');
+
+  // DocuSign on/off (default on when unset).
+  const dsRow = settings.find((s) => s.key === 'docusign.enabled');
+  let docusignEnabled = true;
+  if (dsRow) {
+    try {
+      let v: unknown = JSON.parse(dsRow.value);
+      if (typeof v === 'string') v = JSON.parse(v);
+      docusignEnabled = v !== false;
+    } catch {
+      docusignEnabled = true;
+    }
+  }
+  const canManage = ['SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER'].includes(session.user.role);
 
   // System/integration health is SUPER_ADMIN-only and never includes secrets.
   let systemStatus: SystemStatus | null = null;
@@ -59,6 +74,8 @@ export default async function SettingsPage() {
       )}
 
       {systemStatus && <SystemStatusBoard status={systemStatus} />}
+
+      {canManage && <IntegrationsSettings docusignEnabled={docusignEnabled} />}
 
       <AnnouncementSettings initial={announcement} />
 

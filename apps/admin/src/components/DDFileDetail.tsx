@@ -6,6 +6,7 @@ import Link from 'next/link';
 import type { DDFile, DDDocument } from '@/lib/api';
 import { setDDBranchCodeAction } from '@/lib/actions';
 import RiskAssessmentPanel from './RiskAssessmentPanel';
+import DDSignatureTracker from './DDSignatureTracker';
 import DocRow from './DocRow';
 import { ONBOARDING_SECTIONS, ATTENTION, DATE_MIN, DATE_MAX } from './dd-checklist';
 import {
@@ -391,6 +392,8 @@ export default function DDFileDetail({
 
         <RiskAssessmentPanel ddFileId={f.id} canAssess={canAssessRisk} />
       </div>
+
+      <DDSignatureTracker fileId={f.id} signatures={f.signatures ?? []} canEdit={canManageLifecycle} />
 
       {/* Checklist toolbar: overall progress + attention filter */}
       <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">

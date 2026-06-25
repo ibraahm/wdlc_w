@@ -315,6 +315,7 @@ export default function ApplicationsManager({
   canApprove,
   canManage,
   canHardDelete,
+  docuSignAvailable,
   initialExpandedId,
 }: {
   applications: AgentApplication[];
@@ -322,6 +323,7 @@ export default function ApplicationsManager({
   canApprove: boolean;
   canManage: boolean;
   canHardDelete: boolean;
+  docuSignAvailable: boolean;
   initialExpandedId?: string;
 }) {
   const router = useRouter();
@@ -641,7 +643,7 @@ export default function ApplicationsManager({
                           {editingAddress === a.id ? 'Close address' : 'Edit address'}
                         </button>
                       )}
-                      {canManage && (
+                      {canManage && docuSignAvailable && (
                         <button
                           type="button"
                           onClick={() => setSigningId(signingId === a.id ? null : a.id)}

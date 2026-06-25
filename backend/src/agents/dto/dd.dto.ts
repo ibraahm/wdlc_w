@@ -74,3 +74,17 @@ export class SetBranchCodeDto {
   @Matches(/^[a-z0-9]{6}$/, { message: 'Branch code must be exactly 6 lowercase letters/digits (e.g. uswdlc)' })
   branchCode: string;
 }
+
+export class AddSignatureDocDto {
+  @IsString() @MaxLength(200) label: string;
+  @IsOptional() @IsString() @MaxLength(60) method?: string;
+}
+
+export class UpdateSignatureDocDto {
+  @IsOptional() @IsString() @MaxLength(200) label?: string;
+  @IsOptional() @IsIn(['PENDING', 'SENT', 'SIGNED', 'DECLINED']) status?: string;
+  @IsOptional() @IsString() @MaxLength(60) method?: string | null;
+  @IsOptional() @IsISO8601() sentAt?: string | null;
+  @IsOptional() @IsISO8601() signedAt?: string | null;
+  @IsOptional() @IsString() @MaxLength(500) notes?: string | null;
+}

@@ -31,6 +31,9 @@ import {
   apiDeleteNetworkCountry,
   apiCreateDDFile,
   apiUpdateDDDocument,
+  apiAddDDSignature,
+  apiUpdateDDSignature,
+  apiDeleteDDSignature,
   apiSetDDStage,
   apiSetDDRisk,
   apiRecordDDReview,
@@ -523,6 +526,52 @@ export async function updateDDDocumentAction(
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
+  }
+}
+
+export async function addDDSignatureAction(
+  fileId: string,
+  data: { label: string; method?: string },
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiAddDDSignature(session.accessToken, fileId, data);
+    revalidatePath(`/agent-dd/${fileId}`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Add failed' };
+  }
+}
+
+export async function updateDDSignatureAction(
+  fileId: string,
+  sigId: string,
+  data: Partial<{ label: string; status: string; method: string | null; sentAt: string | null; signedAt: string | null; notes: string | null }>,
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiUpdateDDSignature(session.accessToken, sigId, data);
+    revalidatePath(`/agent-dd/${fileId}`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
+  }
+}
+
+export async function deleteDDSignatureAction(
+  fileId: string,
+  sigId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiDeleteDDSignature(session.accessToken, sigId);
+    revalidatePath(`/agent-dd/${fileId}`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };
   }
 }
 

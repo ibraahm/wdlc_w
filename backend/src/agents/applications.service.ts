@@ -189,6 +189,24 @@ export class ApplicationsService {
   // Hard delete, including a linked DD file — but ONLY when no evidence has been
   // collected, so compliance records are never destroyed. SUPER_ADMIN only
   // (enforced at the controller). Use archive for everything else.
+  // DocuSign can be turned off at runtime via the 'docusign.enabled' setting
+  // (default on), independent of whether the server env is configured.
+  private async docuSignEnabled(): Promise<boolean> {
+    const row = await this.prisma.siteSetting.findUnique({ where: { key: 'docusign.enabled' } });
+    if (!row) return true;
+    try {
+      return JSON.parse(row.value) !== false;
+    } catch {
+      return true;
+    }
+  }
+
+  async docuSignConfig() {
+    const enabled = await this.docuSignEnabled();
+    const configured = this.docusign.isConfigured();
+    return { enabled, configured, available: enabled && configured };
+  }
+
   // Send a (prefilled) PDF out for e-signature to the agent via DocuSign. The
   // file is streamed straight to DocuSign — nothing is stored; only the send is
   // audited (metadata, never the document bytes).
@@ -204,6 +222,9 @@ export class ApplicationsService {
 
     const app = await this.prisma.agentApplication.findUnique({ where: { id } });
     if (!app) throw new NotFoundException('Application not found');
+    if (!(await this.docuSignEnabled())) {
+      throw new ServiceUnavailableException('DocuSign sending is turned off.');
+    }
     if (!this.docusign.isConfigured()) {
       throw new ServiceUnavailableException('DocuSign is not configured on the server.');
     }

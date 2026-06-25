@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
 import { DDService } from './dd.service';
 import {
@@ -7,6 +7,7 @@ import {
   SetStageDto,
   SetRiskDto,
   RecordReviewDto, SetBranchCodeDto,
+  AddSignatureDocDto, UpdateSignatureDocDto,
 } from './dto/dd.dto';
 import { AdminJwtAuthGuard } from '../admin-auth/admin-jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -123,5 +124,21 @@ export class DDAdminController {
   @Patch(':id/review')
   recordReview(@Param('id') id: string, @Body() dto: RecordReviewDto, @CurrentUser('id') adminId: string) {
     return this.dd.recordReview(id, dto, adminId);
+  }
+
+  // ── Manual document-signature tracking ──────────────────────────────────────
+  @Post(':id/signatures')
+  addSignature(@Param('id') id: string, @Body() dto: AddSignatureDocDto, @CurrentUser('id') adminId: string) {
+    return this.dd.addSignatureDoc(id, dto, adminId);
+  }
+
+  @Patch('signatures/:sigId')
+  updateSignature(@Param('sigId') sigId: string, @Body() dto: UpdateSignatureDocDto, @CurrentUser('id') adminId: string) {
+    return this.dd.updateSignatureDoc(sigId, dto, adminId);
+  }
+
+  @Delete('signatures/:sigId')
+  deleteSignature(@Param('sigId') sigId: string, @CurrentUser('id') adminId: string) {
+    return this.dd.deleteSignatureDoc(sigId, adminId);
   }
 }

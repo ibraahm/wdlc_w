@@ -299,6 +299,7 @@ model AgentDDFile {
   archivedBy      String?
 
   documents       AgentDocument[]
+  signatures      DDSignatureDoc[]
 
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
@@ -307,6 +308,28 @@ model AgentDDFile {
   @@index([nextReviewDueAt])
   @@index([regionalOfficeId])
   @@index([archivedAt])
+}
+
+// Manual document-signature tracking on a DD file: admins record which
+// documents (e.g. the Authorized Agent Agreement) were sent and signed, with
+// dates and notes. Tracked by hand — independent of any DocuSign send.
+model DDSignatureDoc {
+  id        String      @id @default(cuid())
+  ddFile    AgentDDFile @relation(fields: [ddFileId], references: [id], onDelete: Cascade)
+  ddFileId  String
+
+  label     String
+  // PENDING | SENT | SIGNED | DECLINED
+  status    String      @default("PENDING")
+  method    String?     // e.g. DocuSign, Email, In person, Mail
+  sentAt    DateTime?
+  signedAt  DateTime?
+  notes     String?
+
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([ddFileId])
 }
 
 // ─────────────────────────────────────────────

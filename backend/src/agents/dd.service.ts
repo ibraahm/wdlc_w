@@ -332,6 +332,7 @@ export class DDService {
       include: {
         documents: { orderBy: { code: 'asc' } },
         application: { select: APPLICATION_SELECT },
+        signatures: { orderBy: { createdAt: 'asc' } },
       },
     });
     if (!file) throw new NotFoundException('DD file not found');
@@ -339,6 +340,66 @@ export class DDService {
     const scope = adminId ? await this.regional.scopeForAdmin(adminId, role) : null;
     if (scope && file.regionalOfficeId !== scope.officeId) throw new NotFoundException('DD file not found');
     return file;
+  }
+
+  // ── Manual document-signature tracking (sent / signed, by hand) ─────────────
+  async addSignatureDoc(
+    ddFileId: string,
+    dto: { label: string; method?: string },
+    adminId?: string,
+  ) {
+    const file = await this.prisma.agentDDFile.findUnique({ where: { id: ddFileId }, select: { id: true } });
+    if (!file) throw new NotFoundException('DD file not found');
+    const label = (dto.label || '').trim();
+    if (!label) throw new BadRequestException('A document name is required.');
+    const row = await this.prisma.dDSignatureDoc.create({
+      data: { ddFileId, label, method: dto.method?.trim() || null },
+    });
+    await this.audit.log({ action: 'agent.dd.signature.add', adminId, entity: 'DDSignatureDoc', entityId: row.id, after: { ddFileId, label } });
+    return row;
+  }
+
+  async updateSignatureDoc(
+    id: string,
+    dto: { label?: string; status?: string; method?: string | null; sentAt?: string | null; signedAt?: string | null; notes?: string | null },
+    adminId?: string,
+  ) {
+    const existing = await this.prisma.dDSignatureDoc.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Tracking row not found');
+
+    const status = dto.status ?? existing.status;
+    if (!['PENDING', 'SENT', 'SIGNED', 'DECLINED'].includes(status)) {
+      throw new BadRequestException('Invalid status');
+    }
+    // Stamp sent/signed dates from the status transition unless explicitly given.
+    let sentAt = dto.sentAt !== undefined ? (dto.sentAt ? new Date(dto.sentAt) : null) : existing.sentAt;
+    let signedAt = dto.signedAt !== undefined ? (dto.signedAt ? new Date(dto.signedAt) : null) : existing.signedAt;
+    if (dto.status) {
+      if ((status === 'SENT' || status === 'SIGNED') && !sentAt) sentAt = new Date();
+      if (status === 'SIGNED' && !signedAt) signedAt = new Date();
+    }
+
+    const updated = await this.prisma.dDSignatureDoc.update({
+      where: { id },
+      data: {
+        label: dto.label?.trim() || existing.label,
+        status,
+        method: dto.method !== undefined ? (dto.method?.trim() || null) : existing.method,
+        sentAt,
+        signedAt,
+        notes: dto.notes !== undefined ? (dto.notes?.trim() || null) : existing.notes,
+      },
+    });
+    await this.audit.log({ action: 'agent.dd.signature.update', adminId, entity: 'DDSignatureDoc', entityId: id, before: { status: existing.status }, after: { status } });
+    return updated;
+  }
+
+  async deleteSignatureDoc(id: string, adminId?: string) {
+    const existing = await this.prisma.dDSignatureDoc.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Tracking row not found');
+    await this.prisma.dDSignatureDoc.delete({ where: { id } });
+    await this.audit.log({ action: 'agent.dd.signature.delete', adminId, entity: 'DDSignatureDoc', entityId: id, before: { label: existing.label } });
+    return { ok: true };
   }
 
   // The shared company logo (siteSetting brand.logo) as a decoded buffer.

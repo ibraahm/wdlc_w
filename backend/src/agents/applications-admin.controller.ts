@@ -43,6 +43,13 @@ export class ApplicationsAdminController {
     return this.applications.updateAddress(id, dto, adminId);
   }
 
+  // Whether the DocuSign send action is available (turned on + configured).
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')
+  @Get('docusign/config')
+  docuSignConfig() {
+    return this.applications.docuSignConfig();
+  }
+
   // Send a (prefilled) PDF out for e-signature via DocuSign. The file is
   // streamed straight to DocuSign and never stored; only the send is audited.
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')

@@ -1,6 +1,6 @@
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { apiListApplications, type AgentApplication } from '@/lib/api';
+import { apiListApplications, apiGetDocuSignConfig, type AgentApplication } from '@/lib/api';
 import ApplicationsManager from '@/components/ApplicationsManager';
 import OnboardingFlow from '@/components/OnboardingFlow';
 
@@ -30,6 +30,13 @@ export default async function ApplicationsPage({
   const canManage = ['SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER'].includes(role);
   const canHardDelete = role === 'SUPER_ADMIN';
 
+  let docuSignAvailable = false;
+  try {
+    docuSignAvailable = (await apiGetDocuSignConfig(session.accessToken)).available;
+  } catch {
+    docuSignAvailable = false;
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -52,6 +59,7 @@ export default async function ApplicationsPage({
           canApprove={canApprove}
           canManage={canManage}
           canHardDelete={canHardDelete}
+          docuSignAvailable={docuSignAvailable}
           initialExpandedId={searchParams?.application}
         />
       )}
