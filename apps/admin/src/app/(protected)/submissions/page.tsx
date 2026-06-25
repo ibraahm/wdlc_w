@@ -15,6 +15,7 @@ export default async function WebsiteSubmissionsPage() {
   if (!session) redirect('/login');
 
   let rows: Row[] = [];
+  let archivedRows: Row[] = [];
   let forms: WebsiteForm[] = [];
   let error = '';
 
@@ -24,11 +25,17 @@ export default async function WebsiteSubmissionsPage() {
       forms.map(async (form) => ({
         form,
         submissions: await apiListWebsiteSubmissions(session.accessToken, form.id),
+        archived: await apiListWebsiteSubmissions(session.accessToken, form.id, true),
       })),
     );
+    const sortByNewest = (a: Row, b: Row) =>
+      new Date(b.submission.createdAt).getTime() - new Date(a.submission.createdAt).getTime();
     rows = byForm
       .flatMap(({ form, submissions }) => submissions.map((submission) => ({ form, submission })))
-      .sort((a, b) => new Date(b.submission.createdAt).getTime() - new Date(a.submission.createdAt).getTime());
+      .sort(sortByNewest);
+    archivedRows = byForm
+      .flatMap(({ form, archived }) => archived.map((submission) => ({ form, submission })))
+      .sort(sortByNewest);
   } catch (err) {
     error = err instanceof Error ? err.message : 'Failed to load website submissions';
   }
@@ -47,14 +54,14 @@ export default async function WebsiteSubmissionsPage() {
 
       {error ? (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
-      ) : rows.length === 0 ? (
+      ) : rows.length === 0 && archivedRows.length === 0 ? (
         <EmptyState
           icon="IN"
           title="No submissions yet"
           description="Messages from the public contact, claim, and support forms will appear here."
         />
       ) : (
-        <SubmissionsInbox rows={rows} currentUser={session.user.name} />
+        <SubmissionsInbox rows={rows} archivedRows={archivedRows} currentUser={session.user.name} />
       )}
     </div>
   );

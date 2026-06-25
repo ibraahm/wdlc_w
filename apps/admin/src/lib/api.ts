@@ -514,6 +514,7 @@ export type WebsiteSubmission = {
   status: string;
   assignee?: string | null;
   data: Record<string, unknown>;
+  archivedAt?: string | null;
   createdAt: string;
   updatedAt?: string;
   messages?: SubmissionMessage[];
@@ -524,9 +525,28 @@ export async function apiListWebsiteForms(accessToken: string): Promise<WebsiteF
   return handleResponse<WebsiteForm[]>(res);
 }
 
-export async function apiListWebsiteSubmissions(accessToken: string, formId: string): Promise<WebsiteSubmission[]> {
-  const res = await authFetch(`/cms/forms/id/${formId}/submissions`, accessToken);
+export async function apiListWebsiteSubmissions(
+  accessToken: string,
+  formId: string,
+  archived = false,
+): Promise<WebsiteSubmission[]> {
+  const res = await authFetch(`/cms/forms/id/${formId}/submissions${archived ? '?archived=true' : ''}`, accessToken);
   return handleResponse<WebsiteSubmission[]>(res);
+}
+
+export async function apiArchiveSubmission(accessToken: string, submissionId: string): Promise<void> {
+  const res = await authFetch(`/cms/forms/submissions/${submissionId}/archive`, accessToken, { method: 'PATCH' });
+  await handleResponse<void>(res);
+}
+
+export async function apiUnarchiveSubmission(accessToken: string, submissionId: string): Promise<void> {
+  const res = await authFetch(`/cms/forms/submissions/${submissionId}/unarchive`, accessToken, { method: 'PATCH' });
+  await handleResponse<void>(res);
+}
+
+export async function apiDeleteSubmission(accessToken: string, submissionId: string): Promise<void> {
+  const res = await authFetch(`/cms/forms/submissions/${submissionId}`, accessToken, { method: 'DELETE' });
+  await handleResponse<void>(res);
 }
 
 // ---------------------------------------------------------------------------

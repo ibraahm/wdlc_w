@@ -527,6 +527,8 @@ model FormSubmission {
   assignee  String?                      // admin name handling the case
   ip        String?
   userAgent String?
+  archivedAt DateTime?
+  archivedBy String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt @default(now())
 
@@ -534,6 +536,7 @@ model FormSubmission {
 
   @@index([formId, createdAt])
   @@index([status])
+  @@index([archivedAt])
 }
 
 // Threaded history for a submission: emailed replies to the submitter and

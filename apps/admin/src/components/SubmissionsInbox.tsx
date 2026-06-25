@@ -3,7 +3,14 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { WebsiteForm, WebsiteSubmission } from '@/lib/api';
-import { setSubmissionStatusAction, addSubmissionNoteAction, replySubmissionAction } from '@/lib/actions';
+import {
+  setSubmissionStatusAction,
+  addSubmissionNoteAction,
+  replySubmissionAction,
+  archiveSubmissionAction,
+  unarchiveSubmissionAction,
+  deleteSubmissionAction,
+} from '@/lib/actions';
 
 export type Row = { form: WebsiteForm; submission: WebsiteSubmission };
 
@@ -73,15 +80,47 @@ const SLA_BADGE = {
   ok: null,
 } as const;
 
-export default function SubmissionsInbox({ rows, currentUser }: { rows: Row[]; currentUser?: string }) {
+export default function SubmissionsInbox({
+  rows,
+  archivedRows = [],
+  currentUser,
+}: {
+  rows: Row[];
+  archivedRows?: Row[];
+  currentUser?: string;
+}) {
   const router = useRouter();
   const [filter, setFilter] = useState<string>('ALL');
   const [selectedId, setSelectedId] = useState<string | null>(rows[0]?.submission.id ?? null);
 
+  // Likely duplicates among active rows: same form + same email (or, lacking an
+  // email, identical data). The earliest in each group is kept as the original;
+  // the rest are flagged so test/double submissions are easy to clear.
+  const dupIds = useMemo(() => {
+    const groups = new Map<string, Row[]>();
+    for (const r of rows) {
+      const d = r.submission.data ?? {};
+      const email = submitterEmail(d);
+      const key = `${r.form.id}|${email ? email.toLowerCase() : JSON.stringify(d)}`;
+      const g = groups.get(key);
+      if (g) g.push(r); else groups.set(key, [r]);
+    }
+    const ids = new Set<string>();
+    Array.from(groups.values()).forEach((g) => {
+      if (g.length < 2) return;
+      const sorted = [...g].sort((a, b) => new Date(a.submission.createdAt).getTime() - new Date(b.submission.createdAt).getTime());
+      sorted.slice(1).forEach((r) => ids.add(r.submission.id));
+    });
+    return ids;
+  }, [rows]);
+
   const filtered = useMemo(() => {
-    let list = filter === 'ALL' ? rows : filter === 'SLA'
-      ? rows.filter((r) => slaState(r.submission) === 'breach')
-      : rows.filter((r) => (r.submission.status || 'NEW') === filter);
+    let list: Row[];
+    if (filter === 'ARCHIVED') list = archivedRows;
+    else if (filter === 'DUP') list = rows.filter((r) => dupIds.has(r.submission.id));
+    else if (filter === 'ALL') list = rows;
+    else if (filter === 'SLA') list = rows.filter((r) => slaState(r.submission) === 'breach');
+    else list = rows.filter((r) => (r.submission.status || 'NEW') === filter);
     // Surface SLA breaches first, then newest.
     return [...list].sort((a, b) => {
       const sa = slaState(a.submission) === 'breach' ? 0 : 1;
@@ -89,28 +128,40 @@ export default function SubmissionsInbox({ rows, currentUser }: { rows: Row[]; c
       if (sa !== sb) return sa - sb;
       return new Date(b.submission.createdAt).getTime() - new Date(a.submission.createdAt).getTime();
     });
-  }, [rows, filter]);
-  const selected = rows.find((r) => r.submission.id === selectedId) ?? filtered[0] ?? null;
+  }, [rows, archivedRows, dupIds, filter]);
+
+  const allRows = useMemo(() => [...rows, ...archivedRows], [rows, archivedRows]);
+  const selected = allRows.find((r) => r.submission.id === selectedId) ?? filtered[0] ?? null;
+  const selectedArchived = !!selected && !!selected.submission.archivedAt;
 
   const counts = useMemo(() => {
-    const c: Record<string, number> = { ALL: rows.length, SLA: rows.filter((r) => slaState(r.submission) === 'breach').length };
+    const c: Record<string, number> = {
+      ALL: rows.length,
+      SLA: rows.filter((r) => slaState(r.submission) === 'breach').length,
+      DUP: dupIds.size,
+      ARCHIVED: archivedRows.length,
+    };
     for (const s of STATUSES) c[s] = rows.filter((r) => (r.submission.status || 'NEW') === s).length;
     return c;
-  }, [rows]);
+  }, [rows, archivedRows, dupIds]);
 
   return (
     <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
       <div className="space-y-3">
         <div className="flex flex-wrap gap-1">
-          {(['ALL', 'SLA', ...STATUSES] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`rounded-full px-2.5 py-1 text-xs font-semibold ${filter === f ? 'bg-navy text-white' : f === 'SLA' && counts.SLA > 0 ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-            >
-              {f === 'ALL' ? 'All' : f === 'SLA' ? 'SLA breach' : f.replace('_', ' ')} ({counts[f] ?? 0})
-            </button>
-          ))}
+          {(['ALL', 'SLA', ...STATUSES, 'DUP', 'ARCHIVED'] as const).map((f) => {
+            const label = f === 'ALL' ? 'All' : f === 'SLA' ? 'SLA breach' : f === 'DUP' ? 'Duplicates' : f === 'ARCHIVED' ? 'Archived' : f.replace('_', ' ');
+            const accent = filter === f
+              ? 'bg-navy text-white'
+              : f === 'SLA' && counts.SLA > 0 ? 'bg-red-100 text-red-700 hover:bg-red-200'
+              : f === 'DUP' && counts.DUP > 0 ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200';
+            return (
+              <button key={f} onClick={() => setFilter(f)} className={`rounded-full px-2.5 py-1 text-xs font-semibold ${accent}`}>
+                {label} ({counts[f] ?? 0})
+              </button>
+            );
+          })}
         </div>
         <div className="space-y-2 max-h-[70vh] overflow-auto pr-1">
           {filtered.length === 0 && <p className="text-sm text-gray-400 italic px-1">Nothing here.</p>}
@@ -133,6 +184,8 @@ export default function SubmissionsInbox({ rows, currentUser }: { rows: Row[]; c
                 <p className="mt-0.5 truncate text-xs text-gray-500">{form.name} · {when(submission.createdAt)}</p>
                 <div className="mt-1 flex flex-wrap items-center gap-1.5">
                   {sla && <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${sla.cls}`}>{sla.label}</span>}
+                  {dupIds.has(submission.id) && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">Duplicate</span>}
+                  {submission.archivedAt && <span className="rounded bg-gray-200 px-1.5 py-0.5 text-[10px] font-bold text-gray-600">Archived</span>}
                   {submission.assignee && <span className="rounded bg-gray-100 px-1.5 py-0.5 text-[10px] text-gray-600">@{submission.assignee}</span>}
                   {submission.messages && submission.messages.length > 0 && (
                     <span className="text-[11px] text-gray-400">{submission.messages.length} msg</span>
@@ -144,14 +197,14 @@ export default function SubmissionsInbox({ rows, currentUser }: { rows: Row[]; c
         </div>
       </div>
 
-      {selected ? <Detail key={selected.submission.id} row={selected} currentUser={currentUser} onChange={() => router.refresh()} /> : (
+      {selected ? <Detail key={selected.submission.id} row={selected} archived={selectedArchived} currentUser={currentUser} onChange={() => { setSelectedId(null); router.refresh(); }} /> : (
         <p className="text-sm text-gray-400">Select a submission.</p>
       )}
     </div>
   );
 }
 
-function Detail({ row, currentUser, onChange }: { row: Row; currentUser?: string; onChange: () => void }) {
+function Detail({ row, archived, currentUser, onChange }: { row: Row; archived: boolean; currentUser?: string; onChange: () => void }) {
   const { form, submission } = row;
   const data = submission.data ?? {};
   const email = submitterEmail(data);
@@ -197,6 +250,20 @@ function Detail({ row, currentUser, onChange }: { row: Row; currentUser?: string
     if (idx < 0) return;
     setReplyBody(CANNED[idx].body.replace(/\{name\}/g, firstName));
   }
+  function archive() {
+    if (!confirm('Archive this submission? It moves to the Archived view but is kept on record.')) return;
+    setError('');
+    start(async () => { const res = await archiveSubmissionAction(submission.id); if (res.ok) onChange(); else setError(res.error ?? 'Archive failed'); });
+  }
+  function restore() {
+    setError('');
+    start(async () => { const res = await unarchiveSubmissionAction(submission.id); if (res.ok) onChange(); else setError(res.error ?? 'Restore failed'); });
+  }
+  function remove() {
+    if (!confirm('Permanently delete this submission and its case history? This cannot be undone.')) return;
+    setError('');
+    start(async () => { const res = await deleteSubmissionAction(submission.id); if (res.ok) onChange(); else setError(res.error ?? 'Delete failed'); });
+  }
 
   const messages = submission.messages ?? [];
 
@@ -224,6 +291,23 @@ function Detail({ row, currentUser, onChange }: { row: Row; currentUser?: string
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Archive / delete actions */}
+      <div className="flex flex-wrap items-center gap-2">
+        {archived ? (
+          <button onClick={restore} disabled={pending} className="rounded-lg bg-navy px-3 py-1.5 text-xs font-semibold text-white hover:bg-navy/90 disabled:opacity-50">
+            Restore
+          </button>
+        ) : (
+          <button onClick={archive} disabled={pending} className="rounded-lg border border-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-50">
+            Archive
+          </button>
+        )}
+        <button onClick={remove} disabled={pending} className="rounded-lg border border-red-300 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50">
+          Delete permanently
+        </button>
+        {archived && <span className="text-[11px] text-gray-400">This submission is archived.</span>}
       </div>
 
       {/* Assignment */}

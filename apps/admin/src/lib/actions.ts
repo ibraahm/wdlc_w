@@ -45,6 +45,9 @@ import {
   apiSetSubmissionStatus,
   apiAddSubmissionNote,
   apiReplySubmission,
+  apiArchiveSubmission,
+  apiUnarchiveSubmission,
+  apiDeleteSubmission,
   apiCreateNavItem,
   apiUpdateNavItem,
   apiDeleteNavItem,
@@ -758,6 +761,42 @@ export async function setSubmissionStatusAction(submissionId: string, status: st
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Update failed' };
+  }
+}
+
+export async function archiveSubmissionAction(submissionId: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiArchiveSubmission(session.accessToken, submissionId);
+    revalidatePath('/submissions');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Archive failed' };
+  }
+}
+
+export async function unarchiveSubmissionAction(submissionId: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiUnarchiveSubmission(session.accessToken, submissionId);
+    revalidatePath('/submissions');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Restore failed' };
+  }
+}
+
+export async function deleteSubmissionAction(submissionId: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiDeleteSubmission(session.accessToken, submissionId);
+    revalidatePath('/submissions');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };
   }
 }
 

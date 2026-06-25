@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -46,8 +47,8 @@ export class FormController {
 
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR')
   @Get('id/:id/submissions')
-  submissions(@Param('id') id: string) {
-    return this.forms.listSubmissions(id);
+  submissions(@Param('id') id: string, @Query('archived') archived?: string) {
+    return this.forms.listSubmissions(id, archived === 'true');
   }
 
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')
@@ -66,6 +67,18 @@ export class FormController {
   @Delete('id/:id')
   remove(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.forms.remove(id, user.id);
+  }
+
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')
+  @Patch('submissions/:submissionId/archive')
+  archiveSubmission(@Param('submissionId') submissionId: string, @CurrentUser() user: AuthUser) {
+    return this.forms.archiveSubmission(submissionId, user.id, true);
+  }
+
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')
+  @Patch('submissions/:submissionId/unarchive')
+  unarchiveSubmission(@Param('submissionId') submissionId: string, @CurrentUser() user: AuthUser) {
+    return this.forms.archiveSubmission(submissionId, user.id, false);
   }
 
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')

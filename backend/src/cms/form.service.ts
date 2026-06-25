@@ -127,11 +127,11 @@ export class FormService {
     return { ok: true };
   }
 
-  async listSubmissions(id: string) {
+  async listSubmissions(id: string, archived = false) {
     const form = await this.prisma.form.findUnique({ where: { id } });
     if (!form) throw new NotFoundException(`Form ${id} not found`);
     const subs = await this.prisma.formSubmission.findMany({
-      where: { formId: id },
+      where: { formId: id, archivedAt: archived ? { not: null } : null },
       orderBy: { createdAt: 'desc' },
       include: { messages: { orderBy: { createdAt: 'asc' } } },
     });
@@ -140,10 +140,25 @@ export class FormService {
       status: s.status,
       assignee: s.assignee,
       data: this.safeParse(s.data),
+      archivedAt: s.archivedAt,
       createdAt: s.createdAt,
       updatedAt: s.updatedAt,
       messages: s.messages,
     }));
+  }
+
+  async archiveSubmission(submissionId: string, adminId: string, archived = true) {
+    await this.prisma.formSubmission.update({
+      where: { id: submissionId },
+      data: { archivedAt: archived ? new Date() : null, archivedBy: archived ? adminId : null },
+    });
+    await this.audit.log({
+      action: archived ? 'form.submission.archive' : 'form.submission.unarchive',
+      adminId,
+      entity: 'FormSubmission',
+      entityId: submissionId,
+    });
+    return { ok: true };
   }
 
   // ── Case management: status, internal notes, emailed replies ──────────────
