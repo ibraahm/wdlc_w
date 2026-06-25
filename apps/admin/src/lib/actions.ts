@@ -21,6 +21,7 @@ import {
   apiUnarchiveApplication,
   apiForceDeleteApplication,
   apiUpdateApplicationAddress,
+  apiSendApplicationDocuSign,
   type ApplicationAddress,
   apiCreatePartner,
   apiUpdatePartner,
@@ -351,6 +352,20 @@ export async function forceDeleteApplicationAction(id: string): Promise<{ ok: bo
     return { ok: true };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : 'Delete failed' };
+  }
+}
+
+export async function sendApplicationDocuSignAction(
+  id: string,
+  form: FormData,
+): Promise<{ ok: boolean; envelopeId?: string; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    const { envelopeId } = await apiSendApplicationDocuSign(session.accessToken, id, form);
+    return { ok: true, envelopeId };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Send failed' };
   }
 }
 

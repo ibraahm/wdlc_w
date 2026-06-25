@@ -16,9 +16,10 @@ import { DDAdminController } from './dd-admin.controller';
 import { TellersService } from './tellers.service';
 import { TellersPublicController, TellersAdminController } from './tellers.controller';
 import { RegionalModule } from '../regional/regional.module';
+import { DocuSignModule } from '../docusign/docusign.module';
 
 @Module({
-  imports: [PassportModule, AuditModule, RegionalModule],
+  imports: [PassportModule, AuditModule, RegionalModule, DocuSignModule],
   controllers: [
     AgentsPublicController,
     AgentsAdminController,

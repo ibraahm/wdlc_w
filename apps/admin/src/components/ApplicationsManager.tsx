@@ -11,6 +11,7 @@ import {
   unarchiveApplicationAction,
   forceDeleteApplicationAction,
   updateApplicationAddressAction,
+  sendApplicationDocuSignAction,
 } from '@/lib/actions';
 import { EmptyState } from './ui-admin';
 
@@ -218,6 +219,96 @@ function AddressEditor({
   );
 }
 
+function DocuSignPanel({ app, onClose }: { app: AgentApplication; onClose: () => void }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [subject, setSubject] = useState('World Direct Link — documents for your signature');
+  const [signerName, setSignerName] = useState(`${app.firstName} ${app.lastName}`.trim());
+  const [signerEmail, setSignerEmail] = useState(app.email);
+  const [cc, setCc] = useState('');
+  const [anchor, setAnchor] = useState('Signature:');
+  const [pending, setPending] = useState(false);
+  const [err, setErr] = useState('');
+  const [envelopeId, setEnvelopeId] = useState('');
+
+  const fieldCls = 'w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy/30';
+
+  async function send() {
+    setErr('');
+    setEnvelopeId('');
+    if (!file) { setErr('Choose a PDF to send.'); return; }
+    if (!signerEmail.trim()) { setErr('A signer email is required.'); return; }
+    const form = new FormData();
+    form.append('file', file);
+    form.append('emailSubject', subject);
+    form.append('signerName', signerName);
+    form.append('signerEmail', signerEmail.trim());
+    form.append('cc', cc.trim());
+    form.append('anchorString', anchor.trim());
+    setPending(true);
+    const res = await sendApplicationDocuSignAction(app.id, form);
+    setPending(false);
+    if (res.ok) setEnvelopeId(res.envelopeId ?? 'sent');
+    else setErr(res.error ?? 'Send failed');
+  }
+
+  if (envelopeId) {
+    return (
+      <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+        <p className="text-sm font-semibold text-green-800">Sent for e-signature ✓</p>
+        <p className="mt-1 text-xs text-green-700">Envelope ID: <code>{envelopeId}</code>. {signerEmail} will receive the DocuSign request.</p>
+        <button type="button" onClick={onClose} className="mt-3 rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">Close</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-navy/20 bg-blue-50/40 p-4">
+      <p className="mb-1 text-sm font-semibold text-gray-900">Send a document for e-signature (DocuSign)</p>
+      <p className="mb-3 text-xs text-gray-500">Upload a prefilled PDF (e.g. the Authorized Agent Agreement or Agent Application). It is sent straight to DocuSign — nothing is stored here.</p>
+      <div className="space-y-3">
+        <input
+          type="file"
+          accept="application/pdf,.pdf"
+          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          className="block w-full text-sm"
+        />
+        <label className="block">
+          <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">Email subject</span>
+          <input value={subject} onChange={(e) => setSubject(e.target.value)} className={fieldCls} />
+        </label>
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">Signer name</span>
+            <input value={signerName} onChange={(e) => setSignerName(e.target.value)} className={fieldCls} />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">Signer email</span>
+            <input value={signerEmail} onChange={(e) => setSignerEmail(e.target.value)} className={fieldCls} />
+          </label>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">CC emails (comma-separated, optional)</span>
+            <input value={cc} onChange={(e) => setCc(e.target.value)} placeholder="compliance@worlddirectlink.com" className={fieldCls} />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500">Signature anchor text</span>
+            <input value={anchor} onChange={(e) => setAnchor(e.target.value)} placeholder="Signature:" className={fieldCls} />
+            <span className="mt-1 block text-[11px] text-gray-400">Where in the PDF to place the sign/date tabs.</span>
+          </label>
+        </div>
+      </div>
+      {err && <p className="mt-2 text-xs text-red-600">{err}</p>}
+      <div className="mt-3 flex gap-2">
+        <button type="button" onClick={send} disabled={pending} className="rounded-lg bg-navy px-4 py-2 text-xs font-semibold text-white hover:opacity-90 disabled:opacity-50">
+          {pending ? 'Sending…' : 'Send via DocuSign'}
+        </button>
+        <button type="button" onClick={onClose} className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50">Cancel</button>
+      </div>
+    </div>
+  );
+}
+
 export default function ApplicationsManager({
   applications,
   archivedApplications,
@@ -242,6 +333,7 @@ export default function ApplicationsManager({
   const [awaitingDdOnly, setAwaitingDdOnly] = useState(false);
   const [viewArchived, setViewArchived] = useState(false);
   const [editingAddress, setEditingAddress] = useState<string | null>(null);
+  const [signingId, setSigningId] = useState<string | null>(null);
 
   const counts = useMemo(() => {
     const next: Record<string, number> = { ALL: applications.length, NEW: 0, REVIEWING: 0, APPROVED: 0, REJECTED: 0 };
@@ -552,6 +644,17 @@ export default function ApplicationsManager({
                       {canManage && (
                         <button
                           type="button"
+                          onClick={() => setSigningId(signingId === a.id ? null : a.id)}
+                          disabled={isPending}
+                          className="rounded-lg border border-navy/30 px-3 py-2 text-xs font-semibold text-navy hover:bg-navy/5 disabled:opacity-50"
+                          title="Send a PDF to the agent for e-signature via DocuSign"
+                        >
+                          {signingId === a.id ? 'Close e-sign' : 'Send for e-sign'}
+                        </button>
+                      )}
+                      {canManage && (
+                        <button
+                          type="button"
                           onClick={() => archive(a)}
                           disabled={isPending}
                           className="rounded-lg border border-amber-200 px-3 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-50"
@@ -595,6 +698,12 @@ export default function ApplicationsManager({
                     onSave={(addr) => saveAddress(a.id, addr)}
                     onCancel={() => setEditingAddress(null)}
                   />
+                </div>
+              )}
+
+              {signingId === a.id && !viewArchived && (
+                <div className="border-t border-gray-200 bg-gray-50 p-4">
+                  <DocuSignPanel app={a} onClose={() => setSigningId(null)} />
                 </div>
               )}
 

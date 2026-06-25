@@ -1,6 +1,7 @@
-import { Body, Controller, Delete, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApplicationsService } from './applications.service';
-import { UpdateApplicationStatusDto, UpdateApplicationAddressDto } from './dto/application.dto';
+import { UpdateApplicationStatusDto, UpdateApplicationAddressDto, SendDocuSignDto } from './dto/application.dto';
 import { AdminJwtAuthGuard } from '../admin-auth/admin-jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -40,6 +41,20 @@ export class ApplicationsAdminController {
     @CurrentUser('id') adminId: string,
   ) {
     return this.applications.updateAddress(id, dto, adminId);
+  }
+
+  // Send a (prefilled) PDF out for e-signature via DocuSign. The file is
+  // streamed straight to DocuSign and never stored; only the send is audited.
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')
+  @Post(':id/docusign')
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 20 * 1024 * 1024 } }))
+  sendDocuSign(
+    @Param('id') id: string,
+    @UploadedFile() file: { buffer: Buffer; originalname?: string; mimetype?: string; size?: number } | undefined,
+    @Body() dto: SendDocuSignDto,
+    @CurrentUser('id') adminId: string,
+  ) {
+    return this.applications.sendDocuSign(id, file, dto, adminId);
   }
 
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')

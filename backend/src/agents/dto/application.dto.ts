@@ -73,3 +73,20 @@ export class UpdateApplicationAddressDto {
   @IsString() @MaxLength(10) @Matches(/^\d{5}(?:-\d{4})?$/, { message: 'businessZip must be a valid U.S. ZIP code' }) businessZip: string;
   @IsString() @MaxLength(12) @Matches(/^\+1[2-9]\d{2}[2-9]\d{6}$/, { message: 'businessPhone must be a valid U.S. phone number' }) businessPhone: string;
 }
+
+// Multipart fields accompanying the uploaded PDF when sending a document for
+// e-signature. The file itself is handled by the upload interceptor. Numeric
+// placement values arrive as strings and are parsed in the service.
+export class SendDocuSignDto {
+  @IsOptional() @IsString() @MaxLength(200) emailSubject?: string;
+  @IsOptional() @IsString() @MaxLength(200) signerName?: string;
+  @IsOptional() @IsString() @MaxLength(200) signerEmail?: string;
+  // Comma-separated CC email addresses.
+  @IsOptional() @IsString() @MaxLength(1000) cc?: string;
+  @IsOptional() @IsString() @MaxLength(120) anchorString?: string;
+  @IsOptional() @IsString() @MaxLength(10) anchorXOffset?: string;
+  @IsOptional() @IsString() @MaxLength(10) anchorYOffset?: string;
+  @IsOptional() @IsString() @MaxLength(4) page?: string;
+  @IsOptional() @IsString() @MaxLength(6) x?: string;
+  @IsOptional() @IsString() @MaxLength(6) y?: string;
+}

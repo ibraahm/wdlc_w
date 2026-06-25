@@ -1,10 +1,11 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { DDService } from './dd.service';
-import { CreateApplicationDto } from './dto/application.dto';
+import { CreateApplicationDto, SendDocuSignDto } from './dto/application.dto';
 import { MailService } from '../common/mail.service';
 import { RegionalService } from '../regional/regional.service';
+import { DocuSignService } from '../docusign/docusign.service';
 import { buildAgentApplicationPdf } from './application-pdf';
 
 const APPLICATION_STATUSES = ['NEW', 'REVIEWING', 'APPROVED', 'REJECTED'] as const;
@@ -19,6 +20,7 @@ export class ApplicationsService {
     private dd: DDService,
     private mail: MailService,
     private regional: RegionalService,
+    private docusign: DocuSignService,
   ) {}
 
   async create(dto: CreateApplicationDto, ctx?: { ip?: string; userAgent?: string }) {
@@ -187,6 +189,63 @@ export class ApplicationsService {
   // Hard delete, including a linked DD file — but ONLY when no evidence has been
   // collected, so compliance records are never destroyed. SUPER_ADMIN only
   // (enforced at the controller). Use archive for everything else.
+  // Send a (prefilled) PDF out for e-signature to the agent via DocuSign. The
+  // file is streamed straight to DocuSign — nothing is stored; only the send is
+  // audited (metadata, never the document bytes).
+  async sendDocuSign(
+    id: string,
+    file: { buffer: Buffer; originalname?: string; mimetype?: string; size?: number } | undefined,
+    dto: SendDocuSignDto,
+    adminId?: string,
+  ) {
+    if (!file || !file.buffer?.length) throw new BadRequestException('A PDF file is required.');
+    const isPdf = (file.mimetype || '').includes('pdf') || (file.originalname || '').toLowerCase().endsWith('.pdf');
+    if (!isPdf) throw new BadRequestException('The uploaded file must be a PDF.');
+
+    const app = await this.prisma.agentApplication.findUnique({ where: { id } });
+    if (!app) throw new NotFoundException('Application not found');
+    if (!this.docusign.isConfigured()) {
+      throw new ServiceUnavailableException('DocuSign is not configured on the server.');
+    }
+
+    const signerName = (dto.signerName || '').trim() || `${app.firstName} ${app.lastName}`.trim();
+    const signerEmail = (dto.signerEmail || '').trim() || app.email;
+    if (!signerEmail) throw new BadRequestException('A signer email is required.');
+
+    const cc = (dto.cc || '')
+      .split(',')
+      .map((e) => e.trim())
+      .filter(Boolean)
+      .map((email) => ({ name: email, email }));
+
+    const num = (v?: string) =>
+      v != null && v !== '' && Number.isFinite(Number(v)) ? Number(v) : undefined;
+    const fileName = file.originalname || 'document.pdf';
+
+    const { envelopeId } = await this.docusign.sendDocumentForSignature({
+      pdfBase64: file.buffer.toString('base64'),
+      fileName,
+      emailSubject: (dto.emailSubject || '').trim() || 'World Direct Link — documents for your signature',
+      signer: { name: signerName, email: signerEmail },
+      cc,
+      anchorString: dto.anchorString?.trim() || undefined,
+      anchorXOffset: num(dto.anchorXOffset),
+      anchorYOffset: num(dto.anchorYOffset),
+      page: num(dto.page),
+      x: num(dto.x),
+      y: num(dto.y),
+    });
+
+    await this.audit.log({
+      action: 'agent.application.docusign.send',
+      adminId,
+      entity: 'AgentApplication',
+      entityId: id,
+      after: { envelopeId, signerEmail, fileName, ccCount: cc.length },
+    });
+    return { envelopeId };
+  }
+
   async forceRemove(id: string, adminId?: string) {
     const existing = await this.prisma.agentApplication.findUnique({
       where: { id },

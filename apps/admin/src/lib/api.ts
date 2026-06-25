@@ -433,6 +433,20 @@ export async function apiUpdateApplicationAddress(
   return handleResponse<AgentApplication>(res);
 }
 
+// Multipart send — do NOT set Content-Type; the runtime adds the boundary.
+export async function apiSendApplicationDocuSign(
+  accessToken: string,
+  id: string,
+  form: FormData,
+): Promise<{ envelopeId: string }> {
+  const res = await fetch(`${API}/admin/agent-applications/${id}/docusign`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${accessToken}` },
+    body: form,
+  });
+  return handleResponse<{ envelopeId: string }>(res);
+}
+
 export async function apiSetApplicationStatus(
   accessToken: string,
   id: string,
