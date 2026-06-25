@@ -20,6 +20,7 @@ import { RequestsModule } from './requests/requests.module';
 import { RiskModule } from './risk/risk.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { HealthModule } from './health/health.module';
+import { SystemModule } from './system/system.module';
 
 @Module({
   imports: [
@@ -80,6 +81,7 @@ import { HealthModule } from './health/health.module';
     RiskModule,
     AnalyticsModule,
     HealthModule,
+    SystemModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

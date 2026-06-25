@@ -1,8 +1,9 @@
 import { getSession } from '@/lib/auth';
-import { apiGetSettings } from '@/lib/api';
+import { apiGetSettings, apiGetSystemStatus, type SystemStatus } from '@/lib/api';
 import { redirect } from 'next/navigation';
 import SettingsManager from '@/components/SettingsManager';
 import AnnouncementSettings, { type AnnouncementConfig } from '@/components/AnnouncementSettings';
+import SystemStatusBoard from '@/components/SystemStatusBoard';
 import ChangePasswordForm from '@/components/ChangePasswordForm';
 
 export default async function SettingsPage() {
@@ -34,6 +35,16 @@ export default async function SettingsPage() {
   }
   const otherSettings = settings.filter((s) => s.key !== 'announcement');
 
+  // System/integration health is SUPER_ADMIN-only and never includes secrets.
+  let systemStatus: SystemStatus | null = null;
+  if (session.user.role === 'SUPER_ADMIN') {
+    try {
+      systemStatus = await apiGetSystemStatus(session.accessToken);
+    } catch {
+      systemStatus = null;
+    }
+  }
+
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
@@ -46,6 +57,8 @@ export default async function SettingsPage() {
           {fetchError}
         </div>
       )}
+
+      {systemStatus && <SystemStatusBoard status={systemStatus} />}
 
       <AnnouncementSettings initial={announcement} />
 

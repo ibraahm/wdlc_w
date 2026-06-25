@@ -433,6 +433,28 @@ export async function apiUpdateApplicationAddress(
   return handleResponse<AgentApplication>(res);
 }
 
+// ---------------------------------------------------------------------------
+// System status (SUPER_ADMIN) — read-only config/health, no secret values
+// ---------------------------------------------------------------------------
+
+export type SystemStatusItem = {
+  label: string;
+  state: 'ok' | 'warn' | 'off' | 'info';
+  value: string;
+  hint?: string;
+};
+export type SystemStatusGroup = { title: string; items: SystemStatusItem[] };
+export type SystemStatus = {
+  generatedAt: string;
+  environment: string;
+  groups: SystemStatusGroup[];
+};
+
+export async function apiGetSystemStatus(accessToken: string): Promise<SystemStatus> {
+  const res = await authFetch('/admin/system/status', accessToken);
+  return handleResponse<SystemStatus>(res);
+}
+
 // Multipart send — do NOT set Content-Type; the runtime adds the boundary.
 export async function apiSendApplicationDocuSign(
   accessToken: string,
