@@ -1,6 +1,12 @@
-import { IsEmail, IsString, MinLength, IsOptional, IsIn, IsBoolean } from 'class-validator';
+import { IsEmail, IsString, MinLength, MaxLength, IsOptional, IsIn, IsBoolean, Matches } from 'class-validator';
 
 export const ADMIN_ROLES = ['SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR', 'REGIONAL_OFFICER', 'AUDITOR'] as const;
+
+export class TwoFactorCodeDto {
+  @IsString()
+  @Matches(/^\d{6}$/, { message: 'Enter the 6-digit code from your authenticator app.' })
+  code: string;
+}
 
 export class AdminLoginDto {
   @IsEmail()
@@ -9,6 +15,12 @@ export class AdminLoginDto {
   @IsString()
   @MinLength(8)
   password: string;
+
+  // Authenticator code; only needed when the account has 2FA enabled.
+  @IsOptional()
+  @IsString()
+  @MaxLength(6)
+  code?: string;
 
   @IsOptional()
   @IsString()

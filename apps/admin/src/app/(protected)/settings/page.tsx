@@ -1,10 +1,11 @@
 import { getSession } from '@/lib/auth';
-import { apiGetSettings, apiGetSystemStatus, type SystemStatus } from '@/lib/api';
+import { apiGetSettings, apiGetSystemStatus, apiGetMfaStatus, type SystemStatus } from '@/lib/api';
 import { redirect } from 'next/navigation';
 import SettingsManager from '@/components/SettingsManager';
 import AnnouncementSettings, { type AnnouncementConfig } from '@/components/AnnouncementSettings';
 import SystemStatusBoard from '@/components/SystemStatusBoard';
 import IntegrationsSettings from '@/components/IntegrationsSettings';
+import TwoFactorSettings from '@/components/TwoFactorSettings';
 import ChangePasswordForm from '@/components/ChangePasswordForm';
 
 export default async function SettingsPage() {
@@ -50,6 +51,13 @@ export default async function SettingsPage() {
   }
   const canManage = ['SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER'].includes(session.user.role);
 
+  let mfaEnabled = false;
+  try {
+    mfaEnabled = (await apiGetMfaStatus(session.accessToken)).enabled;
+  } catch {
+    mfaEnabled = false;
+  }
+
   // System/integration health is SUPER_ADMIN-only and never includes secrets.
   let systemStatus: SystemStatus | null = null;
   if (session.user.role === 'SUPER_ADMIN') {
@@ -81,7 +89,9 @@ export default async function SettingsPage() {
 
       <SettingsManager initialSettings={otherSettings} />
 
-      {/* Your account - change password */}
+      {/* Your account - 2FA + change password */}
+      <TwoFactorSettings enabled={mfaEnabled} />
+
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="font-semibold text-gray-900 text-sm mb-1">Your password</h2>
         <p className="text-xs text-gray-500 mb-4">

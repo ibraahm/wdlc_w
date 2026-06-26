@@ -15,6 +15,7 @@ import { MailService } from '../common/mail.service';
 import { RefreshTokenService } from '../common/refresh-token.service';
 import { generateToken, hashToken } from '../common/crypto.util';
 import { verifyPassword } from '../common/password.util';
+import { generateBase32Secret, verifyTotp, otpauthUrl } from './totp.util';
 import { isLocked, nextFailedAttempt, CLEAR_LOCKOUT } from '../common/lockout.util';
 import {
   BCRYPT_ROUNDS,
@@ -53,7 +54,7 @@ export class AdminAuthService {
   }
 
   // ── Login ──────────────────────────────────────────────────────────────────
-  async login(email: string, password: string, ip?: string, ua?: string) {
+  async login(email: string, password: string, code?: string, ip?: string, ua?: string) {
     // Email is matched case-insensitively (and trimmed) so a different-case
     // address than the one on file doesn't read as wrong credentials.
     const user = await this.prisma.adminUser.findFirst({ where: { email: { equals: email.trim(), mode: 'insensitive' } } });
@@ -81,9 +82,57 @@ export class AdminAuthService {
       throw new UnauthorizedException('Account is not active - contact support');
     }
 
+    // Second factor: if enabled, a valid authenticator code is required. The
+    // password is already verified here, so this can't be used for enumeration.
+    if (user.mfaEnabled) {
+      if (!code) return { mfaRequired: true } as const;
+      if (!verifyTotp(code, user.mfaSecret)) {
+        await this.audit.log({ action: 'admin.login.mfa_failed', adminId: user.id, ip, userAgent: ua });
+        throw new UnauthorizedException('Invalid authentication code');
+      }
+    }
+
     await this.prisma.adminUser.update({ where: { id: user.id }, data: { ...CLEAR_LOCKOUT, lastLoginAt: new Date() } });
     await this.audit.log({ action: 'admin.login.success', adminId: user.id, ip, userAgent: ua });
     return { ...(await this.issueTokens(user, ip, ua)), user: publicUser(user) };
+  }
+
+  // ── Two-factor (TOTP) enrolment ───────────────────────────────────────────────
+  async mfaStatus(adminId: string) {
+    const user = await this.prisma.adminUser.findUnique({ where: { id: adminId }, select: { mfaEnabled: true } });
+    return { enabled: !!user?.mfaEnabled };
+  }
+
+  // Generate a fresh secret and return the provisioning URI; not active until
+  // the admin confirms a code via enableMfa.
+  async setupMfa(adminId: string) {
+    const user = await this.prisma.adminUser.findUnique({ where: { id: adminId } });
+    if (!user) throw new UnauthorizedException('Not found');
+    if (user.mfaEnabled) throw new BadRequestException('Two-factor authentication is already enabled.');
+    const secret = generateBase32Secret();
+    await this.prisma.adminUser.update({ where: { id: adminId }, data: { mfaSecret: secret } });
+    return { secret, otpauthUrl: otpauthUrl(secret, user.email) };
+  }
+
+  async enableMfa(adminId: string, code: string) {
+    const user = await this.prisma.adminUser.findUnique({ where: { id: adminId } });
+    if (!user) throw new UnauthorizedException('Not found');
+    if (user.mfaEnabled) return { ok: true };
+    if (!user.mfaSecret) throw new BadRequestException('Start setup first.');
+    if (!verifyTotp(code, user.mfaSecret)) throw new BadRequestException('That code is not valid. Try again.');
+    await this.prisma.adminUser.update({ where: { id: adminId }, data: { mfaEnabled: true } });
+    await this.audit.log({ action: 'admin.mfa.enable', adminId });
+    return { ok: true };
+  }
+
+  async disableMfa(adminId: string, code: string) {
+    const user = await this.prisma.adminUser.findUnique({ where: { id: adminId } });
+    if (!user) throw new UnauthorizedException('Not found');
+    if (!user.mfaEnabled) return { ok: true };
+    if (!verifyTotp(code, user.mfaSecret)) throw new BadRequestException('That code is not valid. Try again.');
+    await this.prisma.adminUser.update({ where: { id: adminId }, data: { mfaEnabled: false, mfaSecret: null } });
+    await this.audit.log({ action: 'admin.mfa.disable', adminId });
+    return { ok: true };
   }
 
   // ── Google sign-in ───────────────────────────────────────────────────────────

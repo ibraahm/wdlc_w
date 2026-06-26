@@ -78,7 +78,9 @@ describe('AdminAuthService', () => {
       prisma.adminUser.findUnique.mockResolvedValue(baseUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
-      const result = await service.login('admin@wdlc.test', 'correct', '1.2.3.4', 'ua');
+      const result = await service.login('admin@wdlc.test', 'correct', undefined, '1.2.3.4', 'ua') as {
+        accessToken: string; refreshToken: string; user: Record<string, unknown>;
+      };
 
       expect(result.accessToken).toBe('access-token');
       expect(result.refreshToken).toBe('raw-refresh');

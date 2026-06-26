@@ -13,6 +13,7 @@ import {
   SetUserRegionDto,
   AdminInviteUserDto,
   AdminGoogleLoginDto,
+  TwoFactorCodeDto,
 } from './dto/admin-auth.dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -42,7 +43,7 @@ export class AdminAuthController {
     // + a server-signed human-verification challenge.
     if (!this.humanVerification.verify(dto.humanVerificationToken, dto.humanVerificationAnswer, 'admin_login'))
       throw new ForbiddenException('Security check failed. Please answer the verification question.');
-    return this.auth.login(dto.email, dto.password, req.ip, req.headers['user-agent']);
+    return this.auth.login(dto.email, dto.password, dto.code, req.ip, req.headers['user-agent']);
   }
 
   @Public()
@@ -89,6 +90,27 @@ export class AdminAuthController {
   @Post('change-password')
   changePassword(@CurrentUser('id') id: string, @Body() dto: AdminChangePasswordDto) {
     return this.auth.changePassword(id, dto.currentPassword, dto.newPassword);
+  }
+
+  // ── Two-factor (authenticator app) ────────────────────────────────────────
+  @Get('2fa/status')
+  mfaStatus(@CurrentUser('id') id: string) {
+    return this.auth.mfaStatus(id);
+  }
+
+  @Post('2fa/setup')
+  mfaSetup(@CurrentUser('id') id: string) {
+    return this.auth.setupMfa(id);
+  }
+
+  @Post('2fa/enable')
+  mfaEnable(@CurrentUser('id') id: string, @Body() dto: TwoFactorCodeDto) {
+    return this.auth.enableMfa(id, dto.code);
+  }
+
+  @Post('2fa/disable')
+  mfaDisable(@CurrentUser('id') id: string, @Body() dto: TwoFactorCodeDto) {
+    return this.auth.disableMfa(id, dto.code);
   }
 
   // ── SUPER_ADMIN only ──────────────────────────────────────────────────────

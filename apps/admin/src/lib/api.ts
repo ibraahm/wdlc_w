@@ -36,13 +36,41 @@ export type Setting = {
 // Auth
 // ---------------------------------------------------------------------------
 
-export async function apiLogin(email: string, password: string, verification?: HumanVerification): Promise<AuthResult> {
+export type LoginOutcome = AuthResult | { mfaRequired: true };
+
+export async function apiLogin(
+  email: string,
+  password: string,
+  opts?: HumanVerification & { code?: string },
+): Promise<LoginOutcome> {
   const res = await fetch(`${API}/admin/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password, ...verification }),
+    body: JSON.stringify({ email, password, ...opts }),
   });
-  return handleResponse<AuthResult>(res);
+  return handleResponse<LoginOutcome>(res);
+}
+
+export type MfaSetup = { secret: string; otpauthUrl: string };
+
+export async function apiGetMfaStatus(accessToken: string): Promise<{ enabled: boolean }> {
+  const res = await authFetch('/admin/auth/2fa/status', accessToken);
+  return handleResponse<{ enabled: boolean }>(res);
+}
+
+export async function apiSetupMfa(accessToken: string): Promise<MfaSetup> {
+  const res = await authFetch('/admin/auth/2fa/setup', accessToken, { method: 'POST' });
+  return handleResponse<MfaSetup>(res);
+}
+
+export async function apiEnableMfa(accessToken: string, code: string): Promise<{ ok: boolean }> {
+  const res = await authFetch('/admin/auth/2fa/enable', accessToken, { method: 'POST', body: JSON.stringify({ code }) });
+  return handleResponse<{ ok: boolean }>(res);
+}
+
+export async function apiDisableMfa(accessToken: string, code: string): Promise<{ ok: boolean }> {
+  const res = await authFetch('/admin/auth/2fa/disable', accessToken, { method: 'POST', body: JSON.stringify({ code }) });
+  return handleResponse<{ ok: boolean }>(res);
 }
 
 export async function apiRefresh(refreshToken: string): Promise<AuthResult> {

@@ -8,6 +8,9 @@ import {
   apiForgotPassword,
   apiResetPassword,
   apiChangePassword,
+  apiSetupMfa,
+  apiEnableMfa,
+  apiDisableMfa,
   apiSetSetting,
   apiCreateUser,
   apiSetUserActive,
@@ -94,20 +97,55 @@ import { getSession, setSessionCookies, clearSessionCookies, clearMustChangePass
 // Auth actions
 // ---------------------------------------------------------------------------
 
-export async function loginAction(formData: FormData): Promise<{ error?: string }> {
+export async function loginAction(formData: FormData): Promise<{ error?: string; mfaRequired?: boolean }> {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
+  const code = (formData.get('code') as string) || undefined;
   const humanVerificationToken = (formData.get('humanVerificationToken') as string) || undefined;
   const humanVerificationAnswer = (formData.get('humanVerificationAnswer') as string) || undefined;
 
   try {
-    const result = await apiLogin(email, password, { humanVerificationToken, humanVerificationAnswer });
+    const result = await apiLogin(email, password, { code, humanVerificationToken, humanVerificationAnswer });
+    if ('mfaRequired' in result) return { mfaRequired: true };
     await setSessionCookies(result.accessToken, result.refreshToken, result.user);
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Login failed' };
   }
 
   redirect('/dashboard');
+}
+
+export async function setupMfaAction(): Promise<{ ok: boolean; secret?: string; otpauthUrl?: string; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    const { secret, otpauthUrl } = await apiSetupMfa(session.accessToken);
+    return { ok: true, secret, otpauthUrl };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Setup failed' };
+  }
+}
+
+export async function enableMfaAction(code: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiEnableMfa(session.accessToken, code);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Could not enable 2FA' };
+  }
+}
+
+export async function disableMfaAction(code: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    await apiDisableMfa(session.accessToken, code);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Could not disable 2FA' };
+  }
 }
 
 export async function logoutAction(): Promise<void> {
