@@ -6,7 +6,7 @@ import { AuditService } from '../audit/audit.service';
 import { MailService } from '../common/mail.service';
 import { RegionalService } from '../regional/regional.service';
 import { generateToken, hashToken } from '../common/crypto.util';
-import { DD_CATALOG } from './dd-catalog';
+import { DD_CATALOG, STAGE_TRANSITIONS, allowedNextStages } from './dd-catalog';
 import { computeDocStatus, effectiveDueDate } from './dd-status.util';
 import { buildDdFilePdf, type DdFileDocRow } from './dd-file-pdf';
 import { buildAgentApplicationPdf } from './application-pdf';
@@ -352,7 +352,15 @@ export class DDService {
         dueDate: effectiveDueDate(dateBasis, cat?.recheckMonths, d.expiry),
       };
     });
-    return { ...file, documents };
+    // Lifecycle hints drive the guided pipeline UI: which stages are reachable
+    // next and what (if anything) still blocks activation.
+    const blockers = this.getActivationBlockers(file);
+    const lifecycle = {
+      allowedStages: allowedNextStages(file.stage),
+      blockers,
+      readyForActivation: blockers.length === 0,
+    };
+    return { ...file, documents, lifecycle };
   }
 
   // ── Manual document-signature tracking (sent / signed, by hand) ─────────────
@@ -606,30 +614,12 @@ export class DDService {
   // moves, suspension, and termination remain available.
   private assertStageTransition(from: string, to: string) {
     if (from === to) return;
-    const PIPELINE = ['APPLICATION', 'UNDER_REVIEW', 'DD_IN_PROGRESS', 'ACTIVE'];
-
-    if (to === 'TERMINATED') return; // a file can always be offboarded
     if (from === 'TERMINATED') {
       throw new BadRequestException('A terminated file cannot be reopened - create a new file');
     }
-    if (to === 'SUSPENDED') {
-      if (from === 'DD_IN_PROGRESS' || from === 'ACTIVE') return;
-      throw new BadRequestException('Only a file in due diligence or active can be suspended');
+    if (!STAGE_TRANSITIONS[from as keyof typeof STAGE_TRANSITIONS]?.includes(to as never)) {
+      throw new BadRequestException(`Cannot move from ${from} to ${to}`);
     }
-    if (from === 'SUSPENDED') {
-      if (to === 'ACTIVE' || to === 'DD_IN_PROGRESS') return;
-      throw new BadRequestException('A suspended file can only resume to due diligence or active');
-    }
-
-    const fi = PIPELINE.indexOf(from);
-    const ti = PIPELINE.indexOf(to);
-    if (fi === -1 || ti === -1) throw new BadRequestException('Invalid stage transition');
-    if (ti > fi + 1) {
-      throw new BadRequestException(
-        `Cannot skip ahead to ${to} - complete the ${PIPELINE[fi + 1]} step first`,
-      );
-    }
-    // backward moves (ti < fi) and a single step forward (ti === fi + 1) are allowed
   }
 
   private readonly logger = new Logger(DDService.name);

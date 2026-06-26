@@ -738,6 +738,7 @@ export interface DDFile {
   updatedAt: string;
   documents?: DDDocument[];
   signatures?: DDSignatureDoc[];
+  lifecycle?: { allowedStages: string[]; blockers: string[]; readyForActivation: boolean };
   summary?: Record<string, number>;
   compliant?: boolean;
 }

@@ -7,18 +7,14 @@ import type { DDFile, DDDocument } from '@/lib/api';
 import { setDDBranchCodeAction } from '@/lib/actions';
 import RiskAssessmentPanel from './RiskAssessmentPanel';
 import DDSignatureTracker from './DDSignatureTracker';
+import LifecyclePipeline from './LifecyclePipeline';
 import DocRow from './DocRow';
 import { ONBOARDING_SECTIONS, ATTENTION, DATE_MIN, DATE_MAX } from './dd-checklist';
 import {
-  setDDStageAction,
   setDDRiskAction,
   recordDDReviewAction,
 } from '@/lib/actions';
 
-const STAGES = [
-  'APPLICATION', 'UNDER_REVIEW', 'DD_IN_PROGRESS', 'ACTIVE',
-  'SUSPENDED', 'TERMINATED', 'REJECTED',
-];
 const STAGE_LABELS: Record<string, string> = {
   APPLICATION: 'Application',
   UNDER_REVIEW: 'Under Review',
@@ -331,20 +327,16 @@ export default function DDFileDetail({
         <SummaryCard label="Expired / expiring" value={summary.EXPIRED + summary.EXPIRING} tone="red" />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-xl border border-gray-200 bg-white p-4">
-          <p className="text-xs font-medium text-gray-500 mb-2">Stage</p>
-          <select
-            defaultValue={f.stage}
-            disabled={isPending || !canManageLifecycle}
-            onChange={(e) => run(() => setDDStageAction(f.id, e.target.value))}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {STAGES.map((s) => <option key={s} value={s}>{STAGE_LABELS[s]}</option>)}
-          </select>
-          {f.onboardedAt && <p className="mt-2 text-xs text-gray-400">Onboarded {formatDate(f.onboardedAt)}</p>}
-        </div>
+      <LifecyclePipeline
+        fileId={f.id}
+        stage={f.stage}
+        allowedStages={f.lifecycle?.allowedStages ?? []}
+        blockers={f.lifecycle?.blockers ?? blockers}
+        onboardedAt={f.onboardedAt}
+        canManage={canManageLifecycle}
+      />
 
+      <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-xl border border-gray-200 bg-white p-4">
           <p className="text-xs font-medium text-gray-500 mb-2">Risk rating</p>
           <select

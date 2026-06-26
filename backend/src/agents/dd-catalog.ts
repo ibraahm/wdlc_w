@@ -75,6 +75,26 @@ export const DD_STAGES = [
 ] as const;
 export type DDStage = (typeof DD_STAGES)[number];
 
+// The onboarding "happy path" (a strictly-ordered pipeline) shown as a stepper.
+export const DD_PIPELINE: DDStage[] = ['APPLICATION', 'UNDER_REVIEW', 'DD_IN_PROGRESS', 'ACTIVE'];
+
+// Valid stage transitions. Drives both server validation and the guided
+// next-step actions in the UI. ACTIVE additionally requires activation blockers
+// to be cleared (enforced separately).
+export const STAGE_TRANSITIONS: Record<DDStage, DDStage[]> = {
+  APPLICATION: ['UNDER_REVIEW', 'REJECTED'],
+  UNDER_REVIEW: ['DD_IN_PROGRESS', 'APPLICATION', 'REJECTED'],
+  DD_IN_PROGRESS: ['ACTIVE', 'UNDER_REVIEW', 'SUSPENDED', 'REJECTED'],
+  ACTIVE: ['SUSPENDED', 'TERMINATED'],
+  SUSPENDED: ['ACTIVE', 'DD_IN_PROGRESS', 'TERMINATED'],
+  TERMINATED: [],
+  REJECTED: ['UNDER_REVIEW'],
+};
+
+export function allowedNextStages(from: string): DDStage[] {
+  return STAGE_TRANSITIONS[from as DDStage] ?? [];
+}
+
 export const RISK_RATINGS = ['LOW', 'MEDIUM', 'HIGH'] as const;
 export type RiskRating = (typeof RISK_RATINGS)[number];
 
