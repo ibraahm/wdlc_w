@@ -206,20 +206,20 @@ export class FormService {
   }
 
   async setSubmissionStatus(submissionId: string, status: string, adminId: string, assignee?: string) {
+    // Routine inbox triage — not audited (low-value, high-frequency).
     const updated = await this.prisma.formSubmission.update({
       where: { id: submissionId },
       data: { status, ...(assignee !== undefined ? { assignee } : {}) },
     });
-    await this.audit.log({ action: 'form.submission.status', adminId, entity: 'FormSubmission', entityId: submissionId, after: { status } });
     return updated;
   }
 
   async addNote(submissionId: string, body: string, admin: { id: string; name?: string }) {
+    // The note content is the record (stored on SubmissionMessage); no separate audit entry.
     const msg = await this.prisma.submissionMessage.create({
       data: { submissionId, kind: 'NOTE', body, authorId: admin.id, authorName: admin.name },
     });
     await this.prisma.formSubmission.update({ where: { id: submissionId }, data: { updatedAt: new Date() } });
-    await this.audit.log({ action: 'form.submission.note', adminId: admin.id, entity: 'FormSubmission', entityId: submissionId });
     return msg;
   }
 

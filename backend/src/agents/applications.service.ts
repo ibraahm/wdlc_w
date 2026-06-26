@@ -276,15 +276,13 @@ export class ApplicationsService {
     });
     if (!existing) throw new NotFoundException('Application not found');
 
+    // SUPER_ADMIN-only force delete (enforced at the controller). Evidence no
+    // longer blocks it — the linked DD file and its documents are removed too.
+    // The deletion itself is always audited so there's a record of what went.
+    const hadEvidence = !!existing.ddFile?.documents.some(
+      (d) => d.present || (d.dropboxUrl && d.dropboxUrl.trim()),
+    );
     if (existing.ddFile) {
-      const hasEvidence = existing.ddFile.documents.some(
-        (d) => d.present || (d.dropboxUrl && d.dropboxUrl.trim()),
-      );
-      if (hasEvidence) {
-        throw new BadRequestException(
-          'This DD file has collected evidence and cannot be permanently deleted. Archive it instead.',
-        );
-      }
       // Documents cascade with the DD file; the application FK is Restrict, so
       // the file must be removed before the application.
       await this.prisma.agentDDFile.delete({ where: { id: existing.ddFile.id } });
@@ -301,6 +299,7 @@ export class ApplicationsService {
         applicant: `${existing.firstName} ${existing.lastName}`.trim(),
         company: existing.company,
         hadDdFile: !!existing.ddFile,
+        hadEvidence,
       },
     });
     return { ok: true };

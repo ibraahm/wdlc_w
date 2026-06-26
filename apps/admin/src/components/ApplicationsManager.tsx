@@ -415,7 +415,7 @@ export default function ApplicationsManager({
   }
 
   async function forceDelete(a: AgentApplication) {
-    if (!(await confirmDialog({ title: 'Permanently delete', message: `Permanently delete ${businessName(a)}${a.ddFile ? ' and its DD file' : ''}? This cannot be undone and is blocked if any evidence has been collected.`, danger: true, confirmLabel: 'Delete forever' }))) return;
+    if (!(await confirmDialog({ title: 'Permanently delete', message: `Permanently delete ${businessName(a)}${a.ddFile ? ', its DD file and any collected documents' : ''}? This cannot be undone. Consider Archive to keep the record.`, danger: true, confirmLabel: 'Delete forever' }))) return;
     setError('');
     startTransition(async () => {
       const res = await forceDeleteApplicationAction(a.id);

@@ -12,9 +12,6 @@ export interface AuditEntry {
   after?: unknown;
   ip?: string;
   userAgent?: string;
-  // When true, a failed audit write is re-thrown so the calling operation fails
-  // closed instead of proceeding without a trail. Default: alert-and-continue.
-  critical?: boolean;
 }
 
 const toJson = (v: unknown) => (v !== undefined ? JSON.stringify(v) : undefined);
@@ -25,10 +22,14 @@ export class AuditService {
 
   constructor(private prisma: PrismaService) {}
 
-  async log(entry: AuditEntry): Promise<void> {
-    try {
-      const actorType = entry.actorType ?? (entry.adminId ? 'admin' : entry.agentId ? 'agent' : undefined);
-      await this.prisma.auditLog.create({
+  // Best-effort and non-blocking: the write runs in the background so it never
+  // delays or fails the calling operation. A failed write is alerted via the
+  // logger (never the before/after payloads, which may be sensitive). Callers
+  // may still `await` this — it resolves immediately.
+  log(entry: AuditEntry): void {
+    const actorType = entry.actorType ?? (entry.adminId ? 'admin' : entry.agentId ? 'agent' : undefined);
+    this.prisma.auditLog
+      .create({
         data: {
           action: entry.action,
           adminId: entry.adminId,
@@ -41,19 +42,14 @@ export class AuditService {
           ip: entry.ip,
           userAgent: entry.userAgent,
         },
+      })
+      .catch((err) => {
+        const message = err instanceof Error ? err.message : String(err);
+        this.logger.error(
+          `AUDIT WRITE FAILED action=${entry.action} actor=${entry.adminId ?? entry.agentId ?? 'system'} ` +
+            `entity=${entry.entity ?? '-'}:${entry.entityId ?? '-'} reason=${message}`,
+        );
       });
-    } catch (err) {
-      // Never fail silently: emit a structured, alertable error with full
-      // context (the action/actor/entity, never the before/after payloads which
-      // may contain sensitive data).
-      const message = err instanceof Error ? err.message : String(err);
-      this.logger.error(
-        `AUDIT WRITE FAILED action=${entry.action} actor=${entry.adminId ?? entry.agentId ?? 'system'} ` +
-          `entity=${entry.entity ?? '-'}:${entry.entityId ?? '-'} critical=${!!entry.critical} reason=${message}`,
-      );
-      // Fail closed for critical actions so the operation surfaces the failure.
-      if (entry.critical) throw err;
-    }
   }
 
   async list(params: {

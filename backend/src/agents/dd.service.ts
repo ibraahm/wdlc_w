@@ -373,10 +373,10 @@ export class DDService {
     if (!file) throw new NotFoundException('DD file not found');
     const label = (dto.label || '').trim();
     if (!label) throw new BadRequestException('A document name is required.');
+    void adminId; // signature tracking is operational record-keeping — not audited
     const row = await this.prisma.dDSignatureDoc.create({
       data: { ddFileId, label, method: dto.method?.trim() || null },
     });
-    await this.audit.log({ action: 'agent.dd.signature.add', adminId, entity: 'DDSignatureDoc', entityId: row.id, after: { ddFileId, label } });
     return row;
   }
 
@@ -411,15 +411,15 @@ export class DDService {
         notes: dto.notes !== undefined ? (dto.notes?.trim() || null) : existing.notes,
       },
     });
-    await this.audit.log({ action: 'agent.dd.signature.update', adminId, entity: 'DDSignatureDoc', entityId: id, before: { status: existing.status }, after: { status } });
+    void adminId; // not audited (operational tracking)
     return updated;
   }
 
   async deleteSignatureDoc(id: string, adminId?: string) {
+    void adminId; // not audited (operational tracking)
     const existing = await this.prisma.dDSignatureDoc.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Tracking row not found');
     await this.prisma.dDSignatureDoc.delete({ where: { id } });
-    await this.audit.log({ action: 'agent.dd.signature.delete', adminId, entity: 'DDSignatureDoc', entityId: id, before: { label: existing.label } });
     return { ok: true };
   }
 
