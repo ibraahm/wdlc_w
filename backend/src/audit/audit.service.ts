@@ -56,13 +56,31 @@ export class AuditService {
     }
   }
 
-  async list(params: { entity?: string; adminId?: string; agentId?: string; take?: number; skip?: number }) {
-    const { entity, adminId, agentId, take = 100, skip = 0 } = params;
-    const where = {
+  async list(params: {
+    entity?: string;
+    adminId?: string;
+    agentId?: string;
+    action?: string;
+    actorType?: string;
+    from?: string;
+    to?: string;
+    take?: number;
+    skip?: number;
+  }) {
+    const { entity, adminId, agentId, action, actorType, from, to, take = 100, skip = 0 } = params;
+    const where: Record<string, unknown> = {
       ...(entity ? { entity } : {}),
       ...(adminId ? { adminId } : {}),
       ...(agentId ? { agentId } : {}),
+      ...(action ? { action: { contains: action, mode: 'insensitive' } } : {}),
+      ...(actorType ? { actorType } : {}),
     };
+    if (from || to) {
+      where.createdAt = {
+        ...(from ? { gte: new Date(from) } : {}),
+        ...(to ? { lte: new Date(to) } : {}),
+      };
+    }
     const [raw, total] = await Promise.all([
       this.prisma.auditLog.findMany({
         where,

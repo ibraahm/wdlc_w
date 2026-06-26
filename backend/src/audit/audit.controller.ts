@@ -10,12 +10,16 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 export class AuditController {
   constructor(private audit: AuditService) {}
 
-  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER')
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'AUDITOR')
   @Get()
   list(
     @Query('entity') entity?: string,
     @Query('adminId') adminId?: string,
     @Query('agentId') agentId?: string,
+    @Query('action') action?: string,
+    @Query('actorType') actorType?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
     @Query('take') take?: string,
     @Query('skip') skip?: string,
   ) {
@@ -23,6 +27,10 @@ export class AuditController {
       entity,
       adminId,
       agentId,
+      action,
+      actorType,
+      from,
+      to,
       take: take ? parseInt(take, 10) : undefined,
       skip: skip ? parseInt(skip, 10) : undefined,
     });

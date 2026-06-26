@@ -222,20 +222,37 @@ export async function apiDeleteSetting(accessToken: string, key: string): Promis
 export type AuditLogEntry = {
   id: string;
   action: string;
-  entity?: string;
-  entityId?: string;
+  actorType?: string | null;
+  entity?: string | null;
+  entityId?: string | null;
+  ip?: string | null;
+  before?: unknown;
+  after?: unknown;
   createdAt: string;
   admin?: { email: string; name: string } | null;
   agent?: { email: string; firstName: string; lastName: string } | null;
 };
 
+export type AuditLogQuery = {
+  entity?: string;
+  action?: string;
+  actorType?: string;
+  from?: string;
+  to?: string;
+  take?: number;
+  skip?: number;
+};
+
 export async function apiGetAuditLog(
   accessToken: string,
-  params?: { entity?: string; take?: number },
+  params?: AuditLogQuery,
 ): Promise<{ items: AuditLogEntry[]; total: number }> {
   const qs = new URLSearchParams();
-  if (params?.entity) qs.set('entity', params.entity);
-  if (params?.take) qs.set('take', String(params.take));
+  (['entity', 'action', 'actorType', 'from', 'to'] as const).forEach((k) => {
+    if (params?.[k]) qs.set(k, String(params[k]));
+  });
+  if (params?.take != null) qs.set('take', String(params.take));
+  if (params?.skip != null) qs.set('skip', String(params.skip));
   const res = await authFetch(`/admin/audit${qs.size ? '?' + qs : ''}`, accessToken);
   return handleResponse<{ items: AuditLogEntry[]; total: number }>(res);
 }

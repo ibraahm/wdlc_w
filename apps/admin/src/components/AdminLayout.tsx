@@ -56,10 +56,16 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: '/navigation', label: 'Navigation', description: 'Header, utility, and footer menus' },
       { href: '/settings', label: 'Settings', description: 'Site settings and operational defaults' },
+      { href: '/audit', label: 'Audit Log', description: 'Every change, who and when, exportable' },
       { href: '/users', label: 'Users', description: 'Admin users and access state' },
     ],
   },
 ];
+
+// Pages limited to specific roles (others won't see the nav item).
+const ROLE_RESTRICTED_HREFS: Record<string, string[]> = {
+  '/audit': ['SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'AUDITOR'],
+};
 
 const ALL_ITEMS = NAV_GROUPS.flatMap((g) => g.items);
 
@@ -97,9 +103,16 @@ export default function AdminLayout({ children, user }: AdminLayoutProps) {
   const [siteUrl, setSiteUrl] = useState(process.env.NEXT_PUBLIC_WEB_URL || '');
   useEffect(() => { setSiteUrl(publicSiteUrl()); }, []);
 
-  const navGroups: NavGroup[] = user.role === 'REGIONAL_OFFICER'
+  const baseGroups: NavGroup[] = user.role === 'REGIONAL_OFFICER'
     ? NAV_GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => OFFICER_HREFS.has(i.href)) })).filter((g) => g.items.length > 0)
     : NAV_GROUPS;
+  // Drop role-restricted items the current user can't open.
+  const navGroups: NavGroup[] = baseGroups
+    .map((g) => ({
+      ...g,
+      items: g.items.filter((i) => !ROLE_RESTRICTED_HREFS[i.href] || ROLE_RESTRICTED_HREFS[i.href].includes(user.role)),
+    }))
+    .filter((g) => g.items.length > 0);
 
   function isActive(href: string) {
     return pathname === href || pathname.startsWith(href + '/');

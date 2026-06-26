@@ -48,6 +48,8 @@ import {
   apiArchiveSubmission,
   apiUnarchiveSubmission,
   apiDeleteSubmission,
+  apiGetAuditLog,
+  type AuditLogQuery,
   apiCreateNavItem,
   apiUpdateNavItem,
   apiDeleteNavItem,
@@ -751,6 +753,29 @@ export async function updateTellerApplicationAction(
 // ---------------------------------------------------------------------------
 // Website submission case management
 // ---------------------------------------------------------------------------
+
+function csvCell(v: unknown): string {
+  const s = v === null || v === undefined ? '' : String(v);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}
+
+export async function exportAuditCsvAction(
+  filters: Omit<AuditLogQuery, 'take' | 'skip'>,
+): Promise<{ ok: boolean; csv?: string; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  try {
+    const { items } = await apiGetAuditLog(session.accessToken, { ...filters, take: 500, skip: 0 });
+    const header = ['Time', 'Actor', 'Actor type', 'Action', 'Entity', 'Entity ID', 'IP'];
+    const rows = items.map((e) => {
+      const actor = e.admin?.email || (e.agent ? `${e.agent.firstName} ${e.agent.lastName}` : '') || 'system';
+      return [e.createdAt, actor, e.actorType ?? '', e.action, e.entity ?? '', e.entityId ?? '', e.ip ?? ''].map(csvCell).join(',');
+    });
+    return { ok: true, csv: [header.join(','), ...rows].join('\n') };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Export failed' };
+  }
+}
 
 export async function setSubmissionStatusAction(submissionId: string, status: string, assignee?: string): Promise<{ ok: boolean; error?: string }> {
   const session = await getSession();
