@@ -30,6 +30,9 @@ const CSP = [
 /** @type {import('next').NextConfig} */
 const config = {
   output: 'standalone',
+  // Lint is a CI / `npm run lint` gate, not a deploy blocker — the project has a
+  // pre-existing backlog. Keeps builds green while the gate runs separately.
+  eslint: { ignoreDuringBuilds: true },
   transpilePackages: ['@measured/puck'],
   env: { API_URL: process.env.API_URL || 'http://localhost:4000/api' },
   async headers() {
