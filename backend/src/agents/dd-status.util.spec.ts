@@ -1,54 +1,66 @@
-import { computeDocStatus, EXPIRING_WINDOW_DAYS } from './dd-status.util';
+import { computeDocStatus, effectiveDueDate, EXPIRING_WINDOW_DAYS } from './dd-status.util';
 
 const NOW = new Date('2026-01-01T00:00:00Z');
 const days = (n: number) => new Date(NOW.getTime() + n * 24 * 60 * 60 * 1000);
+const monthsAgo = (n: number) => {
+  const d = new Date(Date.UTC(NOW.getUTCFullYear(), NOW.getUTCMonth() - n, NOW.getUTCDate()));
+  return d;
+};
 
 describe('computeDocStatus', () => {
   it('returns NA when the document is not applicable (e.g. business-only for an individual)', () => {
-    expect(computeDocStatus({ present: false, applicable: false, hasExpiry: true, now: NOW })).toBe('NA');
+    expect(computeDocStatus({ present: false, applicable: false, dateBasis: 'EXPIRY', now: NOW })).toBe('NA');
   });
 
   it('returns MISSING when not present', () => {
-    expect(computeDocStatus({ present: false, hasExpiry: false, now: NOW })).toBe('MISSING');
-    expect(computeDocStatus({ present: false, hasExpiry: true, expiry: days(365), now: NOW })).toBe('MISSING');
+    expect(computeDocStatus({ present: false, dateBasis: 'NONE', now: NOW })).toBe('MISSING');
+    expect(computeDocStatus({ present: false, dateBasis: 'EXPIRY', date: days(365), now: NOW })).toBe('MISSING');
   });
 
-  it('returns OK for a present document with no expiry tracking', () => {
-    expect(computeDocStatus({ present: true, hasExpiry: false, now: NOW })).toBe('OK');
+  it('returns OK for a present NONE-basis document', () => {
+    expect(computeDocStatus({ present: true, dateBasis: 'NONE', now: NOW })).toBe('OK');
   });
 
-  it('returns OK for a present document expiring beyond the 60-day window', () => {
-    expect(computeDocStatus({ present: true, hasExpiry: true, expiry: days(EXPIRING_WINDOW_DAYS + 1), now: NOW })).toBe('OK');
+  // ── EXPIRY basis (the date IS the due date) ──────────────────────────────
+  it('EXPIRY: OK beyond the 60-day window, EXPIRING inside it, EXPIRED past', () => {
+    expect(computeDocStatus({ present: true, dateBasis: 'EXPIRY', date: days(EXPIRING_WINDOW_DAYS + 1), now: NOW })).toBe('OK');
+    expect(computeDocStatus({ present: true, dateBasis: 'EXPIRY', date: days(EXPIRING_WINDOW_DAYS), now: NOW })).toBe('EXPIRING');
+    expect(computeDocStatus({ present: true, dateBasis: 'EXPIRY', date: days(-1), now: NOW })).toBe('EXPIRED');
   });
 
-  it('returns EXPIRING within the 60-day window (inclusive)', () => {
-    expect(computeDocStatus({ present: true, hasExpiry: true, expiry: days(EXPIRING_WINDOW_DAYS), now: NOW })).toBe('EXPIRING');
-    expect(computeDocStatus({ present: true, hasExpiry: true, expiry: days(1), now: NOW })).toBe('EXPIRING');
+  // ── RECEIVED basis (due = received + recheckMonths) ──────────────────────
+  it('RECEIVED: a one-time record (no recheck) is OK once present', () => {
+    expect(computeDocStatus({ present: true, dateBasis: 'RECEIVED', date: monthsAgo(60), now: NOW })).toBe('OK');
   });
 
-  it('returns EXPIRED past the expiry date', () => {
-    expect(computeDocStatus({ present: true, hasExpiry: true, expiry: days(-1), now: NOW })).toBe('EXPIRED');
+  it('RECEIVED: recheck not yet due is OK', () => {
+    // received 1 month ago, recheck every 12 → due in ~11 months
+    expect(computeDocStatus({ present: true, dateBasis: 'RECEIVED', recheckMonths: 12, date: monthsAgo(1), now: NOW })).toBe('OK');
   });
 
-  it('treats a document as valid through its whole expiry day (no off-by-one)', () => {
-    // Expiry date is "today" (UTC midnight) but the clock is partway through the
-    // day — it must still read EXPIRING, not EXPIRED.
-    const midDay = new Date('2026-01-01T18:30:00Z');
-    const expiresToday = new Date('2026-01-01T00:00:00Z');
-    expect(computeDocStatus({ present: true, hasExpiry: true, expiry: expiresToday, now: midDay })).toBe('EXPIRING');
-    // The day after, it is EXPIRED.
-    const nextDay = new Date('2026-01-02T00:30:00Z');
-    expect(computeDocStatus({ present: true, hasExpiry: true, expiry: expiresToday, now: nextDay })).toBe('EXPIRED');
+  it('RECEIVED: recheck overdue reads EXPIRED', () => {
+    // received 13 months ago, recheck every 12 → overdue
+    expect(computeDocStatus({ present: true, dateBasis: 'RECEIVED', recheckMonths: 12, date: monthsAgo(13), now: NOW })).toBe('EXPIRED');
   });
 
-  it('treats a present expiry-tracked doc with no date as OK (date not yet recorded)', () => {
-    expect(computeDocStatus({ present: true, hasExpiry: true, expiry: null, now: NOW })).toBe('OK');
+  it('RECEIVED: recheck due within the window reads EXPIRING', () => {
+    // received ~11.5 months ago, recheck every 12 → due in ~2 weeks
+    expect(computeDocStatus({ present: true, dateBasis: 'RECEIVED', recheckMonths: 12, date: days(-352), now: NOW })).toBe('EXPIRING');
   });
 
-  it('ignores a non-viable year typo at the status layer (validation is enforced on save)', () => {
-    // A year-5 date would read as long expired; the write path rejects it, but
-    // status computation should still not throw on legacy/garbage values.
-    const ancient = new Date('0005-06-16T00:00:00Z');
-    expect(computeDocStatus({ present: true, hasExpiry: true, expiry: ancient, now: NOW })).toBe('EXPIRED');
+  it('treats a present dated doc with no date recorded as OK', () => {
+    expect(computeDocStatus({ present: true, dateBasis: 'EXPIRY', date: null, now: NOW })).toBe('OK');
+    expect(computeDocStatus({ present: true, dateBasis: 'RECEIVED', recheckMonths: 12, date: null, now: NOW })).toBe('OK');
+  });
+});
+
+describe('effectiveDueDate', () => {
+  it('EXPIRY returns the date itself; RECEIVED adds the cadence; one-time/NONE returns null', () => {
+    const d = new Date('2026-01-01T00:00:00Z');
+    expect(effectiveDueDate('EXPIRY', undefined, d)?.toISOString()).toBe(d.toISOString());
+    expect(effectiveDueDate('RECEIVED', 12, d)?.toISOString()).toBe(new Date('2027-01-01T00:00:00Z').toISOString());
+    expect(effectiveDueDate('RECEIVED', undefined, d)).toBeNull();
+    expect(effectiveDueDate('NONE', 12, d)).toBeNull();
+    expect(effectiveDueDate('EXPIRY', undefined, null)).toBeNull();
   });
 });

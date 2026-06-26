@@ -7,6 +7,9 @@ export interface DdFileDocRow {
   status: 'OK' | 'EXPIRING' | 'EXPIRED' | 'MISSING' | 'NA';
   present: boolean;
   expiry: Date | null;
+  // The actionable date: an expiry, or recheck-due (received + cadence).
+  dueDate?: Date | null;
+  dateBasis?: 'EXPIRY' | 'RECEIVED' | 'NONE';
 }
 
 // ── Everything needed to render the file record ─────────────────────────────
@@ -193,7 +196,7 @@ export async function buildDdFilePdf(
       doc.fillColor(GRAY).font('Helvetica-Bold').fontSize(8);
       doc.text('DOCUMENT', cDoc, y, { width: wDoc, lineBreak: false });
       doc.text('STATUS', cStatus, y, { width: 70, lineBreak: false });
-      doc.text('EXPIRY', cExpiry, y, { width: 70, lineBreak: false });
+      doc.text('DUE / EXPIRY', cExpiry, y, { width: 90, lineBreak: false });
       y = doc.y + 4;
       doc.moveTo(M, y).lineTo(W - M, y).lineWidth(0.5).stroke('#e5e7eb');
       y += 5;
@@ -205,7 +208,7 @@ export async function buildDdFilePdf(
         doc.fillColor(STATUS_COLOR[row.status]).font('Helvetica-Bold').fontSize(8.5)
           .text(row.status, cStatus, y, { width: 70, lineBreak: false });
         doc.fillColor('#374151').font('Helvetica').fontSize(8.5)
-          .text(fmtDate(row.expiry), cExpiry, y, { width: 70, lineBreak: false });
+          .text(fmtDate(row.dueDate ?? row.expiry), cExpiry, y, { width: 90, lineBreak: false });
         y += 14;
       }
       y += 8;

@@ -665,7 +665,12 @@ export interface DDDocument {
   section: 'DOCUMENTATION' | 'COMPLIANCE' | 'ONGOING';
   label: string;
   present: boolean;
+  // The stored date. Its meaning depends on dateBasis: an expiry, a received
+  // date, or unused (NONE). Kept as `expiry` for backward compatibility.
   expiry: string | null;
+  dateBasis?: 'EXPIRY' | 'RECEIVED' | 'NONE';
+  recheckMonths?: number | null;
+  dueDate?: string | null; // computed: expiry, or received + recheck cadence
   status: 'OK' | 'EXPIRING' | 'EXPIRED' | 'MISSING' | 'NA';
   notes: string | null;
   dropboxUrl: string | null;

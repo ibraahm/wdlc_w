@@ -7,7 +7,7 @@ import { MailService } from '../common/mail.service';
 import { RegionalService } from '../regional/regional.service';
 import { generateToken, hashToken } from '../common/crypto.util';
 import { DD_CATALOG } from './dd-catalog';
-import { computeDocStatus } from './dd-status.util';
+import { computeDocStatus, effectiveDueDate } from './dd-status.util';
 import { buildDdFilePdf, type DdFileDocRow } from './dd-file-pdf';
 import { buildAgentApplicationPdf } from './application-pdf';
 import {
@@ -339,7 +339,20 @@ export class DDService {
     // Regional officers may only open files within their office.
     const scope = adminId ? await this.regional.scopeForAdmin(adminId, role) : null;
     if (scope && file.regionalOfficeId !== scope.officeId) throw new NotFoundException('DD file not found');
-    return file;
+    // Enrich each document with its catalog date policy + computed due date so
+    // the UI can label the date as received/expiry and show the recheck date.
+    const documents = file.documents.map((d) => {
+      const cat = DD_CATALOG.find((c) => c.code === d.code);
+      const dateBasis = cat?.dateBasis ?? 'EXPIRY';
+      const recheckMonths = cat?.recheckMonths ?? null;
+      return {
+        ...d,
+        dateBasis,
+        recheckMonths,
+        dueDate: effectiveDueDate(dateBasis, cat?.recheckMonths, d.expiry),
+      };
+    });
+    return { ...file, documents };
   }
 
   // ── Manual document-signature tracking (sent / signed, by hand) ─────────────
@@ -441,12 +454,15 @@ export class DDService {
     const app = (file as any).application;
     const documents: DdFileDocRow[] = (file.documents ?? []).map((d) => {
       const cat = DD_CATALOG.find((c) => c.code === d.code);
+      const dateBasis = cat?.dateBasis ?? 'EXPIRY';
       return {
         section: (cat?.section ?? 'DOCUMENTATION') as DdFileDocRow['section'],
         label: cat?.label ?? d.code,
         status: d.status as DdFileDocRow['status'],
         present: d.present,
         expiry: d.expiry ?? null,
+        dueDate: effectiveDueDate(dateBasis, cat?.recheckMonths, d.expiry),
+        dateBasis,
       };
     });
     const address = app
@@ -502,16 +518,17 @@ export class DDService {
     if (!doc) throw new NotFoundException('Document not found');
 
     const catalog = DD_CATALOG.find((c) => c.code === code);
-    const hasExpiry = catalog?.hasExpiry ?? true;
+    const dateBasis = catalog?.dateBasis ?? 'EXPIRY';
+    const recheckMonths = catalog?.recheckMonths;
     const applicable = doc.status !== 'NA';
 
     const present = dto.present ?? doc.present;
-    // A non-expiry document never carries a date. For the rest, validate that
-    // the date is real and within a viable window (guards against typos like
-    // year 0005 or 9999 that the date picker would otherwise accept).
+    // A NONE-basis document never carries a date. For the rest the stored date
+    // is either an expiry or a received date; validate it's real and within a
+    // viable window (guards against typos like year 0005 / 9999).
     let expiry =
       dto.expiry === null ? null : dto.expiry !== undefined ? new Date(dto.expiry) : doc.expiry;
-    if (!hasExpiry) {
+    if (dateBasis === 'NONE') {
       expiry = null;
     } else if (dto.expiry) {
       if (!expiry || isNaN(expiry.getTime())) throw new BadRequestException('Enter a valid date');
@@ -521,7 +538,7 @@ export class DDService {
         throw new BadRequestException(`Enter a real date — the year must be between 2000 and ${maxYear}`);
       }
     }
-    const status = computeDocStatus({ present, applicable, hasExpiry, expiry });
+    const status = computeDocStatus({ present, applicable, dateBasis, recheckMonths, date: expiry });
 
     const before = { present: doc.present, expiry: doc.expiry, status: doc.status, dropboxUrl: doc.dropboxUrl };
     const updated = await this.prisma.agentDocument.update({
@@ -558,8 +575,8 @@ export class DDService {
     });
     let changed = 0;
     for (const doc of docs) {
-      const hasExpiry = DD_CATALOG.find((c) => c.code === doc.code)?.hasExpiry ?? true;
-      const status = computeDocStatus({ present: doc.present, hasExpiry, expiry: doc.expiry });
+      const cat = DD_CATALOG.find((c) => c.code === doc.code);
+      const status = computeDocStatus({ present: doc.present, dateBasis: cat?.dateBasis ?? 'EXPIRY', recheckMonths: cat?.recheckMonths, date: doc.expiry });
       if (status !== doc.status) {
         await this.prisma.agentDocument.update({ where: { id: doc.id }, data: { status } });
         changed++;
@@ -573,8 +590,8 @@ export class DDService {
     const docs = await this.prisma.agentDocument.findMany({ where: { ddFileId: fileId } });
     for (const doc of docs) {
       if (doc.status === 'NA') continue;
-      const hasExpiry = DD_CATALOG.find((c) => c.code === doc.code)?.hasExpiry ?? true;
-      const status = computeDocStatus({ present: doc.present, hasExpiry, expiry: doc.expiry });
+      const cat = DD_CATALOG.find((c) => c.code === doc.code);
+      const status = computeDocStatus({ present: doc.present, dateBasis: cat?.dateBasis ?? 'EXPIRY', recheckMonths: cat?.recheckMonths, date: doc.expiry });
       if (status !== doc.status) {
         await this.prisma.agentDocument.update({ where: { id: doc.id }, data: { status } });
       }
@@ -742,8 +759,9 @@ export class DDService {
         const status = computeDocStatus({
           present: doc.present,
           applicable: true,
-          hasExpiry: catalog?.hasExpiry ?? true,
-          expiry: doc.expiry,
+          dateBasis: catalog?.dateBasis ?? 'EXPIRY',
+          recheckMonths: catalog?.recheckMonths,
+          date: doc.expiry,
         });
         return status !== 'OK';
       })
