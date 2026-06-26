@@ -535,15 +535,6 @@ export async function apiDeleteApplication(accessToken: string, id: string): Pro
 // Website submissions (read-only inbox for public forms)
 // ---------------------------------------------------------------------------
 
-export type WebsiteForm = {
-  id: string;
-  slug: string;
-  name: string;
-  description?: string | null;
-  status: string;
-  submissionCount?: number;
-};
-
 export type SubmissionMessage = {
   id: string;
   kind: 'REPLY' | 'NOTE';
@@ -564,20 +555,6 @@ export type WebsiteSubmission = {
   updatedAt?: string;
   messages?: SubmissionMessage[];
 };
-
-export async function apiListWebsiteForms(accessToken: string): Promise<WebsiteForm[]> {
-  const res = await authFetch('/cms/forms', accessToken);
-  return handleResponse<WebsiteForm[]>(res);
-}
-
-export async function apiListWebsiteSubmissions(
-  accessToken: string,
-  formId: string,
-  archived = false,
-): Promise<WebsiteSubmission[]> {
-  const res = await authFetch(`/cms/forms/id/${formId}/submissions${archived ? '?archived=true' : ''}`, accessToken);
-  return handleResponse<WebsiteSubmission[]>(res);
-}
 
 export type SubmissionRow = { form: { id: string; name: string }; submission: WebsiteSubmission };
 
