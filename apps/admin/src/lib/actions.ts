@@ -863,6 +863,33 @@ export async function deleteSubmissionAction(submissionId: string): Promise<{ ok
   }
 }
 
+// ── Bulk submission actions (loop the per-item API; cap to keep it sane) ──────
+async function runBulk(
+  ids: string[],
+  fn: (token: string, id: string) => Promise<unknown>,
+  revalidate: string[],
+): Promise<{ ok: boolean; count?: number; error?: string }> {
+  const session = await getSession();
+  if (!session) return { ok: false, error: 'Not authenticated' };
+  if (!ids.length) return { ok: true, count: 0 };
+  if (ids.length > 200) return { ok: false, error: 'Too many at once (max 200).' };
+  try {
+    const results = await Promise.allSettled(ids.map((id) => fn(session.accessToken, id)));
+    const failed = results.filter((r) => r.status === 'rejected').length;
+    revalidate.forEach((p) => revalidatePath(p));
+    if (failed) return { ok: false, count: ids.length - failed, error: `${failed} of ${ids.length} failed.` };
+    return { ok: true, count: ids.length };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Bulk action failed' };
+  }
+}
+
+export const bulkArchiveSubmissionsAction = (ids: string[]) => runBulk(ids, apiArchiveSubmission, ['/submissions']);
+export const bulkUnarchiveSubmissionsAction = (ids: string[]) => runBulk(ids, apiUnarchiveSubmission, ['/submissions']);
+export const bulkDeleteSubmissionsAction = (ids: string[]) => runBulk(ids, apiDeleteSubmission, ['/submissions']);
+export const bulkArchiveApplicationsAction = (ids: string[]) => runBulk(ids, apiArchiveApplication, ['/applications', '/agent-dd']);
+export const bulkUnarchiveApplicationsAction = (ids: string[]) => runBulk(ids, apiUnarchiveApplication, ['/applications', '/agent-dd']);
+
 export async function addSubmissionNoteAction(submissionId: string, body: string): Promise<{ ok: boolean; error?: string }> {
   const session = await getSession();
   if (!session) return { ok: false, error: 'Not authenticated' };

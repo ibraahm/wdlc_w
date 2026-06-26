@@ -12,6 +12,8 @@ import {
   forceDeleteApplicationAction,
   updateApplicationAddressAction,
   sendApplicationDocuSignAction,
+  bulkArchiveApplicationsAction,
+  bulkUnarchiveApplicationsAction,
 } from '@/lib/actions';
 import { EmptyState } from './ui-admin';
 
@@ -336,6 +338,7 @@ export default function ApplicationsManager({
   const [viewArchived, setViewArchived] = useState(false);
   const [editingAddress, setEditingAddress] = useState<string | null>(null);
   const [signingId, setSigningId] = useState<string | null>(null);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
 
   const counts = useMemo(() => {
     const next: Record<string, number> = { ALL: applications.length, NEW: 0, REVIEWING: 0, APPROVED: 0, REJECTED: 0 };
@@ -433,6 +436,26 @@ export default function ApplicationsManager({
     });
   }
 
+  function togglePick(id: string) {
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+  function runBulk(action: (ids: string[]) => Promise<{ ok: boolean; error?: string }>, confirmMsg?: string) {
+    const ids = Array.from(picked);
+    if (!ids.length) return;
+    if (confirmMsg && !confirm(confirmMsg)) return;
+    setError('');
+    startTransition(async () => {
+      const res = await action(ids);
+      if (!res.ok) setError(res.error ?? 'Bulk action failed');
+      setPicked(new Set());
+      router.refresh();
+    });
+  }
+
   if (applications.length === 0 && archivedApplications.length === 0) {
     return (
       <EmptyState
@@ -509,6 +532,39 @@ export default function ApplicationsManager({
         />
       </div>
 
+      {/* Bulk toolbar */}
+      {canManage && visible.length > 0 && (
+        <div className="flex flex-wrap items-center gap-3 text-xs">
+          <label className="flex items-center gap-1.5 text-gray-500">
+            <input
+              type="checkbox"
+              checked={visible.every((a) => picked.has(a.id))}
+              onChange={(e) => {
+                setPicked((prev) => {
+                  const next = new Set(prev);
+                  if (e.target.checked) visible.forEach((a) => next.add(a.id));
+                  else visible.forEach((a) => next.delete(a.id));
+                  return next;
+                });
+              }}
+              className="h-3.5 w-3.5"
+            />
+            Select all
+          </label>
+          {picked.size > 0 && (
+            <div className="flex flex-wrap items-center gap-3 rounded-lg border border-navy/20 bg-navy/5 px-3 py-1.5">
+              <span className="font-semibold text-navy">{picked.size} selected</span>
+              {viewArchived ? (
+                <button onClick={() => runBulk(bulkUnarchiveApplicationsAction)} disabled={isPending} className="font-semibold text-navy hover:underline disabled:opacity-50">Restore</button>
+              ) : (
+                <button onClick={() => runBulk(bulkArchiveApplicationsAction, `Archive ${picked.size} application(s)? They move to the Archived view (DD files included).`)} disabled={isPending} className="font-semibold text-amber-700 hover:underline disabled:opacity-50">Archive</button>
+              )}
+              <button onClick={() => setPicked(new Set())} className="text-gray-500 hover:underline">Clear</button>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="space-y-4">
         {visible.length === 0 && (
           <div className="rounded-xl border border-gray-200 bg-white px-4 py-8 text-center text-sm text-gray-400">
@@ -527,6 +583,15 @@ export default function ApplicationsManager({
               <div className="grid gap-4 p-4 lg:grid-cols-[1.2fr_1fr_auto]">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
+                    {canManage && (
+                      <input
+                        type="checkbox"
+                        checked={picked.has(a.id)}
+                        onChange={() => togglePick(a.id)}
+                        className="h-4 w-4"
+                        aria-label="Select application"
+                      />
+                    )}
                     <h3 className="truncate text-lg font-semibold text-gray-900">{businessName(a)}</h3>
                     <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold ${statusClasses(a.status)}`}>
                       {a.status}

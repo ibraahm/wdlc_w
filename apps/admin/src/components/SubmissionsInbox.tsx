@@ -10,6 +10,9 @@ import {
   archiveSubmissionAction,
   unarchiveSubmissionAction,
   deleteSubmissionAction,
+  bulkArchiveSubmissionsAction,
+  bulkUnarchiveSubmissionsAction,
+  bulkDeleteSubmissionsAction,
 } from '@/lib/actions';
 
 export type Row = { form: WebsiteForm; submission: WebsiteSubmission };
@@ -92,6 +95,9 @@ export default function SubmissionsInbox({
   const router = useRouter();
   const [filter, setFilter] = useState<string>('ALL');
   const [selectedId, setSelectedId] = useState<string | null>(rows[0]?.submission.id ?? null);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [bulkPending, startBulk] = useTransition();
+  const [bulkError, setBulkError] = useState('');
 
   // Likely duplicates among active rows: same form + same email (or, lacking an
   // email, identical data). The earliest in each group is kept as the original;
@@ -145,6 +151,37 @@ export default function SubmissionsInbox({
     return c;
   }, [rows, archivedRows, dupIds]);
 
+  const inArchivedView = filter === 'ARCHIVED';
+  const visibleIds = filtered.map((r) => r.submission.id);
+  const allVisiblePicked = visibleIds.length > 0 && visibleIds.every((id) => picked.has(id));
+
+  function togglePick(id: string) {
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+  function toggleSelectAllVisible() {
+    setPicked((prev) => {
+      const next = new Set(prev);
+      if (allVisiblePicked) visibleIds.forEach((id) => next.delete(id));
+      else visibleIds.forEach((id) => next.add(id));
+      return next;
+    });
+  }
+  function runBulk(action: (ids: string[]) => Promise<{ ok: boolean; error?: string }>, ids: string[], confirmMsg?: string) {
+    if (ids.length === 0) return;
+    if (confirmMsg && !confirm(confirmMsg)) return;
+    setBulkError('');
+    startBulk(async () => {
+      const res = await action(ids);
+      if (!res.ok) setBulkError(res.error ?? 'Bulk action failed');
+      setPicked(new Set());
+      router.refresh();
+    });
+  }
+
   return (
     <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
       <div className="space-y-3">
@@ -163,17 +200,58 @@ export default function SubmissionsInbox({
             );
           })}
         </div>
+        {/* Bulk toolbar */}
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          {filtered.length > 0 && (
+            <label className="flex items-center gap-1.5 text-gray-500">
+              <input type="checkbox" checked={allVisiblePicked} onChange={toggleSelectAllVisible} className="h-3.5 w-3.5" />
+              Select all
+            </label>
+          )}
+          {!inArchivedView && dupIds.size > 0 && (
+            <button
+              onClick={() => runBulk(bulkArchiveSubmissionsAction, Array.from(dupIds), `Archive all ${dupIds.size} duplicate submission(s)?`)}
+              disabled={bulkPending}
+              className="rounded-full bg-amber-100 px-2.5 py-1 font-semibold text-amber-700 hover:bg-amber-200 disabled:opacity-50"
+            >
+              Archive all {dupIds.size} duplicates
+            </button>
+          )}
+          {picked.size > 0 && (
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-navy/20 bg-navy/5 px-2.5 py-1">
+              <span className="font-semibold text-navy">{picked.size} selected</span>
+              {inArchivedView ? (
+                <button onClick={() => runBulk(bulkUnarchiveSubmissionsAction, Array.from(picked))} disabled={bulkPending} className="font-semibold text-navy hover:underline disabled:opacity-50">Restore</button>
+              ) : (
+                <button onClick={() => runBulk(bulkArchiveSubmissionsAction, Array.from(picked))} disabled={bulkPending} className="font-semibold text-amber-700 hover:underline disabled:opacity-50">Archive</button>
+              )}
+              <button onClick={() => runBulk(bulkDeleteSubmissionsAction, Array.from(picked), `Permanently delete ${picked.size} submission(s)? This cannot be undone.`)} disabled={bulkPending} className="font-semibold text-red-700 hover:underline disabled:opacity-50">Delete</button>
+              <button onClick={() => setPicked(new Set())} className="text-gray-500 hover:underline">Clear</button>
+            </div>
+          )}
+          {bulkPending && <span className="text-gray-400">Working…</span>}
+          {bulkError && <span className="text-red-600">{bulkError}</span>}
+        </div>
+
         <div className="space-y-2 max-h-[70vh] overflow-auto pr-1">
           {filtered.length === 0 && <p className="text-sm text-gray-400 italic px-1">Nothing here.</p>}
           {filtered.map(({ form, submission }) => {
             const d = submission.data ?? {};
             const active = submission.id === selected?.submission.id;
             const sla = SLA_BADGE[slaState(submission)];
+            const isPicked = picked.has(submission.id);
             return (
+              <div key={submission.id} className={`flex items-start gap-2 rounded-lg border p-2 transition ${active ? 'border-navy bg-navy/5' : isPicked ? 'border-navy/30 bg-navy/[0.03]' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
+              <input
+                type="checkbox"
+                checked={isPicked}
+                onChange={() => togglePick(submission.id)}
+                className="mt-1.5 h-4 w-4 shrink-0"
+                aria-label="Select submission"
+              />
               <button
-                key={submission.id}
                 onClick={() => setSelectedId(submission.id)}
-                className={`w-full rounded-lg border p-3 text-left transition ${active ? 'border-navy bg-navy/5' : 'border-gray-200 bg-white hover:border-gray-300'}`}
+                className="min-w-0 flex-1 text-left"
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="truncate text-sm font-semibold text-gray-900">{heading(d, form.name)}</span>
@@ -192,6 +270,7 @@ export default function SubmissionsInbox({
                   )}
                 </div>
               </button>
+              </div>
             );
           })}
         </div>
