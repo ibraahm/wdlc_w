@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import AdminLayout from '@/components/AdminLayout';
+import { FeedbackProvider } from '@/components/ui/Feedback';
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
@@ -9,5 +10,9 @@ export default async function ProtectedLayout({ children }: { children: React.Re
     redirect('/login');
   }
 
-  return <AdminLayout user={session.user}>{children}</AdminLayout>;
+  return (
+    <FeedbackProvider>
+      <AdminLayout user={session.user}>{children}</AdminLayout>
+    </FeedbackProvider>
+  );
 }

@@ -41,15 +41,52 @@ export class FormService {
         }
       }
     }
+    // Collapse accidental double-submits: an identical payload to the same form
+    // within a short window returns the existing record instead of a duplicate.
+    const serialized = JSON.stringify(data ?? {});
+    const recent = await this.prisma.formSubmission.findFirst({
+      where: { formId: form.id, data: serialized, createdAt: { gte: new Date(Date.now() - 10 * 60_000) } },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+    if (recent) return { ok: true, id: recent.id, duplicate: true };
+
     const submission = await this.prisma.formSubmission.create({
       data: {
         formId: form.id,
-        data: JSON.stringify(data ?? {}),
+        data: serialized,
         ip: ctx?.ip ?? null,
         userAgent: ctx?.userAgent ?? null,
       },
     });
     return { ok: true, id: submission.id };
+  }
+
+  // All submissions across every form in one query (for the unified inbox),
+  // newest first and capped. Avoids the per-form request fan-out.
+  async listAllSubmissions(archived = false, take = 1000) {
+    const subs = await this.prisma.formSubmission.findMany({
+      where: { archivedAt: archived ? { not: null } : null },
+      orderBy: { createdAt: 'desc' },
+      take,
+      include: {
+        form: { select: { id: true, name: true } },
+        messages: { orderBy: { createdAt: 'asc' } },
+      },
+    });
+    return subs.map((s) => ({
+      form: s.form,
+      submission: {
+        id: s.id,
+        status: s.status,
+        assignee: s.assignee,
+        data: this.safeParse(s.data),
+        archivedAt: s.archivedAt,
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt,
+        messages: s.messages,
+      },
+    }));
   }
 
   // ── Admin ─────────────────────────────────────────────────────────────────

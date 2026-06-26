@@ -1,10 +1,6 @@
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import {
-  apiListWebsiteForms,
-  apiListWebsiteSubmissions,
-  type WebsiteForm,
-} from '@/lib/api';
+import { apiListAllSubmissions } from '@/lib/api';
 import { EmptyState } from '@/components/ui-admin';
 import SubmissionsInbox, { type Row } from '@/components/SubmissionsInbox';
 
@@ -16,26 +12,14 @@ export default async function WebsiteSubmissionsPage() {
 
   let rows: Row[] = [];
   let archivedRows: Row[] = [];
-  let forms: WebsiteForm[] = [];
   let error = '';
 
   try {
-    forms = await apiListWebsiteForms(session.accessToken);
-    const byForm = await Promise.all(
-      forms.map(async (form) => ({
-        form,
-        submissions: await apiListWebsiteSubmissions(session.accessToken, form.id),
-        archived: await apiListWebsiteSubmissions(session.accessToken, form.id, true),
-      })),
-    );
-    const sortByNewest = (a: Row, b: Row) =>
-      new Date(b.submission.createdAt).getTime() - new Date(a.submission.createdAt).getTime();
-    rows = byForm
-      .flatMap(({ form, submissions }) => submissions.map((submission) => ({ form, submission })))
-      .sort(sortByNewest);
-    archivedRows = byForm
-      .flatMap(({ form, archived }) => archived.map((submission) => ({ form, submission })))
-      .sort(sortByNewest);
+    // Two queries total (active + archived), instead of a per-form fan-out.
+    [rows, archivedRows] = await Promise.all([
+      apiListAllSubmissions(session.accessToken, false),
+      apiListAllSubmissions(session.accessToken, true),
+    ]);
   } catch (err) {
     error = err instanceof Error ? err.message : 'Failed to load website submissions';
   }

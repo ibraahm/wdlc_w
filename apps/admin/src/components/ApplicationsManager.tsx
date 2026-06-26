@@ -15,6 +15,7 @@ import {
   bulkArchiveApplicationsAction,
   bulkUnarchiveApplicationsAction,
 } from '@/lib/actions';
+import { useToast, useConfirm } from '@/components/ui/Feedback';
 import { EmptyState } from './ui-admin';
 
 const US_STATES = [
@@ -329,6 +330,8 @@ export default function ApplicationsManager({
   initialExpandedId?: string;
 }) {
   const router = useRouter();
+  const toast = useToast();
+  const confirmDialog = useConfirm();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState('');
   const [expanded, setExpanded] = useState<string | null>(initialExpandedId ?? null);
@@ -381,27 +384,25 @@ export default function ApplicationsManager({
     });
   }
 
-  function remove(a: AgentApplication) {
+  async function remove(a: AgentApplication) {
     if (a.status === 'APPROVED' || a.ddFile) {
-      setError('Approved or DD-linked applications are locked. Archive it, or use permanent delete (no evidence only).');
+      toast('Approved or DD-linked applications are locked. Archive it, or use permanent delete (no evidence only).', 'error');
       return;
     }
-    if (!confirm(`Delete unapproved application for ${businessName(a)}? This keeps audit history but removes the lead from review.`)) return;
+    if (!(await confirmDialog({ title: 'Delete application', message: `Delete the unapproved application for ${businessName(a)}? This keeps audit history but removes the lead from review.`, danger: true, confirmLabel: 'Delete' }))) return;
     setError('');
     startTransition(async () => {
       const res = await deleteApplicationAction(a.id);
-      if (!res.ok) setError(res.error ?? 'Delete failed');
-      else router.refresh();
+      if (res.ok) { toast('Application deleted', 'success'); router.refresh(); } else { setError(res.error ?? 'Delete failed'); toast(res.error ?? 'Delete failed', 'error'); }
     });
   }
 
-  function archive(a: AgentApplication) {
-    if (!confirm(`Archive the application for ${businessName(a)}? It will be hidden from the active queue${a.ddFile ? ' along with its DD file' : ''}, but kept on record. You can restore it later.`)) return;
+  async function archive(a: AgentApplication) {
+    if (!(await confirmDialog({ title: 'Archive application', message: `Hide ${businessName(a)} from the active queue${a.ddFile ? ' (with its DD file)' : ''}? It's kept on record and can be restored later.`, confirmLabel: 'Archive' }))) return;
     setError('');
     startTransition(async () => {
       const res = await archiveApplicationAction(a.id);
-      if (!res.ok) setError(res.error ?? 'Archive failed');
-      else router.refresh();
+      if (res.ok) { toast('Application archived', 'success'); router.refresh(); } else { setError(res.error ?? 'Archive failed'); toast(res.error ?? 'Archive failed', 'error'); }
     });
   }
 
@@ -409,18 +410,16 @@ export default function ApplicationsManager({
     setError('');
     startTransition(async () => {
       const res = await unarchiveApplicationAction(a.id);
-      if (!res.ok) setError(res.error ?? 'Restore failed');
-      else router.refresh();
+      if (res.ok) { toast('Application restored', 'success'); router.refresh(); } else { setError(res.error ?? 'Restore failed'); toast(res.error ?? 'Restore failed', 'error'); }
     });
   }
 
-  function forceDelete(a: AgentApplication) {
-    if (!confirm(`PERMANENTLY delete the application for ${businessName(a)}${a.ddFile ? ' and its DD file' : ''}? This cannot be undone. It is blocked if any evidence has been collected.`)) return;
+  async function forceDelete(a: AgentApplication) {
+    if (!(await confirmDialog({ title: 'Permanently delete', message: `Permanently delete ${businessName(a)}${a.ddFile ? ' and its DD file' : ''}? This cannot be undone and is blocked if any evidence has been collected.`, danger: true, confirmLabel: 'Delete forever' }))) return;
     setError('');
     startTransition(async () => {
       const res = await forceDeleteApplicationAction(a.id);
-      if (!res.ok) setError(res.error ?? 'Delete failed');
-      else router.refresh();
+      if (res.ok) { toast('Application permanently deleted', 'success'); router.refresh(); } else { setError(res.error ?? 'Delete failed'); toast(res.error ?? 'Delete failed', 'error'); }
     });
   }
 
@@ -428,11 +427,7 @@ export default function ApplicationsManager({
     setError('');
     startTransition(async () => {
       const res = await updateApplicationAddressAction(id, address);
-      if (!res.ok) setError(res.error ?? 'Update failed');
-      else {
-        setEditingAddress(null);
-        router.refresh();
-      }
+      if (res.ok) { toast('Address updated', 'success'); setEditingAddress(null); router.refresh(); } else { setError(res.error ?? 'Update failed'); toast(res.error ?? 'Update failed', 'error'); }
     });
   }
 
@@ -443,14 +438,19 @@ export default function ApplicationsManager({
       return next;
     });
   }
-  function runBulk(action: (ids: string[]) => Promise<{ ok: boolean; error?: string }>, confirmMsg?: string) {
+  async function runBulk(
+    action: (ids: string[]) => Promise<{ ok: boolean; error?: string }>,
+    verb: string,
+    confirmOpts?: { title?: string; message: string; confirmLabel?: string; danger?: boolean },
+  ) {
     const ids = Array.from(picked);
     if (!ids.length) return;
-    if (confirmMsg && !confirm(confirmMsg)) return;
+    if (confirmOpts && !(await confirmDialog(confirmOpts))) return;
     setError('');
     startTransition(async () => {
       const res = await action(ids);
-      if (!res.ok) setError(res.error ?? 'Bulk action failed');
+      if (!res.ok) toast(res.error ?? 'Some items could not be updated', 'error');
+      else toast(`${verb} ${ids.length} application${ids.length === 1 ? '' : 's'}`, 'success');
       setPicked(new Set());
       router.refresh();
     });
@@ -555,9 +555,9 @@ export default function ApplicationsManager({
             <div className="flex flex-wrap items-center gap-3 rounded-lg border border-navy/20 bg-navy/5 px-3 py-1.5">
               <span className="font-semibold text-navy">{picked.size} selected</span>
               {viewArchived ? (
-                <button onClick={() => runBulk(bulkUnarchiveApplicationsAction)} disabled={isPending} className="font-semibold text-navy hover:underline disabled:opacity-50">Restore</button>
+                <button onClick={() => runBulk(bulkUnarchiveApplicationsAction, 'Restored')} disabled={isPending} className="font-semibold text-navy hover:underline disabled:opacity-50">Restore</button>
               ) : (
-                <button onClick={() => runBulk(bulkArchiveApplicationsAction, `Archive ${picked.size} application(s)? They move to the Archived view (DD files included).`)} disabled={isPending} className="font-semibold text-amber-700 hover:underline disabled:opacity-50">Archive</button>
+                <button onClick={() => runBulk(bulkArchiveApplicationsAction, 'Archived', { title: 'Archive applications', message: `Archive ${picked.size} application(s)? They move to the Archived view (DD files included).`, confirmLabel: 'Archive' })} disabled={isPending} className="font-semibold text-amber-700 hover:underline disabled:opacity-50">Archive</button>
               )}
               <button onClick={() => setPicked(new Set())} className="text-gray-500 hover:underline">Clear</button>
             </div>

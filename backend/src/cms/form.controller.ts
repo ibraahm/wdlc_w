@@ -51,6 +51,12 @@ export class FormController {
     return this.forms.listSubmissions(id, archived === 'true');
   }
 
+  @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER', 'EDITOR')
+  @Get('all-submissions')
+  allSubmissions(@Query('archived') archived?: string) {
+    return this.forms.listAllSubmissions(archived === 'true');
+  }
+
   @Roles('SUPER_ADMIN', 'COMPLIANCE_OFFICER', 'MANAGER')
   @Post()
   create(@Body() dto: CreateFormDto, @CurrentUser() user: AuthUser) {

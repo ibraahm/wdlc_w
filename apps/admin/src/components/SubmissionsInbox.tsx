@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import type { WebsiteForm, WebsiteSubmission } from '@/lib/api';
+import type { WebsiteSubmission } from '@/lib/api';
 import {
   setSubmissionStatusAction,
   addSubmissionNoteAction,
@@ -14,8 +14,9 @@ import {
   bulkUnarchiveSubmissionsAction,
   bulkDeleteSubmissionsAction,
 } from '@/lib/actions';
+import { useToast, useConfirm } from '@/components/ui/Feedback';
 
-export type Row = { form: WebsiteForm; submission: WebsiteSubmission };
+export type Row = { form: { id: string; name: string }; submission: WebsiteSubmission };
 
 const STATUSES = ['NEW', 'IN_PROGRESS', 'RESPONDED', 'CLOSED'] as const;
 const STATUS_COLOR: Record<string, string> = {
@@ -93,11 +94,12 @@ export default function SubmissionsInbox({
   currentUser?: string;
 }) {
   const router = useRouter();
+  const toast = useToast();
+  const confirmDialog = useConfirm();
   const [filter, setFilter] = useState<string>('ALL');
   const [selectedId, setSelectedId] = useState<string | null>(rows[0]?.submission.id ?? null);
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [bulkPending, startBulk] = useTransition();
-  const [bulkError, setBulkError] = useState('');
 
   // Likely duplicates among active rows: same form + same email (or, lacking an
   // email, identical data). The earliest in each group is kept as the original;
@@ -170,13 +172,18 @@ export default function SubmissionsInbox({
       return next;
     });
   }
-  function runBulk(action: (ids: string[]) => Promise<{ ok: boolean; error?: string }>, ids: string[], confirmMsg?: string) {
+  async function runBulk(
+    action: (ids: string[]) => Promise<{ ok: boolean; error?: string }>,
+    ids: string[],
+    verb: string,
+    confirmOpts?: { title?: string; message: string; confirmLabel?: string; danger?: boolean },
+  ) {
     if (ids.length === 0) return;
-    if (confirmMsg && !confirm(confirmMsg)) return;
-    setBulkError('');
+    if (confirmOpts && !(await confirmDialog(confirmOpts))) return;
     startBulk(async () => {
       const res = await action(ids);
-      if (!res.ok) setBulkError(res.error ?? 'Bulk action failed');
+      if (!res.ok) toast(res.error ?? 'Some items could not be updated', 'error');
+      else toast(`${verb} ${ids.length} submission${ids.length === 1 ? '' : 's'}`, 'success');
       setPicked(new Set());
       router.refresh();
     });
@@ -210,7 +217,7 @@ export default function SubmissionsInbox({
           )}
           {!inArchivedView && dupIds.size > 0 && (
             <button
-              onClick={() => runBulk(bulkArchiveSubmissionsAction, Array.from(dupIds), `Archive all ${dupIds.size} duplicate submission(s)?`)}
+              onClick={() => runBulk(bulkArchiveSubmissionsAction, Array.from(dupIds), 'Archived', { title: 'Archive duplicates', message: `Archive all ${dupIds.size} duplicate submission(s)? They move to the Archived view.`, confirmLabel: 'Archive' })}
               disabled={bulkPending}
               className="rounded-full bg-amber-100 px-2.5 py-1 font-semibold text-amber-700 hover:bg-amber-200 disabled:opacity-50"
             >
@@ -221,16 +228,15 @@ export default function SubmissionsInbox({
             <div className="flex flex-wrap items-center gap-2 rounded-lg border border-navy/20 bg-navy/5 px-2.5 py-1">
               <span className="font-semibold text-navy">{picked.size} selected</span>
               {inArchivedView ? (
-                <button onClick={() => runBulk(bulkUnarchiveSubmissionsAction, Array.from(picked))} disabled={bulkPending} className="font-semibold text-navy hover:underline disabled:opacity-50">Restore</button>
+                <button onClick={() => runBulk(bulkUnarchiveSubmissionsAction, Array.from(picked), 'Restored')} disabled={bulkPending} className="font-semibold text-navy hover:underline disabled:opacity-50">Restore</button>
               ) : (
-                <button onClick={() => runBulk(bulkArchiveSubmissionsAction, Array.from(picked))} disabled={bulkPending} className="font-semibold text-amber-700 hover:underline disabled:opacity-50">Archive</button>
+                <button onClick={() => runBulk(bulkArchiveSubmissionsAction, Array.from(picked), 'Archived')} disabled={bulkPending} className="font-semibold text-amber-700 hover:underline disabled:opacity-50">Archive</button>
               )}
-              <button onClick={() => runBulk(bulkDeleteSubmissionsAction, Array.from(picked), `Permanently delete ${picked.size} submission(s)? This cannot be undone.`)} disabled={bulkPending} className="font-semibold text-red-700 hover:underline disabled:opacity-50">Delete</button>
+              <button onClick={() => runBulk(bulkDeleteSubmissionsAction, Array.from(picked), 'Deleted', { title: 'Delete submissions', message: `Permanently delete ${picked.size} submission(s)? This cannot be undone.`, danger: true, confirmLabel: 'Delete' })} disabled={bulkPending} className="font-semibold text-red-700 hover:underline disabled:opacity-50">Delete</button>
               <button onClick={() => setPicked(new Set())} className="text-gray-500 hover:underline">Clear</button>
             </div>
           )}
           {bulkPending && <span className="text-gray-400">Working…</span>}
-          {bulkError && <span className="text-red-600">{bulkError}</span>}
         </div>
 
         <div className="space-y-2 max-h-[70vh] overflow-auto pr-1">
@@ -290,6 +296,8 @@ function Detail({ row, archived, currentUser, onChange }: { row: Row; archived: 
   const firstName = submitterFirstName(data);
   const [pending, start] = useTransition();
   const [error, setError] = useState('');
+  const toast = useToast();
+  const confirmDialog = useConfirm();
   const [tab, setTab] = useState<'reply' | 'note'>('reply');
   const [subject, setSubject] = useState(`Re: ${form.name} - World Direct Link`);
   const [replyBody, setReplyBody] = useState('');
@@ -329,19 +337,28 @@ function Detail({ row, archived, currentUser, onChange }: { row: Row; archived: 
     if (idx < 0) return;
     setReplyBody(CANNED[idx].body.replace(/\{name\}/g, firstName));
   }
-  function archive() {
-    if (!confirm('Archive this submission? It moves to the Archived view but is kept on record.')) return;
+  async function archive() {
+    if (!(await confirmDialog({ title: 'Archive submission', message: 'It moves to the Archived view but is kept on record.', confirmLabel: 'Archive' }))) return;
     setError('');
-    start(async () => { const res = await archiveSubmissionAction(submission.id); if (res.ok) onChange(); else setError(res.error ?? 'Archive failed'); });
+    start(async () => {
+      const res = await archiveSubmissionAction(submission.id);
+      if (res.ok) { toast('Submission archived', 'success'); onChange(); } else { setError(res.error ?? 'Archive failed'); toast(res.error ?? 'Archive failed', 'error'); }
+    });
   }
   function restore() {
     setError('');
-    start(async () => { const res = await unarchiveSubmissionAction(submission.id); if (res.ok) onChange(); else setError(res.error ?? 'Restore failed'); });
+    start(async () => {
+      const res = await unarchiveSubmissionAction(submission.id);
+      if (res.ok) { toast('Submission restored', 'success'); onChange(); } else { setError(res.error ?? 'Restore failed'); toast(res.error ?? 'Restore failed', 'error'); }
+    });
   }
-  function remove() {
-    if (!confirm('Permanently delete this submission and its case history? This cannot be undone.')) return;
+  async function remove() {
+    if (!(await confirmDialog({ title: 'Delete submission', message: 'Permanently delete this submission and its case history? This cannot be undone.', danger: true, confirmLabel: 'Delete' }))) return;
     setError('');
-    start(async () => { const res = await deleteSubmissionAction(submission.id); if (res.ok) onChange(); else setError(res.error ?? 'Delete failed'); });
+    start(async () => {
+      const res = await deleteSubmissionAction(submission.id);
+      if (res.ok) { toast('Submission deleted', 'success'); onChange(); } else { setError(res.error ?? 'Delete failed'); toast(res.error ?? 'Delete failed', 'error'); }
+    });
   }
 
   const messages = submission.messages ?? [];

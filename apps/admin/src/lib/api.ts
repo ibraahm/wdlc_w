@@ -579,6 +579,14 @@ export async function apiListWebsiteSubmissions(
   return handleResponse<WebsiteSubmission[]>(res);
 }
 
+export type SubmissionRow = { form: { id: string; name: string }; submission: WebsiteSubmission };
+
+// All submissions across every form in one request (newest first, capped).
+export async function apiListAllSubmissions(accessToken: string, archived = false): Promise<SubmissionRow[]> {
+  const res = await authFetch(`/cms/forms/all-submissions${archived ? '?archived=true' : ''}`, accessToken);
+  return handleResponse<SubmissionRow[]>(res);
+}
+
 export async function apiArchiveSubmission(accessToken: string, submissionId: string): Promise<void> {
   const res = await authFetch(`/cms/forms/submissions/${submissionId}/archive`, accessToken, { method: 'PATCH' });
   await handleResponse<void>(res);
