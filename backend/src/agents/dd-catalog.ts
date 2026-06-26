@@ -43,12 +43,14 @@ export const DD_CATALOG: DDCatalogItem[] = [
   { code: 'r4', section: 'DOCUMENTATION', label: 'Proof of physical premises (in authorized delegate / business name)', dateBasis: 'RECEIVED' },
   { code: 'r5', section: 'DOCUMENTATION', label: 'Valid government ID (per principal)', dateBasis: 'EXPIRY' },
 
-  // 2. COMPLIANCE DOCUMENTATION (date = received; recheck per policy)
-  { code: 'r6', section: 'COMPLIANCE', label: 'OFAC screening - all employees with transaction access', dateBasis: 'RECEIVED', recheckMonths: 12 },
-  { code: 'r7', section: 'COMPLIANCE', label: 'Adverse media screening (per principal)', dateBasis: 'RECEIVED', recheckMonths: 12 },
-  { code: 'r8', section: 'COMPLIANCE', label: 'Background check and credit report (per principal)', dateBasis: 'RECEIVED', recheckMonths: 24 },
-  { code: 'r9', section: 'COMPLIANCE', label: 'BSA training (initial)', dateBasis: 'RECEIVED', recheckMonths: 12 },
-  { code: 'r10', section: 'COMPLIANCE', label: 'AML acknowledgement form', dateBasis: 'RECEIVED', recheckMonths: 12 },
+  // 2. COMPLIANCE DOCUMENTATION — INITIAL onboarding screening. The date is the
+  // date received; these are one-time records (no recheck here). The recurring
+  // re-screens/renewals live in the Ongoing due diligence section below.
+  { code: 'r6', section: 'COMPLIANCE', label: 'OFAC screening - all employees with transaction access', dateBasis: 'RECEIVED' },
+  { code: 'r7', section: 'COMPLIANCE', label: 'Adverse media screening (per principal)', dateBasis: 'RECEIVED' },
+  { code: 'r8', section: 'COMPLIANCE', label: 'Background check and credit report (per principal)', dateBasis: 'RECEIVED' },
+  { code: 'r9', section: 'COMPLIANCE', label: 'BSA training (initial)', dateBasis: 'RECEIVED' },
+  { code: 'r10', section: 'COMPLIANCE', label: 'AML acknowledgement form', dateBasis: 'RECEIVED' },
   { code: 'r11', section: 'COMPLIANCE', label: 'Anticipated volume form', dateBasis: 'NONE' },
 
   // 3. ONGOING DUE DILIGENCE (date = last completed; recheck per cadence)
