@@ -38,6 +38,17 @@ export class ApplicationsPublicController {
     // `trust proxy` setting configured in main.ts (production). Parsing the
     // raw header here is both redundant and unsafe — the left-most XFF entry
     // is client-spoofable. This matches how every other controller logs IPs.
+    //
+    // TEMP DIAGNOSTIC (SIGNER_METADATA_DEBUG=1): confirm what IP/UA the backend
+    // actually receives for agent submissions — to tell apart legacy data, local
+    // dev (127.0.0.1 is genuinely the client), and an unconfigured prod proxy.
+    // Logs metadata only (never form contents/tokens). Remove after verifying.
+    if (process.env.SIGNER_METADATA_DEBUG === '1') {
+      this.logger.warn(
+        `[signer-metadata] agent apply  ip=${req.ip}  ua=${JSON.stringify(req.headers['user-agent'])}  ` +
+          `bodyUaPresent=${!!dto.signatureUserAgent}`,
+      );
+    }
     return this.applications.create(data, {
       ip: req.ip,
       userAgent: req.headers['user-agent'],
