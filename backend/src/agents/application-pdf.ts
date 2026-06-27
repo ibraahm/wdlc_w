@@ -154,12 +154,14 @@ export async function buildAgentApplicationPdf(app: PdfApplication, brand?: { lo
     row('Currently provides money services', yesNo(app.currentlyProvides, choice(app.currentProvider, app.currentProviderOther) === '—' ? null : choice(app.currentProvider, app.currentProviderOther)),
       'Provided in the past', yesNo(app.providedPast, choice(app.pastProvider, app.pastProviderOther) === '—' ? null : choice(app.pastProvider, app.pastProviderOther)));
     row('Previously declined by a provider', yesNo(app.declinedBefore, app.declinedExplain));
-    if ((app.comments ?? '').trim()) row('Additional comments', app.comments);
+    // Always rendered (with a "—" fallback) so every application — new or
+    // legacy — shows the same set of fields.
+    row('Additional comments', app.comments);
 
     // ── Certification & signature (no IP / user-agent) ──────────────────────────
     heading('Certification & electronic signature');
     row('Signed by', [app.signatureName, app.signatureTitle].filter(Boolean).join(' — ') || '—', 'Accepted on', fmtDate(app.signatureAcceptedAt));
-    if (app.signatureClientTimestamp) row('Signed on the signer’s device', fmtDateTime(app.signatureClientTimestamp));
+    row('Signed on the signer’s device', fmtDateTime(app.signatureClientTimestamp));
     if ((app.signatureConsentText ?? '').trim()) {
       doc.fillColor('#555').font('Helvetica-Oblique').fontSize(8).text(app.signatureConsentText!.trim(), M, y, { width: contentW });
       y += doc.heightOfString(app.signatureConsentText!.trim(), { width: contentW }) + 6;
