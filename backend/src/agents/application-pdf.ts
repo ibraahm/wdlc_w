@@ -37,6 +37,7 @@ type PdfApplication = {
   signatureConsent: boolean;
   signatureConsentText: string | null;
   signatureAcceptedAt: Date | null;
+  signatureClientTimestamp: Date | null;
   createdAt: Date;
   // NOTE: signer IP and user-agent are intentionally NOT rendered on this form.
 };
@@ -47,6 +48,12 @@ const M = 48;
 
 function fmtDate(d?: Date | null): string {
   return d ? d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
+}
+
+function fmtDateTime(d?: Date | null): string {
+  return d
+    ? d.toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' })
+    : '—';
 }
 
 function choice(primary: string | null, other?: string | null): string {
@@ -152,6 +159,7 @@ export async function buildAgentApplicationPdf(app: PdfApplication, brand?: { lo
     // ── Certification & signature (no IP / user-agent) ──────────────────────────
     heading('Certification & electronic signature');
     row('Signed by', [app.signatureName, app.signatureTitle].filter(Boolean).join(' — ') || '—', 'Accepted on', fmtDate(app.signatureAcceptedAt));
+    if (app.signatureClientTimestamp) row('Signed on the signer’s device', fmtDateTime(app.signatureClientTimestamp));
     if ((app.signatureConsentText ?? '').trim()) {
       doc.fillColor('#555').font('Helvetica-Oblique').fontSize(8).text(app.signatureConsentText!.trim(), M, y, { width: contentW });
       y += doc.heightOfString(app.signatureConsentText!.trim(), { width: contentW }) + 6;
